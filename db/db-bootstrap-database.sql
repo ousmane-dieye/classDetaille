@@ -9,6 +9,6 @@ SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'dbname') \gexec
 SELECT format('GRANT CONNECT ON DATABASE %I TO cp_owner, cp_app, cp_ops, cp_monitor', :'dbname') \gexec
 -- Aucun ALTER DATABASE … SET (§ 7.2.7).
 
-\connect :dbname
+\connect :"dbname"
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;

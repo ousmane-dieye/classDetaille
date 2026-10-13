@@ -15,6 +15,8 @@ docker compose -f docker-compose.dev.yml exec -T -u postgres postgres psql -d cl
 
 Sous Git Bash (Windows), préfixer les commandes `exec` par `MSYS_NO_PATHCONV=1`.
 
+Si le port 5432 est occupé, publier PostgreSQL sur un autre port hôte : `PG_PORT=15432 docker compose -f docker-compose.dev.yml up -d postgres`.
+
 ```bash
 pnpm install
 pnpm test:unit

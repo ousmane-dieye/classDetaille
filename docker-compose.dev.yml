@@ -10,11 +10,6 @@ services:
       - pgdata:/var/lib/postgresql
       - ./db:/bootstrap:ro
     ports: ["127.0.0.1:${PG_PORT:-5432}:5432"]
-  minio:
-    # TODO empreinte : minio/minio n'est plus publiée sur Docker Hub (introuvable le 2026-10-13) ; à fixer quand la source est tranchée.
-    image: minio/minio
-    command: ["server", "/data", "--console-address", ":9001"]
-    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
   mailpit:
     image: axllent/mailpit@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
     ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
