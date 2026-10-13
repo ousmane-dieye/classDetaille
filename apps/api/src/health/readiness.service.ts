@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 export abstract class ReadinessProbe {
   abstract check(): Promise<boolean>;
@@ -10,7 +10,9 @@ const PUBLIC_CACHE_MS = 10_000;
 export class ReadinessService {
   private cached: { at: number; status: 'ok' | 'degraded' } | undefined;
 
-  constructor(private readonly probe: ReadinessProbe) {}
+  private inFlight: Promise<'ok' | 'degraded'> | undefined;
+
+  constructor(@Inject(ReadinessProbe) private readonly probe: ReadinessProbe) {}
 
   async isReady(): Promise<boolean> {
     try {
@@ -20,11 +22,17 @@ export class ReadinessService {
     }
   }
 
-  async publicStatus(): Promise<'ok' | 'degraded'> {
+  publicStatus(): Promise<'ok' | 'degraded'> {
     const now = Date.now();
-    if (this.cached && now - this.cached.at < PUBLIC_CACHE_MS) return this.cached.status;
-    const status = (await this.isReady()) ? 'ok' : 'degraded';
-    this.cached = { at: now, status };
-    return status;
+    if (this.cached && now - this.cached.at < PUBLIC_CACHE_MS) return Promise.resolve(this.cached.status);
+    // Une seule sonde en vol : les appels concurrents partagent la même promesse.
+    this.inFlight ??= this.isReady()
+      .then((ok) => {
+        const status = ok ? 'ok' : 'degraded';
+        this.cached = { at: Date.now(), status };
+        return status;
+      })
+      .finally(() => { this.inFlight = undefined; });
+    return this.inFlight;
   }
 }

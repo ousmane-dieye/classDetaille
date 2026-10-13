@@ -58,7 +58,8 @@ describe('initialisation de la base', () => {
         `select has_database_privilege('cp_app', current_database(), 'TEMPORARY') as app_temp,
                 has_database_privilege('cp_monitor', current_database(), 'TEMPORARY') as mon_temp,
                 has_database_privilege('cp_app', current_database(), 'CONNECT') as app_connect,
-                not exists (select 1 from pg_database d, unnest(d.datacl) a
+                (select d.datacl is not null from pg_database d where d.datname = current_database())
+                  and not exists (select 1 from pg_database d, unnest(d.datacl) a
                             where d.datname = current_database() and a::text like '=%') as no_public_acl`,
       );
       expect(rows[0]).toEqual({ app_temp: false, mon_temp: false, app_connect: true, no_public_acl: true });

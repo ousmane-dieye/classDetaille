@@ -60,3 +60,16 @@ describe('santé', () => {
     await ready.close();
   });
 });
+
+describe('ReadinessService sans ruée', () => {
+  it('5 appels concurrents sur cache froid déclenchent une seule sonde', async () => {
+    let calls = 0;
+    class SlowProbe extends ReadinessProbe {
+      async check() { calls++; await new Promise((r) => setTimeout(r, 50)); return true; }
+    }
+    const svc = new ReadinessService(new SlowProbe());
+    const res = await Promise.all(Array.from({ length: 5 }, () => svc.publicStatus()));
+    expect(res).toEqual(Array(5).fill('ok'));
+    expect(calls).toBe(1);
+  });
+});
