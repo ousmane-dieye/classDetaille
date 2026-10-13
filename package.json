@@ -1,0 +1,24 @@
+{
+  "name": "classepulse",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test:unit": "vitest run --project unit --project web",
+    "test:int": "vitest run --project integration",
+    "depcruise": "depcruise apps/api/src --config .dependency-cruiser.cjs"
+  },
+  "packageManager": "pnpm@12.11.2+sha512.25a51652a196785af5f28bda6dfe8dc582ebefa4ac1d180221ce1390231c5fb76637822ea4b6e4633ce74acdcb0a77f725af11bad38177fdeddaee818a955cb9",
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@swc/core": "1.16.18",
+    "dependency-cruiser": "18.6.0",
+    "eslint": "10.12.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "unplugin-swc": "2.0.0",
+    "vitest": "5.0.4"
+  }
+}
