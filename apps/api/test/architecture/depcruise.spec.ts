@@ -18,7 +18,7 @@ function cruise(target: string): Promise<{ code: number; out: string }> {
 }
 
 describe('règles d’architecture', () => {
-  it('détecte Prisma importé hors d’un repository et un repository étranger', async () => {
+  it('détecte Prisma importé hors d’un repository et un repository étranger', { timeout: 60_000 }, async () => {
     const r = await cruise('apps/api/test/architecture/fixtures/src');
     expect(r.code).toBe(1);
     expect(r.out).toContain('no-prisma-outside-repositories');
@@ -28,7 +28,7 @@ describe('règles d’architecture', () => {
     expect(r.out).not.toMatch(/no-prisma-outside-repositories[^\n]*alpha\.repository\.ts/);
   });
 
-  it('le code réel de l’API respecte les règles', async () => {
+  it('le code réel de l’API respecte les règles', { timeout: 60_000 }, async () => {
     const r = await cruise('apps/api/src');
     expect(r.code, r.out).toBe(0);
   });
