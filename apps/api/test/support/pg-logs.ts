@@ -18,8 +18,6 @@ export async function setServerLogging(settings: Record<string, string>): Promis
 /** Retire les réglages forcés ; les valeurs de production (ligne de commande du serveur) redeviennent effectives. */
 export async function resetServerLogging(): Promise<void> {
   for (const k of KEYS) await runSql('postgres', `ALTER ROLE ${FORCED_ROLE} RESET ${k}`);
-  await runSql('postgres', 'ALTER SYSTEM RESET ALL');
-  await runSql('postgres', 'SELECT pg_reload_conf()');
 }
 
 /** Décode le flux Docker multiplexé (en-têtes de 8 octets) ; renvoie le tampon tel quel s'il n'est pas multiplexé. */

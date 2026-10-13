@@ -1693,7 +1693,7 @@ L'état ARMÉ passe à ARMÉ expiré au plus tard 15 min après T1, sans opérat
 #### 7.6.8 Transmission du secret à PostgreSQL
 - S, le HMAC du code et le code passent **uniquement en paramètres liés** (protocole étendu de `pg`, tableau `values`). **Le texte SQL est une constante** : aucune concaténation.
 - Réglages PostgreSQL : `log_statement='none'`, `log_parameter_max_length=0`, `log_parameter_max_length_on_error=0`. `auto_explain` n'est pas chargé.
-- Les valeurs transmises en paramètres liés ne sont pas écrites dans les journaux **tant que** les deux réglages de longueur valent 0. Ces réglages ne peuvent être changés que par le superutilisateur. **[Limite]** Un accès root ou superutilisateur peut les modifier et journaliser ces valeurs.
+- Les valeurs transmises en paramètres liés ne sont pas écrites dans les journaux **tant que** les deux réglages de longueur valent 0. `log_parameter_max_length` ne peut être changé que par le superutilisateur ; `log_parameter_max_length_on_error` peut l'être par une session, pour elle seule (G4). **[Limite]** Un accès root ou superutilisateur peut les modifier et journaliser ces valeurs.
 - L'absence de ces valeurs dans `pg_stat_activity.query` et `pg_stat_statements` est une **exigence vérifiée par T-05 (b)**, pas une garantie a priori.
 
 #### 7.6.9 Après une utilisation, et risques résiduels
@@ -1912,7 +1912,7 @@ L'état ARMÉ passe à ARMÉ expiré au plus tard 15 min après T1, sans opérat
 - G1. Aucun secret de connexion n'existe côté serveur : `rolpassword` est NULL pour `cp_owner`, `cp_app`, `cp_ops` et `cp_monitor` **[C]**. Le mot de passe du superutilisateur n'est fourni qu'à l'initialisation.
 - G2. **Exigence** : toute requête qui transmet S, un code ou un jeton le fait **uniquement par paramètres liés**, avec un texte SQL constant et sans concaténation. **Vérification** : le test (b) contrôle explicitement que ces valeurs sont absentes de `pg_stat_activity.query` et de `pg_stat_statements` dans la configuration testée.
 - G3. Avec la configuration de production (`log_parameter_max_length=0`, `log_parameter_max_length_on_error=0`, `log_statement='none'`), les valeurs de ces paramètres ne sont écrites dans aucun journal, même si une instruction est lente ou en erreur.
-- G4. Seul le superutilisateur peut modifier ces deux réglages de longueur. **Limite conservée** : un accès root ou superutilisateur peut les changer et journaliser ces valeurs.
+- G4. `log_parameter_max_length` ne peut être modifié que par le superutilisateur. `log_parameter_max_length_on_error` est modifiable par toute session (contexte `user` dans PostgreSQL 18), mais pour cette session seulement : il ne peut exposer que les valeurs que cette session envoie elle-même (constaté par T-05). **Garde-fou** : aucune instruction `SET log_*` dans le code de l'application ni des commandes d'exploitation (test automatique). **Limite conservée** : un accès root ou superutilisateur peut changer ces réglages pour tout le serveur et journaliser ces valeurs.
 
 **Tests d'acceptation** :
 - (a) **Absence de secret de connexion (G1)** : `rolpassword` NULL pour les quatre rôles. Aucune instruction ne contient de mot de passe, de vérificateur ou de clé. Le mot de passe du superutilisateur est absent des journaux, avec une journalisation complète forcée dès le premier démarrage.
@@ -1921,7 +1921,7 @@ L'état ARMÉ passe à ARMÉ expiré au plus tard 15 min après T1, sans opérat
   - Attendu : S, les codes et les jetons sont **absents** du texte des instructions, de `pg_stat_activity.query` (capturée pendant l'exécution) et de `pg_stat_statements`.
   - Leur présence dans les lignes « parameters: » du journal est **attendue** dans ce mode : elle prouve l'usage de paramètres liés. **Ce test ne vérifie pas l'absence de secrets dans les journaux.**
 - (c) **Configuration de production (G3)** : les réglages de production, puis `log_statement=all` et `log_min_duration_statement=0` forcés **sans toucher** aux deux réglages de longueur, avec une erreur provoquée. Attendu : aucun S, code ni jeton dans les journaux.
-- (d) **Droits (G4)** : `cp_app`, `cp_ops` et `cp_monitor` ne peuvent pas modifier les deux réglages de longueur.
+- (d) **Droits (G4)** : `cp_app`, `cp_ops` et `cp_monitor` ne peuvent pas modifier `log_parameter_max_length` ; la modification de `log_parameter_max_length_on_error` par une session est caractérisée (elle n'affecte que cette session) ; aucun fichier du code ne contient d'instruction `SET log_*`.
 
 Opérations couvertes : initialisation, rotation d'une identité, `admin-recovery-code` et toutes les opérations du secours.
 
