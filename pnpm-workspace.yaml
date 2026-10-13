@@ -3,6 +3,6 @@ packages:
   - packages/*
 allowBuilds:
   '@swc/core': true
-  cpu-features: true
-  protobufjs: true
-  ssh2: true
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
