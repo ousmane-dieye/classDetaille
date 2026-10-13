@@ -17,10 +17,11 @@ jobs:
         with: { node-version-file: .nvmrc, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @classepulse/api prisma:generate
-      - run: pnpm test:int
+      - run: pnpm test:int --reporter=default --reporter=junit --outputFile=apps/api/test-results/junit.xml
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: integration-logs
-          path: apps/api/test/**/__snapshots__/**
+          path: apps/api/test-results/**
+          if-no-files-found: ignore
           retention-days: 3
