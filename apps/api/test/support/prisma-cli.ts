@@ -41,11 +41,21 @@ export function envForDb(db: DbConfig): { env: NodeJS.ProcessEnv; dir: string } 
 
 export function runPrisma(args: string[], db: DbConfig, opts: { configPath?: string } = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   const full = opts.configPath ? [...args, '--config', opts.configPath] : args;
-  const { env, dir } = envForDb(db);
   return new Promise((done) => {
+    let prepared: { env: NodeJS.ProcessEnv; dir: string };
+    try {
+      prepared = envForDb(db);
+    } catch (e) {
+      done({ code: 1, stdout: '', stderr: String(e) });
+      return;
+    }
+    const { env, dir } = prepared;
     execFile(process.execPath, [PRISMA_CLI, ...full], { cwd: API_DIR, env, timeout: 120_000 }, (err, stdout, stderr) => {
-      rmSync(dir, { recursive: true, force: true });
-      done({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout, stderr });
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } finally {
+        done({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout, stderr });
+      }
     });
   });
 }

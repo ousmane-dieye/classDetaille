@@ -41,9 +41,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
     host: container.getHost(), port: container.getPort(), database: templateDb, user: 'cp_owner',
     auth: { mode: 'password', password: rolePassword },
   });
-  if (migrate.code !== 0) throw new Error(`prisma migrate deploy failed:
-${migrate.stdout}
-${migrate.stderr}`);
+  if (migrate.code !== 0) throw new Error(`prisma migrate deploy failed:\n${migrate.stdout}\n${migrate.stderr}`);
 
   project.provide('pg', {
     host: container.getHost(),
