@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`T-01 — Prisma 7.10.0 > T1b : même migration sans BEGIN/COMMIT → comportement constaté (caractérisation) 1`] = `
+{
+  "failed": true,
+  "tableLeftBehind": true,
+}
+`;

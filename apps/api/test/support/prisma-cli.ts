@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -7,7 +7,10 @@ import type { DbConfig } from '../../src/config/load-config.js';
 
 export const API_DIR = resolve(import.meta.dirname, '../..');
 
-const PRISMA_CLI = createRequire(import.meta.url).resolve('prisma/build/index.js');
+const requireFromHere = createRequire(import.meta.url);
+const PRISMA_CLI = requireFromHere.resolve('prisma/build/index.js');
+// Le projet temporaire est hors de node_modules : `prisma/config` doit y être importé par chemin absolu.
+const PRISMA_CONFIG_MODULE = requireFromHere.resolve('prisma/config').replaceAll('\\', '/');
 
 export function envForDb(db: DbConfig): { env: NodeJS.ProcessEnv; dir: string } {
   const dir = mkdtempSync(join(tmpdir(), 'cp-prisma-'));
@@ -58,4 +61,38 @@ export function runPrisma(args: string[], db: DbConfig, opts: { configPath?: str
       }
     });
   });
+}
+
+/** Projet Prisma temporaire. Son `prisma.config.ts` définit toujours le datasource (l'environnement DB_* est toujours fourni par `runPrisma`). */
+export function makeScratchPrismaProject(migrations: Record<string, string>): string {
+  const dir = mkdtempSync(join(tmpdir(), 'cp-scratch-'));
+  mkdirSync(join(dir, 'migrations'));
+  writeFileSync(join(dir, 'migrations', 'migration_lock.toml'), 'provider = "postgresql"\n');
+  for (const [name, sql] of Object.entries(migrations)) {
+    mkdirSync(join(dir, 'migrations', name));
+    writeFileSync(join(dir, 'migrations', name, 'migration.sql'), sql);
+  }
+  writeFileSync(join(dir, 'schema.prisma'), 'datasource db {\n  provider = "postgresql"\n  schemas = ["app"]\n}\n');
+  const cfg = join(dir, 'prisma.config.ts');
+  const api = API_DIR.replaceAll('\\', '/');
+  const scratch = dir.replaceAll('\\', '/');
+  writeFileSync(
+    cfg,
+    `import { defineConfig } from '${PRISMA_CONFIG_MODULE}';
+import { loadConfig } from '${api}/src/config/load-config.ts';
+import { toPrismaCliUrl } from '${api}/src/config/database-connection.ts';
+export default defineConfig({
+  schema: '${scratch}/schema.prisma',
+  migrations: { path: '${scratch}/migrations' },
+  datasource: { url: toPrismaCliUrl(loadConfig(process.env).db) },
+});
+`,
+  );
+  return cfg;
+}
+
+export function writeMigration(cfgPath: string, name: string, sql: string): void {
+  const dir = join(cfgPath, '..', 'migrations', name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'migration.sql'), sql);
 }
