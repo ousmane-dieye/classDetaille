@@ -1,0 +1,3 @@
+export const PG_IMAGE =
+  process.env.PG_IMAGE ??
+  'postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336';
