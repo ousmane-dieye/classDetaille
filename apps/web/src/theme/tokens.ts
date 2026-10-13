@@ -4,7 +4,7 @@ export type ThemeTokens = {
 };
 
 export const tokens: { light: ThemeTokens; dark: ThemeTokens } = {
-  light: { bg: '#FFF9F4', side: '#FFFFFF', surface: '#FFFFFF', ink: '#2A211C', muted: '#8C7E73', line: '#F0E3D8', line2: '#DFCBBB', navon: '#FCEBE1', brand: '#C2461F', onbrand: '#FFFFFF', brandtx: '#C2461F', red: '#B42318', amb: '#A15C07', grn: '#1E7A46' },
+  light: { bg: '#FFF9F4', side: '#FFFFFF', surface: '#FFFFFF', ink: '#2A211C', muted: '#7A6C61', line: '#F0E3D8', line2: '#DFCBBB', navon: '#FCEBE1', brand: '#C2461F', onbrand: '#FFFFFF', brandtx: '#C2461F', red: '#B42318', amb: '#A15C07', grn: '#1E7A46' },
   dark: { bg: '#1A1411', side: '#1F1814', surface: '#241C18', ink: '#F6EDE6', muted: '#B3A398', line: '#382B24', line2: '#54443A', navon: '#33241D', brand: '#E8703F', onbrand: '#1A1411', brandtx: '#F08A5D', red: '#FF8A7A', amb: '#F2C063', grn: '#72D49B' },
 };
 

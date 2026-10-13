@@ -137,7 +137,7 @@ Textes de l'urgence : « Dans 6 jours », « Dans 3 jours », « Demain 08:00 »
 | Barre latérale | `#FFFFFF` | `#1F1814` |
 | Surface (cartes) | `#FFFFFF` | `#241C18` |
 | Encre (texte) | `#2A211C` | `#F6EDE6` |
-| Texte secondaire | `#8C7E73` | `#B3A398` |
+| Texte secondaire | `#7A6C61` (ajusté pour respecter 4,5:1, UX § 5.1) | `#B3A398` |
 | Traits | `#F0E3D8` | `#382B24` |
 | Traits appuyés | `#DFCBBB` | `#54443A` |
 | Navigation active | `#FCEBE1` | `#33241D` |

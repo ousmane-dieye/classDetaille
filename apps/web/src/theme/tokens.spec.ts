@@ -13,7 +13,7 @@ describe('couleurs de la direction B (UX § 4.1)', () => {
   });
   it.each(['light', 'dark'] as const)('contraste AA du texte dans le thème %s', (mode) => {
     const t = tokens[mode];
-    for (const [fg, bg] of [[t.ink, t.bg], [t.ink, t.surface], [t.onbrand, t.brand], [t.brandtx, t.surface], [t.red, t.surface], [t.amb, t.surface], [t.grn, t.surface]] as const) {
+    for (const [fg, bg] of [[t.ink, t.bg], [t.ink, t.surface], [t.onbrand, t.brand], [t.brandtx, t.surface], [t.red, t.surface], [t.amb, t.surface], [t.grn, t.surface], [t.muted, t.bg], [t.muted, t.surface], [t.brandtx, t.bg]] as const) {
       expect(contrastRatio(fg, bg), `${fg} sur ${bg}`).toBeGreaterThanOrEqual(4.5);
     }
   });
