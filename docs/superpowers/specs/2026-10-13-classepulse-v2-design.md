@@ -4,7 +4,7 @@
 |---|---|
 | Date | 2026-10-13 |
 | Statut | Sections 1 à 5 **figées**. Section 6 **validée sur le principe**. Section 7 révisée : parties A, B, D et E **approuvées** ; partie C **conditionnée au résultat de T-01**. Aucune procédure n'est déclarée opérationnelle avant la réussite de ses tests (§ 9). |
-| Décisions encore ouvertes | D-1 financement de l'intégration continue ; D-2 durées de conservation et de verrouillage B2 (§ 10) |
+| Décisions encore ouvertes | D-1 financement de l'intégration continue (tranchée pour la phase de développement, à revoir avant la production) ; D-2 durées de conservation et de verrouillage B2 (§ 10) |
 | Sources | `classpulse/docs/classepulse-v2/README.md` (F-001 à F-080, règles R-*, matrice D), `ROADMAP.md`, `docs/audit-classepulse/` (audit de la V1) |
 | Portée | Reconstruction complète, base vide, aucune reprise de données de la V1 |
 
@@ -1818,7 +1818,7 @@ L'état ARMÉ passe à ARMÉ expiré au plus tard 15 min après T1, sans opérat
 
 **Aucun contrôle de la section 5 ne disparaît.**
 
-**[Ouvert D-1]** Financement (§ 10).
+**[D-1]** Décision de développement (§ 10) ; suite de nuit et suites étendues à financer avant la production.
 
 ### 7.10 Journaux et incidents
 - **À journaliser** : requêtes (route modèle, code, durée, `request_id`, identifiant d'utilisateur, IP), authentification, refus d'autorisation, traitements, transitions des emails (identifiants seulement), erreurs.
@@ -1930,7 +1930,7 @@ Opérations couvertes : initialisation, rotation d'une identité, `admin-recover
 ## 10. Décisions ouvertes
 | # | Décision | Options et paramètres | À trancher avant |
 |---|---|---|---|
-| **D-1** | Financement de l'intégration continue | **(a)** offre Free avec dépassement payé : environ (3 800 + 60 N − 2 000) × k × 0,006 $ par mois. **(b)** offre Pro avec dépassement (prix de l'offre [À vérifier]). **(c)** runner auto-hébergé sur une petite machine dédiée, **jamais le VPS de production** : tarif [À vérifier], une machine de plus à sécuriser, isolation par conteneurs éphémères nécessaire. **À fixer aussi** : plafond de dépenses du premier mois (avant toute mesure) et seuils d'alerte ; durée de conservation des artefacts. Après T-12, le plafond est réajusté **au-dessus** de la consommation mesurée, pour ne pas bloquer les nuits. | La mise en place de l'intégration continue (lot 0) |
+| **D-1** | Financement de l'intégration continue | **Décidé le 2026-10-13 (phase de développement)** : rester dans l'offre gratuite (2 000 min/mois), plafond de dépenses 0 $, artefacts conservés 3 jours ; seuls les workflows rapide et intégration sont actifs. **À revoir avant la première mise en production** : la suite de nuit exigée par le § 5.6 n'est pas encore financée. Options examinées (historique) : **(a)** offre Free avec dépassement payé : environ (3 800 + 60 N − 2 000) × k × 0,006 $ par mois. **(b)** offre Pro avec dépassement (prix de l'offre [À vérifier]). **(c)** runner auto-hébergé sur une petite machine dédiée, **jamais le VPS de production** : tarif [À vérifier], une machine de plus à sécuriser, isolation par conteneurs éphémères nécessaire. **À fixer aussi** : plafond de dépenses du premier mois (avant toute mesure) et seuils d'alerte ; durée de conservation des artefacts. Après T-12, le plafond est réajusté **au-dessus** de la consommation mesurée, pour ne pas bloquer les nuits. | La mise en place de l'intégration continue (lot 0) |
 | **D-2** | Durées B2 | Durées du mode conformité L (8, 29, 181 et 30 jours proposés) ; `daysFromHidingToDeleting` des buckets de sauvegarde ; conservation du préfixe `manifests/` (supérieure à 90 jours) | Après T-06, avant la création des buckets de production |
 
 ---
