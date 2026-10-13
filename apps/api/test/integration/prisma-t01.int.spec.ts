@@ -18,7 +18,15 @@ describe('T-01 — Prisma 7.10.0', () => {
     });
     const r = await runPrisma(['migrate', 'deploy'], dbConfigFor('cp_owner', db), { configPath: cfg });
     expect(r.code).not.toBe(0);
+    const out = r.stdout + r.stderr;
+    // Sortie réelle : Prisma remonte l'erreur de suite (« current transaction is aborted »), pas le message 22012 lui-même.
+    expect(out).toMatch(/division by zero|22012|current transaction is aborted/i);
+    expect(out).toContain('20990101000000_t1a');
     expect(await tableExists(db, 't1a')).toBe(false);
+    const c = await connectAs('cp_owner', db);
+    const m = await c.query(`select finished_at is null as unfinished from app._prisma_migrations where migration_name = '20990101000000_t1a'`);
+    await c.end();
+    expect(m.rows).toEqual([{ unfinished: true }]);
   });
 
   it('T1b : même migration sans BEGIN/COMMIT → comportement constaté (caractérisation)', async () => {
@@ -44,7 +52,7 @@ describe('T-01 — Prisma 7.10.0', () => {
     let advisoryWaitSeen = false;
     // Sonde jusqu'à la fin des deux processus (le démarrage de la CLI Prisma prend plusieurs secondes).
     for (let i = 0; i < 600 && !advisoryWaitSeen && !settled; i++) {
-      const w = await mon.query(`select count(*)::int as n from pg_locks where locktype = 'advisory' and not granted`);
+      const w = await mon.query(`select count(*)::int as n from pg_locks where locktype = 'advisory' and not granted and database = (select oid from pg_database where datname = current_database())`);
       advisoryWaitSeen = w.rows[0].n > 0;
       await new Promise((res) => setTimeout(res, 200));
     }

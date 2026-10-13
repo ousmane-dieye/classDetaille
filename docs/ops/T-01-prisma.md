@@ -36,11 +36,11 @@ Date : 2026-10-13. Prisma : 7.10.0 (`prisma`, `@prisma/client`, schema-engine 0e
 
 | Test | Résultat constaté | Verdict |
 |---|---|---|
-| T1a : `BEGIN; CREATE TABLE; SELECT 1/0; COMMIT;` | `migrate deploy` sort avec un code non nul ; `app.t1a` n'existe pas (retour arrière complet). Sortie Prisma : `ERROR: current transaction is aborted, commands ignored until end of transaction block` (migration `Applying migration ...`). | conforme |
+| T1a : `BEGIN; CREATE TABLE; SELECT 1/0; COMMIT;` | `migrate deploy` sort avec un code non nul ; `app.t1a` n'existe pas (retour arrière complet). Sortie Prisma : `Applying migration `20990101000000_t1a`` puis `ERROR: current transaction is aborted, commands ignored until end of transaction block` (le message `division by zero` / 22012 n'apparaît pas dans la sortie). Le test vérifie ce message et le nom de la migration, et que la ligne de `app._prisma_migrations` a `finished_at IS NULL`. | conforme |
 | T1b : même migration sans `BEGIN`/`COMMIT` | Instantané ci-dessous : l'exécution échoue ET la table reste créée. | caractérisation |
 | T2 : deux `migrate deploy` simultanés (migration à `pg_sleep(4)`) | Les deux processus sortent avec le code 0 ; un verrou consultatif non accordé (`pg_locks`, `locktype = 'advisory'`, `granted = false`) est observé ; la migration n'est enregistrée qu'une fois dans `app._prisma_migrations`. | conforme : verrou de Prisma démontré |
 | T3 : échec, `migrate resolve --rolled-back`, correction du fichier, `migrate deploy` | Le premier `deploy` échoue (code 1) ; `resolve --rolled-back` sort avec 0 (`Migration ... marked as rolled back.`) ; le `deploy` suivant réussit et `app.t3` existe. | conforme |
-| T4 : `CREATE INDEX CONCURRENTLY` interrompu (`pg_terminate_backend`) | Prisma exécute bien la migration hors transaction (sans interruption, `CREATE INDEX CONCURRENTLY` aboutit avec le code 0 : pas de `cannot run inside a transaction block`). Une fois la session tuée, `migrate deploy` sort avec un code non nul et `findInvalidIndexes(client, 'app')` renvoie `['big_v_idx']`. | conforme |
+| T4 : `CREATE INDEX CONCURRENTLY` interrompu (`pg_terminate_backend`) | Prisma exécute bien la migration hors transaction : aucune erreur `cannot run inside a transaction block` (observation manuelle lors du débogage : sans interruption, `CREATE INDEX CONCURRENTLY` aboutit avec le code 0 ; non couverte par un test automatisé). Une fois la session tuée, `migrate deploy` sort avec un code non nul et `findInvalidIndexes(client, 'app')` renvoie `['big_v_idx']`. | conforme |
 
 ### T1b : instantané (`apps/api/test/integration/__snapshots__/prisma-t01.int.spec.ts.snap`)
 
@@ -51,7 +51,7 @@ Date : 2026-10-13. Prisma : 7.10.0 (`prisma`, `@prisma/client`, schema-engine 0e
 }
 ```
 
-Sans `BEGIN`/`COMMIT`, Prisma n'enveloppe pas la migration dans une transaction dans ce scénario : l'instruction qui précède l'erreur est appliquée et reste en base, et la migration est marquée en échec. Les `BEGIN`/`COMMIT` explicites sont donc la seule garantie d'atomicité.
+Sans `BEGIN`/`COMMIT`, Prisma n'enveloppe pas la migration dans une transaction dans ce scénario : l'instruction qui précède l'erreur est appliquée et reste en base, et la migration est marquée en échec. Dans ce scénario (fichier à plusieurs instructions sans `BEGIN`), il n'y a donc pas d'atomicité. Inférence (non mesurée directement) : Prisma envoie le fichier tel quel, en une seule fois, sans l'envelopper dans une transaction ; avec `BEGIN`/`COMMIT` explicites, l'erreur laisse la transaction ouverte puis abandonnée à la fermeture de la connexion (retour arrière côté serveur), ce qui explique le message `current transaction is aborted` : la `COMMIT` reçoit cet état d'échec.
 
 La règle `BEGIN`/`COMMIT` explicite est **confirmée** (T1a réussi : aucune table créée après échec ; la migration de fondation, qui contient `BEGIN`/`COMMIT`, est acceptée par `migrate deploy`, voir plus haut).
 

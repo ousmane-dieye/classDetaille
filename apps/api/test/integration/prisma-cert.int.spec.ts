@@ -60,11 +60,16 @@ describe('T-01 partie C — certificat client avec Prisma 7.10.0', () => {
     const r = await runPrisma(['migrate', 'deploy'], ownerDb(pki.caCrt), { configPath: cfg });
     expect(r.stderr + r.stdout).not.toMatch(/sslaccept|sslpassword/i);
     expect(r.code).toBe(0);
+    const e = await c.exec(['psql', '-U', 'postgres', '-d', 'classepulse', '-tAc', "select to_regclass('app.c_ok') is not null"], { user: 'postgres' });
+    expect(e.output.trim()).toBe('t');
   });
 
   it('migrate deploy échoue si le serveur n’est pas signé par l’autorité attendue', async () => {
     const cfg = makeScratchPrismaProject({ '20990101000001_c2': '-- classification: expand\nBEGIN;\nCREATE TABLE app.c_ko (id int);\nCOMMIT;\n' });
     const r = await runPrisma(['migrate', 'deploy'], ownerDb(pki.foreignCa()), { configPath: cfg });
     expect(r.code).not.toBe(0);
+    const out = r.stdout + r.stderr;
+    expect(out).toMatch(/P1011|certificate|TLS|self.signed|unknown ca|certificat/i);
+    expect(out).not.toMatch(/invalid configuration/i);
   });
 });
