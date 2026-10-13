@@ -9,3 +9,11 @@ allowBuilds:
   prisma: true
   protobufjs: false
   ssh2: false
+overrides:
+  deepmerge-ts: 8.0.2
+  mysql2: 3.24.6
+auditConfig:
+  ignoreGhsas:
+    - GHSA-86w9-cpqp-85rv
+minimumReleaseAgeExclude:
+  - mysql2@3.24.6

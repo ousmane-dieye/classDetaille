@@ -27,3 +27,5 @@ Source : onglet « Usage » de la pull request, puis rapport d'usage de facturat
 ## Règle de plafond
 
 Avec un plafond de dépenses à 0 $, quand la consommation mensuelle approche 2 000 minutes, **les Actions s'arrêtent** (les workflows ne démarrent plus). Le responsable humain doit alors décider : attendre le mois suivant, réduire les déclenchements, ou financer (offre Pro, dépassement, runner auto-hébergé). Ne rien contourner sans cette décision.
+
+Exceptions de sécurité acceptées (audit des dépendances) : voir `docs/ops/audit-exceptions.md`.
