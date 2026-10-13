@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClassePulse V2 — Maquettes lot 4 (administration)</title>
+<style>body{margin:0;padding:32px;background:#f4f1ee;font-family:Figtree,system-ui,sans-serif;color:#2A211C}h2{font-size:26px;margin:0 0 6px}h3{font-size:19px}.subtitle{color:#6b6460;font-size:14px}</style>
+</head><body>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap');
+.lot{font-family:'Figtree',sans-serif}
+.L{--bg:#FFF9F4;--side:#FFFFFF;--surface:#FFFFFF;--ink:#2A211C;--muted:#8C7E73;--line:#F0E3D8;--line2:#DFCBBB;--navon:#FCEBE1;--brand:#C2461F;--brandtx:#C2461F;--onbrand:#FFFFFF;--red:#B42318;--amb:#A15C07;--grn:#1E7A46;--soft:#FBF1EA;--ok:#1E7A46}
+.D{--bg:#1A1411;--side:#1F1814;--surface:#241C18;--ink:#F6EDE6;--muted:#B3A398;--line:#382B24;--line2:#54443A;--navon:#33241D;--brand:#E8703F;--brandtx:#F08A5D;--onbrand:#1A1411;--red:#FF8A7A;--amb:#F2C063;--grn:#72D49B;--soft:#2C211C;--ok:#72D49B}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.s{width:15px;height:15px}
+
+.blk{margin:30px 0 46px}
+.blk>h3{margin:0 0 4px}
+.blk>.subtitle{margin:0 0 14px}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:12px;color:#8a8a8a;margin:8px 4px 0;max-width:300px}
+
+/* frames */
+.mob{width:300px;height:620px;border-radius:34px;overflow:hidden;position:relative;background:var(--bg);color:var(--ink);box-shadow:0 0 0 7px #17120f,0 20px 40px -20px rgba(0,0,0,.5);font-size:14px}
+.desk{width:780px;height:480px;border-radius:12px;overflow:hidden;display:flex;position:relative;background:var(--bg);color:var(--ink);box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px -22px rgba(0,0,0,.4);font-size:14px}
+.status{height:26px;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:11px;font-weight:600}
+.mtop{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 10px}
+.mtop .kl{font-size:12px;color:var(--muted);font-weight:600}
+.mtop h1{font-size:20px;font-weight:800;margin:0;letter-spacing:-.01em}
+.bell{position:relative;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surface)}
+.bell em{position:absolute;top:-4px;right:-4px;background:var(--brand);color:var(--onbrand);font-style:normal;font-size:10px;font-weight:700;border-radius:999px;padding:0 5px;line-height:16px}
+.pad{padding:0 14px}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:64px;padding-bottom:8px;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center}
+.tb{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);font-weight:500;position:relative}
+.tb.on{color:var(--brandtx);font-weight:700}
+.tb em{position:absolute;top:-4px;right:2px;background:var(--brand);color:var(--onbrand);font-style:normal;font-size:9px;font-weight:700;border-radius:999px;padding:0 4px;line-height:14px}
+.fab{position:absolute;right:14px;bottom:78px;width:52px;height:52px;border-radius:50%;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+.dfab{position:absolute;right:20px;bottom:18px;height:40px;padding:0 15px 0 12px;border-radius:999px;background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+
+.side{width:176px;background:var(--side);border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:2px;flex:none}
+.logo{font-weight:800;font-size:16px;letter-spacing:-.02em;margin:0 8px 16px}
+.logo span{color:var(--brandtx)}
+.nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--muted);font-weight:500}
+.nav.on{background:var(--navon);color:var(--ink);font-weight:600}
+.nav.on svg{color:var(--brandtx)}
+.nav b{margin-left:auto;background:var(--brand);color:var(--onbrand);font-size:10px;border-radius:999px;padding:0 6px;line-height:16px}
+.kls{margin-top:auto;font-size:11.5px;color:var(--muted);padding:9px 10px;border-top:1px solid var(--line)}
+.kls strong{display:block;color:var(--ink);font-size:13px}
+.dmain{flex:1;padding:18px 22px;overflow:hidden;position:relative;min-width:0}
+.dtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.dtop h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.015em}
+.dtop .r{display:flex;gap:8px;align-items:center}
+
+/* bits */
+.hero{background:var(--brand);color:var(--onbrand);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+.hero h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.hero p{margin:3px 0 0;font-size:13px;opacity:.93}
+.sect{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;margin:4px 0 8px}
+.sect a{font-weight:600;font-size:12px;color:var(--brandtx)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:8px}
+.task{display:flex;gap:11px;align-items:center}
+.box{width:20px;height:20px;border-radius:6px;border:1.8px solid var(--line2);flex:none;display:flex;align-items:center;justify-content:center}
+.box.done{background:var(--brand);border-color:var(--brand);color:var(--onbrand)}
+.box.dis{opacity:.45}
+.tm{flex:1;min-width:0}
+.tag{font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:5px}
+.tag:before{content:"";width:7px;height:7px;border-radius:2px;background:var(--c)}
+.ttl{font-size:14px;font-weight:600;margin-top:1px}
+.ttl.strike{text-decoration:line-through;color:var(--muted)}
+.due{font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.due:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.mut{color:var(--muted)}
+.lbl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.who{display:flex;align-items:center;gap:7px;margin-top:7px;font-size:11.5px;color:var(--muted)}
+.av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex:none}
+.res{display:flex;align-items:center;gap:10px}
+.ric{width:34px;height:34px;border-radius:10px;background:var(--navon);color:var(--brandtx);display:flex;align-items:center;justify-content:center;flex:none}
+.small{font-size:11.5px;color:var(--muted)}
+.chips{display:flex;gap:6px;overflow:hidden;margin:2px 0 10px}
+.chip{font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap;background:var(--surface)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:3px;margin:0 0 10px}
+.seg span{flex:1;text-align:center;font-size:13px;font-weight:600;padding:7px;border-radius:9px;color:var(--muted)}
+.seg span.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:12px;padding:9px 11px;color:var(--muted);font-size:14px;background:var(--surface);margin-bottom:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;padding:12px;font-weight:600;font-size:14px;border:1px solid transparent}
+.b1{background:var(--brand);color:var(--onbrand)}
+.b2{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.bdis{background:var(--soft);color:var(--muted)}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;padding:10px 11px;border-radius:12px;background:var(--soft);color:var(--ink)}
+.note.err{background:color-mix(in srgb,var(--red) 10%,var(--surface));color:var(--red)}
+.note.warn{background:color-mix(in srgb,var(--amb) 12%,var(--surface));color:var(--amb)}
+.banner{display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:600;padding:8px 14px}
+.empty{text-align:center;padding:26px 18px;color:var(--muted)}
+.empty svg.ill{width:84px;height:84px;stroke-width:1.2;color:var(--line2);margin-bottom:8px}
+.empty h4{color:var(--ink);margin:0 0 4px;font-size:16px}
+.back{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brandtx);padding:6px 14px}
+.prog{height:6px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:7px}
+.prog i{display:block;height:100%;background:var(--brand)}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.inp{border:1px solid var(--line2);border-radius:12px;padding:10px 11px;font-size:14px;background:var(--surface)}
+.inp.bad{border-color:var(--red)}
+.ferr{font-size:12px;color:var(--red);margin-top:5px;display:flex;gap:5px;align-items:center}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;box-shadow:0 -12px 30px -12px rgba(0,0,0,.35);padding:8px 14px 16px}
+.grab{width:38px;height:4px;border-radius:999px;background:var(--line2);margin:2px auto 10px}
+.scrim{position:absolute;inset:0;background:rgba(20,12,8,.35)}
+
+/* chat */
+.msgs{padding:0 12px;display:flex;flex-direction:column;gap:8px}
+.pinned{display:flex;gap:8px;align-items:flex-start;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin:0 12px 10px;font-size:12.5px}
+.pinned svg{color:var(--brandtx);margin-top:1px}
+.m{max-width:78%;font-size:13.5px;line-height:1.4}
+.m .bub{padding:8px 11px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.m .meta{font-size:10.5px;color:var(--muted);margin:3px 6px 0;display:flex;gap:6px;align-items:center}
+.m .nm{font-size:11.5px;font-weight:700;margin:0 6px 3px;display:flex;gap:6px;align-items:center}
+.badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--navon);color:var(--brandtx);text-transform:uppercase;letter-spacing:.04em}
+.badge.adm{background:var(--ink);color:var(--bg)}
+.me{align-self:flex-end}
+.me .bub{background:var(--brand);color:var(--onbrand);border-color:var(--brand)}
+.me .meta{justify-content:flex-end}
+.m.fail .bub{opacity:.75}
+.retry{color:var(--red);font-weight:600}
+.tomb .bub{background:none;border-style:dashed;color:var(--muted);font-style:italic}
+.compose{position:absolute;left:0;right:0;bottom:64px;padding:8px 10px;background:var(--bg);border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.compose .inp{flex:1;color:var(--muted);padding:9px 12px;border-radius:999px}
+.send{width:38px;height:38px;border-radius:50%;background:var(--brand);color:var(--onbrand);display:flex;align-items:center;justify-content:center}
+.day{align-self:center;font-size:10.5px;color:var(--muted);font-weight:600;margin:2px 0}
+
+/* notifications */
+.nt{display:flex;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);font-size:13px;align-items:flex-start}
+.nt .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);margin-top:6px;flex:none}
+.nt .dot.read{background:transparent}
+.nt.gone{opacity:.55}
+.nt b{font-weight:700}
+.panel{position:absolute;top:58px;right:18px;width:330px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px -16px rgba(0,0,0,.4);overflow:hidden}
+.phead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700}
+.phead a{font-size:12px;font-weight:600;color:var(--brandtx)}
+
+/* assistant */
+.ahead{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:15px;margin-bottom:4px}
+.priv{font-size:11px;color:var(--muted);margin-bottom:10px}
+.sug{border:1px solid var(--line2);border-radius:12px;padding:9px 11px;font-size:13px;margin-bottom:7px}
+.q{align-self:flex-end;background:var(--soft);border-radius:14px;padding:8px 11px;font-size:13px;max-width:85%}
+.a{font-size:13px;line-height:1.5}
+.a a{color:var(--brandtx);font-weight:600;text-decoration:underline}
+.aside{position:absolute;top:0;right:0;bottom:0;width:320px;background:var(--surface);border-left:1px solid var(--line);box-shadow:-16px 0 30px -18px rgba(0,0,0,.3);padding:16px}
+.ask{display:flex;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:999px;padding:8px 8px 8px 13px;font-size:13px;color:var(--muted)}
+.ask .send{width:32px;height:32px}
+</style>
+
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="h" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></symbol>
+ <symbol id="c" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></symbol>
+ <symbol id="r" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+ <symbol id="m" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+ <symbol id="p" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+ <symbol id="b" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+ <symbol id="a" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8 1c0 1.6-2.4 2.1-2.4 3.4"/><path d="M12 17h.01"/></symbol>
+ <symbol id="pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.8V4h6v6.8l2.5 3.7h-11z"/></symbol>
+ <symbol id="f" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+ <symbol id="lk" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+ <symbol id="sr" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+ <symbol id="pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol id="up" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></symbol>
+ <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+ <symbol id="al" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></symbol>
+ <symbol id="wo" viewBox="0 0 24 24"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.6a10 10 0 0 1 5.2-2.6"/><path d="M19 12.6a10 10 0 0 0-2.4-1.6"/><path d="M12 20h.01"/></symbol>
+ <symbol id="se" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></symbol>
+ <symbol id="bk" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+ <symbol id="rt" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+ <symbol id="ck" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+ <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></symbol>
+ <symbol id="g" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5a6 6 0 0 1 3 5.5"/></symbol>
+ <symbol id="u" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+ <symbol id="lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+ <symbol id="tr" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/></symbol>
+ <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+</svg>
+
+<style>
+.desk.big{width:900px;height:540px}
+.aside2{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin:4px 10px 6px}
+.ctx{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ctxsel{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--surface);border-radius:12px;padding:7px 12px;font-weight:700;font-size:14px}
+.ctxsel span{color:var(--muted);font-weight:500;font-size:12px}
+.ro{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line2)}
+.gtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 14px}
+.gtabs span{padding:9px 12px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.gtabs span.on{color:var(--ink);border-color:var(--brand)}
+.stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.st{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.st b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em}
+.st span{font-size:12px;color:var(--muted)}
+.health{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.health:last-child{border-bottom:0}
+.ok{color:var(--grn);font-weight:600;display:inline-flex;gap:5px;align-items:center}
+.ok:before,.warn2:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.warn2{color:var(--amb);font-weight:600;display:inline-flex;gap:5px;align-items:center}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.trw{display:grid;grid-template-columns:1.4fr .8fr .8fr .9fr 70px;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.trw.h{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--soft)}
+.trw:last-child{border-bottom:0}
+.meter{height:8px;border-radius:999px;background:var(--soft);overflow:hidden;margin:8px 0 4px}
+.meter i{display:block;height:100%;background:var(--brand)}
+.mi{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.mi:last-child{border-bottom:0}
+.mi .l{display:flex;gap:11px;align-items:center;font-weight:600}
+.steps{display:flex;gap:0;margin:2px 0 16px}
+.stp{flex:1;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.stp i{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700;border:1.5px solid var(--line2);background:var(--surface);flex:none}
+.stp.done i{background:var(--brand);border-color:var(--brand);color:var(--onbrand)}
+.stp.on{color:var(--ink)}.stp.on i{border-color:var(--brand);color:var(--brandtx)}
+.stp:after{content:"";flex:1;height:1.5px;background:var(--line2);margin:0 8px}
+.stp:last-child:after{display:none}
+.chk{width:18px;height:18px;border-radius:5px;border:1.8px solid var(--line2);flex:none;display:flex;align-items:center;justify-content:center}
+.chk.on{background:var(--brand);border-color:var(--brand);color:var(--onbrand)}
+.foot{position:absolute;left:0;right:0;bottom:0;padding:12px 22px;border-top:1px solid var(--line);background:var(--bg);display:flex;justify-content:space-between;align-items:center}
+.scrim2{position:absolute;inset:0;background:rgba(20,12,8,.42)}
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:380px;background:var(--surface);border-radius:18px;padding:20px;box-shadow:0 24px 50px -16px rgba(0,0,0,.55)}
+.dlg h4{margin:0 0 4px;font-size:18px}
+.dlg p{font-size:13.5px;line-height:1.5;margin:0 0 12px;color:var(--muted)}
+.otp{display:flex;gap:7px;margin:4px 0 8px}
+.otp span{width:40px;height:48px;border:1.5px solid var(--line2);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.otp span.f{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 20%,transparent)}
+.dsteps{display:flex;gap:6px;margin-bottom:12px;font-size:12px;font-weight:600}
+.dsteps span{padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.dsteps span.d{background:color-mix(in srgb,var(--grn) 14%,var(--surface));color:var(--grn)}
+.dsteps span.o{background:var(--navon);color:var(--brandtx)}
+.recap{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 12px}
+.recap div{display:flex;justify-content:space-between;margin:4px 0}
+.recap span{color:var(--muted)}
+.acts{display:flex;gap:8px}
+.acts .btn{flex:1;padding:10px 12px;font-size:13.5px}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.link{color:var(--brandtx);font-weight:600;font-size:13px}
+.pick{border:1px solid var(--brand);border-radius:12px;background:var(--surface);box-shadow:0 12px 26px -12px rgba(0,0,0,.35);margin-top:6px;overflow:hidden}
+</style>
+
+<div class="lot">
+<h2>Lot 4 — Administration (M11 à M13)</h2>
+<p class="subtitle">Console séparée, pensée pour l'ordinateur. Même identité ; la barre latérale porte la mention « Administration ».</p>
+
+<!-- ================= M11 ================= -->
+<div class="blk">
+<h3>M11 — Vue d'ensemble</h3>
+<p class="subtitle">Totaux, état de la plateforme (emails, traitements planifiés, assistant) et classes. Puis un aperçu mobile.</p>
+<div class="row">
+ <div class="desk big L">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div><div class="aside2">ADMINISTRATION</div>
+   <div class="nav on"><svg class="i"><use href="#h"/></svg>Vue d'ensemble</div><div class="nav"><svg class="i"><use href="#r"/></svg>Classes</div><div class="nav"><svg class="i"><use href="#g"/></svg>Utilisateurs</div><div class="nav"><svg class="i"><use href="#cal"/></svg>Changement d'année</div>
+   <div class="kls">Connecté en tant que<strong>Aminata Fall</strong></div></div>
+  <div class="dmain">
+   <div class="dtop"><h1>Vue d'ensemble</h1><span class="small">Mis à jour à 09:41</span></div>
+   <div class="stat">
+    <div class="st"><b>4</b><span>classes actives</span></div>
+    <div class="st"><b>186</b><span>étudiants</span></div>
+    <div class="st"><b>5</b><span>demandes en attente</span></div>
+    <div class="st"><b>71 %</b><span>complétion moyenne</span></div>
+   </div>
+   <div style="display:grid;grid-template-columns:1fr 1.25fr;gap:16px">
+    <div>
+     <div class="sect">État de la plateforme</div>
+     <div class="card" style="padding:4px 14px">
+      <div class="health"><span>Emails (24 h)</span><span class="ok">312 acceptés</span></div>
+      <div class="health"><span>Emails en échec</span><span class="warn2">2 · <a class="link">voir</a></span></div>
+      <div class="health"><span>Rappels du matin</span><span class="ok">07:00 · terminé</span></div>
+      <div class="health"><span>Vérification des fichiers</span><span class="ok">À jour</span></div>
+      <div class="health"><span>Sauvegarde de la nuit</span><span class="ok">03:12 · vérifiée</span></div>
+     </div>
+     <div class="sect" style="margin-top:12px">Assistant IA (aujourd'hui)</div>
+     <div class="card"><div style="display:flex;justify-content:space-between;font-size:13px"><span>Plafond global utilisé</span><b>62 %</b></div><div class="meter"><i style="width:62%"></i></div><div class="small">418 questions · repasse à zéro à minuit</div></div>
+    </div>
+    <div>
+     <div class="sect">Classes <a>Toutes les classes</a></div>
+     <div class="tbl">
+      <div class="trw h"><span>Classe</span><span>Membres</span><span>Demandes</span><span>Complétion</span><span></span></div>
+      <div class="trw"><b>GIT3 · 2026–27</b><span>42</span><span>2</span><span>78 %</span><a class="link">Ouvrir</a></div>
+      <div class="trw"><b>GIT2 · 2026–27</b><span>51</span><span>3</span><span>69 %</span><a class="link">Ouvrir</a></div>
+      <div class="trw"><b>GEM1 · 2026–27</b><span>48</span><span>0</span><span>72 %</span><a class="link">Ouvrir</a></div>
+      <div class="trw"><b>GC2 · 2026–27</b><span>45</span><span>0</span><span>66 %</span><a class="link">Ouvrir</a></div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="mtop"><div><div class="kl">Administration</div><h1>Vue d'ensemble</h1></div><span class="bell"><svg class="i"><use href="#p"/></svg></span></div>
+  <div class="pad">
+   <div class="stat" style="grid-template-columns:1fr 1fr"><div class="st"><b>4</b><span>classes actives</span></div><div class="st"><b>5</b><span>demandes</span></div></div>
+   <div class="card" style="padding:4px 14px">
+    <div class="health"><span>Emails en échec</span><span class="warn2">2</span></div>
+    <div class="health"><span>Rappels du matin</span><span class="ok">Terminé</span></div>
+    <div class="health"><span>Sauvegarde</span><span class="ok">Vérifiée</span></div>
+   </div>
+   <div class="sect" style="margin-top:10px">Classes</div>
+   <div class="card"><div style="display:flex;justify-content:space-between"><b>GIT3 · 2026–27</b><span class="link">Ouvrir</span></div><div class="small">42 membres · 2 demandes · 78 %</div></div>
+   <div class="card"><div style="display:flex;justify-content:space-between"><b>GIT2 · 2026–27</b><span class="link">Ouvrir</span></div><div class="small">51 membres · 3 demandes · 69 %</div></div>
+  </div>
+ </div><p class="cap">Sur mobile : menu au lieu de la barre latérale, tableaux transformés en cartes.</p></div>
+</div>
+</div>
+
+<!-- ================= M12 ================= -->
+<div class="blk">
+<h3>M12 — Fiche de classe</h3>
+<p class="subtitle">Sélecteur de contexte toujours visible, nomination des délégués, et classe archivée en lecture seule.</p>
+<div class="row">
+ <div class="desk big L">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div><div class="aside2">ADMINISTRATION</div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Vue d'ensemble</div><div class="nav on"><svg class="i"><use href="#r"/></svg>Classes</div><div class="nav"><svg class="i"><use href="#g"/></svg>Utilisateurs</div><div class="nav"><svg class="i"><use href="#cal"/></svg>Changement d'année</div>
+   <div class="kls">Connecté en tant que<strong>Aminata Fall</strong></div></div>
+  <div class="dmain">
+   <div class="ctx"><div class="ctxsel">Classe : GIT3 · 2026–27 <span>▾</span></div><span class="small">42 membres · active</span></div>
+   <div class="gtabs"><span>Devoirs</span><span>Ressources</span><span>Chat</span><span>Demandes · 2</span><span>Membres</span><span class="on">Délégués</span><span>Statistiques</span></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div>
+     <div class="sect">Délégués actuels <span class="small" style="font-weight:600">1 sur 2 au maximum</span></div>
+     <div class="card" style="padding:0">
+      <div class="mi"><span class="l"><span class="av" style="background:#1F6F8B">MD</span><span>Moussa Diop<br><span class="small" style="font-weight:500">Délégué depuis le 2 oct.</span></span></span><span class="link" style="color:var(--red)">Retirer le rôle</span></div>
+     </div>
+     <div class="note" style="margin-top:10px"><svg class="i s"><use href="#al"/></svg>Un délégué gère les demandes, les membres, les matières et publie les annonces de sa classe.</div>
+    </div>
+    <div>
+     <div class="sect">Nommer un délégué</div>
+     <div class="search" style="margin-bottom:0;color:var(--ink);border-color:var(--brand)"><svg class="i s"><use href="#sr"/></svg>awa</div>
+     <div class="pick">
+      <div class="mi"><span class="l"><span class="av" style="background:#C2416B">AD</span><span>Awa Diop<br><span class="small" style="font-weight:500">awa.diop@esp.sn</span></span></span><span class="btn b1" style="padding:6px 11px;font-size:12.5px">Nommer</span></div>
+      <div class="mi"><span class="l"><span class="av" style="background:#6B7F2A">AN</span><span>Awa Ndour<br><span class="small" style="font-weight:500">awa.ndour@esp.sn</span></span></span><span class="btn b2" style="padding:6px 11px;font-size:12.5px">Nommer</span></div>
+     </div>
+     <div class="hint">Seuls les membres actifs de la classe peuvent être nommés.</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+<div class="row" style="margin-top:24px">
+ <div class="desk big L" style="height:420px">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div><div class="aside2">ADMINISTRATION</div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Vue d'ensemble</div><div class="nav on"><svg class="i"><use href="#r"/></svg>Classes</div><div class="nav"><svg class="i"><use href="#g"/></svg>Utilisateurs</div><div class="nav"><svg class="i"><use href="#cal"/></svg>Changement d'année</div>
+   <div class="kls">Connecté en tant que<strong>Aminata Fall</strong></div></div>
+  <div class="dmain" style="padding:0">
+   <div class="banner" style="background:var(--soft);color:var(--ink);border-bottom:1px solid var(--line)"><svg class="i s"><use href="#lock"/></svg>Classe archivée le 30 sept. 2026 : consultation seulement, aucune modification possible.</div>
+   <div style="padding:16px 22px">
+    <div class="ctx"><div class="ctxsel">Classe : GIT2 · 2025–26 <span>▾</span></div><span class="ro"><svg class="i s"><use href="#lock"/></svg>Lecture seule</span></div>
+    <div class="gtabs"><span>Devoirs</span><span>Ressources</span><span class="on">Chat</span><span>Membres</span><span>Statistiques</span></div>
+    <div class="msgs" style="padding:0;max-width:520px">
+     <div class="m"><div class="nm">Cheikh</div><div class="bub">Merci à tous pour cette année !</div><div class="meta">28 sept.</div></div>
+     <div class="m"><div class="nm">Mariama <span class="badge">Délégué</span></div><div class="bub">Les annales sont copiées dans la nouvelle classe.</div><div class="meta">29 sept.</div></div>
+    </div>
+    <div class="note" style="margin-top:14px;max-width:520px"><svg class="i s"><use href="#al"/></svg>Le chat est en lecture seule. Il sera supprimé un an après l'archivage.</div>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+
+<!-- ================= M13 ================= -->
+<div class="blk">
+<h3>M13 — Changement d'année et vérification supplémentaire</h3>
+<p class="subtitle">Étape 2 de l'assistant (choix des étudiants), puis la fenêtre de vérification avant l'archivage.</p>
+<div class="row">
+ <div class="desk big L">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div><div class="aside2">ADMINISTRATION</div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Vue d'ensemble</div><div class="nav"><svg class="i"><use href="#r"/></svg>Classes</div><div class="nav"><svg class="i"><use href="#g"/></svg>Utilisateurs</div><div class="nav on"><svg class="i"><use href="#cal"/></svg>Changement d'année</div>
+   <div class="kls">Connecté en tant que<strong>Aminata Fall</strong></div></div>
+  <div class="dmain">
+   <div class="dtop"><h1>GIT2 2025–26 → GIT3 2026–27</h1></div>
+   <div class="steps"><div class="stp done"><i>✓</i>Nouvelle classe</div><div class="stp on"><i>2</i>Étudiants</div><div class="stp"><i>3</i>Archivage</div><div class="stp"><i>4</i>Annales</div></div>
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:15px">Qui passe en GIT3 ?</b><span class="small">47 sur 51 sélectionnés</span></div>
+   <div class="search"><svg class="i s"><use href="#sr"/></svg>Rechercher un étudiant…</div>
+   <div class="tbl">
+    <div class="mi" style="font-size:13px;background:var(--soft)"><span class="l"><span class="chk on"><svg class="i s"><use href="#ck"/></svg></span>Tout sélectionner</span><span class="small">Les délégués ne sont pas reconduits</span></div>
+    <div class="mi" style="font-size:13px"><span class="l"><span class="chk on"><svg class="i s"><use href="#ck"/></svg></span>Awa Diop</span><span class="small">awa.diop@esp.sn</span></div>
+    <div class="mi" style="font-size:13px"><span class="l"><span class="chk on"><svg class="i s"><use href="#ck"/></svg></span>Cheikh Ba</span><span class="small">cheikh.ba@esp.sn</span></div>
+    <div class="mi" style="font-size:13px"><span class="l"><span class="chk"></span>Ousseynou Faye</span><span class="small">ousseynou.faye@esp.sn · redouble</span></div>
+   </div>
+   <div class="foot"><span class="btn b2" style="padding:9px 14px">← Retour</span><span style="display:flex;gap:12px;align-items:center"><span class="small">Une vérification te sera demandée</span><span class="btn b1" style="padding:9px 16px">Transférer 47 étudiants</span></span></div>
+  </div>
+ </div>
+</div>
+<div class="row" style="margin-top:24px">
+ <div class="desk big L">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div><div class="aside2">ADMINISTRATION</div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Vue d'ensemble</div><div class="nav"><svg class="i"><use href="#r"/></svg>Classes</div><div class="nav"><svg class="i"><use href="#g"/></svg>Utilisateurs</div><div class="nav on"><svg class="i"><use href="#cal"/></svg>Changement d'année</div>
+   <div class="kls">Connecté en tant que<strong>Aminata Fall</strong></div></div>
+  <div class="dmain">
+   <div class="dtop"><h1>GIT2 2025–26 → GIT3 2026–27</h1></div>
+   <div class="steps"><div class="stp done"><i>✓</i>Nouvelle classe</div><div class="stp done"><i>✓</i>Étudiants</div><div class="stp on"><i>3</i>Archivage</div><div class="stp"><i>4</i>Annales</div></div>
+   <div class="recap" style="max-width:420px"><div><span>Classe à archiver</span><b>GIT2 · 2025–26</b></div><div><span>Étudiants transférés</span><b>47</b></div><div><span>Accès des anciens membres</span><b>Retiré</b></div></div>
+  </div>
+  <div class="scrim2"></div>
+  <div class="dlg">
+   <div class="dsteps"><span class="d">✓ Mot de passe</span><span class="o">Code envoyé</span></div>
+   <h4>Confirme que c'est bien toi</h4>
+   <p>Archiver une classe est une action critique. Saisis le code envoyé à <b style="color:var(--ink)">a•••••@esp.sn</b>.</p>
+   <div class="otp"><span>3</span><span>0</span><span>7</span><span class="f"></span><span></span><span></span></div>
+   <div class="hint" style="margin-bottom:14px">Code valable encore 9:12 · Renvoyer dans 0:38</div>
+   <div class="acts"><div class="btn b2">Annuler</div><div class="btn b1">Archiver GIT2 · 2025–26</div></div>
+  </div>
+ </div>
+</div>
+</div>
+</div>
+
+</body></html>

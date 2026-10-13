@@ -52,7 +52,8 @@
 
 ### 0.3 Comptes et admission
 - **Pas de vérification de l'email** à l'inscription :
-  - l'email est saisi deux fois ;
+  - l'email est saisi **une seule fois**, avec une aide qui invite à le vérifier (décision du 2026-10-13, conception UI/UX ; il était auparavant saisi deux fois) ;
+  - il est rappelé sur l'écran « Demande envoyée » ;
   - il est affiché au délégué dans la demande ;
   - si l'email de bienvenue ne peut pas être envoyé, l'adresse est signalée comme « douteuse ».
 - L'inscription crée le compte et la demande d'adhésion dans une seule transaction.

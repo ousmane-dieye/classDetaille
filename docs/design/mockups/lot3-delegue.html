@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClassePulse V2 — Maquettes lot 3 (délégué)</title>
+<style>body{margin:0;padding:32px;background:#f4f1ee;font-family:Figtree,system-ui,sans-serif;color:#2A211C}h2{font-size:26px;margin:0 0 6px}h3{font-size:19px}.subtitle{color:#6b6460;font-size:14px}</style>
+</head><body>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap');
+.lot{font-family:'Figtree',sans-serif}
+.L{--bg:#FFF9F4;--side:#FFFFFF;--surface:#FFFFFF;--ink:#2A211C;--muted:#8C7E73;--line:#F0E3D8;--line2:#DFCBBB;--navon:#FCEBE1;--brand:#C2461F;--brandtx:#C2461F;--onbrand:#FFFFFF;--red:#B42318;--amb:#A15C07;--grn:#1E7A46;--soft:#FBF1EA;--ok:#1E7A46}
+.D{--bg:#1A1411;--side:#1F1814;--surface:#241C18;--ink:#F6EDE6;--muted:#B3A398;--line:#382B24;--line2:#54443A;--navon:#33241D;--brand:#E8703F;--brandtx:#F08A5D;--onbrand:#1A1411;--red:#FF8A7A;--amb:#F2C063;--grn:#72D49B;--soft:#2C211C;--ok:#72D49B}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.s{width:15px;height:15px}
+
+.blk{margin:30px 0 46px}
+.blk>h3{margin:0 0 4px}
+.blk>.subtitle{margin:0 0 14px}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:12px;color:#8a8a8a;margin:8px 4px 0;max-width:300px}
+
+/* frames */
+.mob{width:300px;height:620px;border-radius:34px;overflow:hidden;position:relative;background:var(--bg);color:var(--ink);box-shadow:0 0 0 7px #17120f,0 20px 40px -20px rgba(0,0,0,.5);font-size:14px}
+.desk{width:780px;height:480px;border-radius:12px;overflow:hidden;display:flex;position:relative;background:var(--bg);color:var(--ink);box-shadow:0 0 0 1px rgba(0,0,0,.08),0 18px 40px -22px rgba(0,0,0,.4);font-size:14px}
+.status{height:26px;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:11px;font-weight:600}
+.mtop{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 10px}
+.mtop .kl{font-size:12px;color:var(--muted);font-weight:600}
+.mtop h1{font-size:20px;font-weight:800;margin:0;letter-spacing:-.01em}
+.bell{position:relative;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surface)}
+.bell em{position:absolute;top:-4px;right:-4px;background:var(--brand);color:var(--onbrand);font-style:normal;font-size:10px;font-weight:700;border-radius:999px;padding:0 5px;line-height:16px}
+.pad{padding:0 14px}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:64px;padding-bottom:8px;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center}
+.tb{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);font-weight:500;position:relative}
+.tb.on{color:var(--brandtx);font-weight:700}
+.tb em{position:absolute;top:-4px;right:2px;background:var(--brand);color:var(--onbrand);font-style:normal;font-size:9px;font-weight:700;border-radius:999px;padding:0 4px;line-height:14px}
+.fab{position:absolute;right:14px;bottom:78px;width:52px;height:52px;border-radius:50%;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+.dfab{position:absolute;right:20px;bottom:18px;height:40px;padding:0 15px 0 12px;border-radius:999px;background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+
+.side{width:176px;background:var(--side);border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:2px;flex:none}
+.logo{font-weight:800;font-size:16px;letter-spacing:-.02em;margin:0 8px 16px}
+.logo span{color:var(--brandtx)}
+.nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:13px;color:var(--muted);font-weight:500}
+.nav.on{background:var(--navon);color:var(--ink);font-weight:600}
+.nav.on svg{color:var(--brandtx)}
+.nav b{margin-left:auto;background:var(--brand);color:var(--onbrand);font-size:10px;border-radius:999px;padding:0 6px;line-height:16px}
+.kls{margin-top:auto;font-size:11.5px;color:var(--muted);padding:9px 10px;border-top:1px solid var(--line)}
+.kls strong{display:block;color:var(--ink);font-size:13px}
+.dmain{flex:1;padding:18px 22px;overflow:hidden;position:relative;min-width:0}
+.dtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.dtop h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.015em}
+.dtop .r{display:flex;gap:8px;align-items:center}
+
+/* bits */
+.hero{background:var(--brand);color:var(--onbrand);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+.hero h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.hero p{margin:3px 0 0;font-size:13px;opacity:.93}
+.sect{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;margin:4px 0 8px}
+.sect a{font-weight:600;font-size:12px;color:var(--brandtx)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:8px}
+.task{display:flex;gap:11px;align-items:center}
+.box{width:20px;height:20px;border-radius:6px;border:1.8px solid var(--line2);flex:none;display:flex;align-items:center;justify-content:center}
+.box.done{background:var(--brand);border-color:var(--brand);color:var(--onbrand)}
+.box.dis{opacity:.45}
+.tm{flex:1;min-width:0}
+.tag{font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:5px}
+.tag:before{content:"";width:7px;height:7px;border-radius:2px;background:var(--c)}
+.ttl{font-size:14px;font-weight:600;margin-top:1px}
+.ttl.strike{text-decoration:line-through;color:var(--muted)}
+.due{font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.due:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.mut{color:var(--muted)}
+.lbl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.who{display:flex;align-items:center;gap:7px;margin-top:7px;font-size:11.5px;color:var(--muted)}
+.av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex:none}
+.res{display:flex;align-items:center;gap:10px}
+.ric{width:34px;height:34px;border-radius:10px;background:var(--navon);color:var(--brandtx);display:flex;align-items:center;justify-content:center;flex:none}
+.small{font-size:11.5px;color:var(--muted)}
+.chips{display:flex;gap:6px;overflow:hidden;margin:2px 0 10px}
+.chip{font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap;background:var(--surface)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:3px;margin:0 0 10px}
+.seg span{flex:1;text-align:center;font-size:13px;font-weight:600;padding:7px;border-radius:9px;color:var(--muted)}
+.seg span.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:12px;padding:9px 11px;color:var(--muted);font-size:14px;background:var(--surface);margin-bottom:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;padding:12px;font-weight:600;font-size:14px;border:1px solid transparent}
+.b1{background:var(--brand);color:var(--onbrand)}
+.b2{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.bdis{background:var(--soft);color:var(--muted)}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;padding:10px 11px;border-radius:12px;background:var(--soft);color:var(--ink)}
+.note.err{background:color-mix(in srgb,var(--red) 10%,var(--surface));color:var(--red)}
+.note.warn{background:color-mix(in srgb,var(--amb) 12%,var(--surface));color:var(--amb)}
+.banner{display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:600;padding:8px 14px}
+.empty{text-align:center;padding:26px 18px;color:var(--muted)}
+.empty svg.ill{width:84px;height:84px;stroke-width:1.2;color:var(--line2);margin-bottom:8px}
+.empty h4{color:var(--ink);margin:0 0 4px;font-size:16px}
+.back{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brandtx);padding:6px 14px}
+.prog{height:6px;border-radius:999px;background:var(--soft);overflow:hidden;margin-top:7px}
+.prog i{display:block;height:100%;background:var(--brand)}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.inp{border:1px solid var(--line2);border-radius:12px;padding:10px 11px;font-size:14px;background:var(--surface)}
+.inp.bad{border-color:var(--red)}
+.ferr{font-size:12px;color:var(--red);margin-top:5px;display:flex;gap:5px;align-items:center}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;box-shadow:0 -12px 30px -12px rgba(0,0,0,.35);padding:8px 14px 16px}
+.grab{width:38px;height:4px;border-radius:999px;background:var(--line2);margin:2px auto 10px}
+.scrim{position:absolute;inset:0;background:rgba(20,12,8,.35)}
+
+/* chat */
+.msgs{padding:0 12px;display:flex;flex-direction:column;gap:8px}
+.pinned{display:flex;gap:8px;align-items:flex-start;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin:0 12px 10px;font-size:12.5px}
+.pinned svg{color:var(--brandtx);margin-top:1px}
+.m{max-width:78%;font-size:13.5px;line-height:1.4}
+.m .bub{padding:8px 11px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.m .meta{font-size:10.5px;color:var(--muted);margin:3px 6px 0;display:flex;gap:6px;align-items:center}
+.m .nm{font-size:11.5px;font-weight:700;margin:0 6px 3px;display:flex;gap:6px;align-items:center}
+.badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--navon);color:var(--brandtx);text-transform:uppercase;letter-spacing:.04em}
+.badge.adm{background:var(--ink);color:var(--bg)}
+.me{align-self:flex-end}
+.me .bub{background:var(--brand);color:var(--onbrand);border-color:var(--brand)}
+.me .meta{justify-content:flex-end}
+.m.fail .bub{opacity:.75}
+.retry{color:var(--red);font-weight:600}
+.tomb .bub{background:none;border-style:dashed;color:var(--muted);font-style:italic}
+.compose{position:absolute;left:0;right:0;bottom:64px;padding:8px 10px;background:var(--bg);border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.compose .inp{flex:1;color:var(--muted);padding:9px 12px;border-radius:999px}
+.send{width:38px;height:38px;border-radius:50%;background:var(--brand);color:var(--onbrand);display:flex;align-items:center;justify-content:center}
+.day{align-self:center;font-size:10.5px;color:var(--muted);font-weight:600;margin:2px 0}
+
+/* notifications */
+.nt{display:flex;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);font-size:13px;align-items:flex-start}
+.nt .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);margin-top:6px;flex:none}
+.nt .dot.read{background:transparent}
+.nt.gone{opacity:.55}
+.nt b{font-weight:700}
+.panel{position:absolute;top:58px;right:18px;width:330px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px -16px rgba(0,0,0,.4);overflow:hidden}
+.phead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700}
+.phead a{font-size:12px;font-weight:600;color:var(--brandtx)}
+
+/* assistant */
+.ahead{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:15px;margin-bottom:4px}
+.priv{font-size:11px;color:var(--muted);margin-bottom:10px}
+.sug{border:1px solid var(--line2);border-radius:12px;padding:9px 11px;font-size:13px;margin-bottom:7px}
+.q{align-self:flex-end;background:var(--soft);border-radius:14px;padding:8px 11px;font-size:13px;max-width:85%}
+.a{font-size:13px;line-height:1.5}
+.a a{color:var(--brandtx);font-weight:600;text-decoration:underline}
+.aside{position:absolute;top:0;right:0;bottom:0;width:320px;background:var(--surface);border-left:1px solid var(--line);box-shadow:-16px 0 30px -18px rgba(0,0,0,.3);padding:16px}
+.ask{display:flex;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:999px;padding:8px 8px 8px 13px;font-size:13px;color:var(--muted)}
+.ask .send{width:32px;height:32px}
+</style>
+
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="h" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></symbol>
+ <symbol id="c" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></symbol>
+ <symbol id="r" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+ <symbol id="m" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+ <symbol id="p" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+ <symbol id="b" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+ <symbol id="a" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8 1c0 1.6-2.4 2.1-2.4 3.4"/><path d="M12 17h.01"/></symbol>
+ <symbol id="pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.8V4h6v6.8l2.5 3.7h-11z"/></symbol>
+ <symbol id="f" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+ <symbol id="lk" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+ <symbol id="sr" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+ <symbol id="pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol id="up" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></symbol>
+ <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+ <symbol id="al" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></symbol>
+ <symbol id="wo" viewBox="0 0 24 24"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.6a10 10 0 0 1 5.2-2.6"/><path d="M19 12.6a10 10 0 0 0-2.4-1.6"/><path d="M12 20h.01"/></symbol>
+ <symbol id="se" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></symbol>
+ <symbol id="bk" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+ <symbol id="rt" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+ <symbol id="ck" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+ <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></symbol>
+ <symbol id="g" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5a6 6 0 0 1 3 5.5"/></symbol>
+ <symbol id="u" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+ <symbol id="lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+ <symbol id="tr" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/></symbol>
+ <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+</svg>
+
+<style>
+.gtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 14px}
+.gtabs span{padding:9px 12px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;display:flex;gap:6px;align-items:center}
+.gtabs span.on{color:var(--ink);border-color:var(--brand)}
+.gtabs b{background:var(--brand);color:var(--onbrand);font-size:10px;border-radius:999px;padding:0 6px;line-height:16px}
+.rq{display:flex;gap:12px;align-items:center}
+.rq .tm div{line-height:1.35}
+.acts{display:flex;gap:8px;margin-top:10px}
+.acts .btn{padding:9px 12px;font-size:13px;flex:1}
+.mi{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.mi:last-child{border-bottom:0}
+.mi .l{display:flex;gap:12px;align-items:center;font-weight:600}
+.mi .l svg{color:var(--muted)}
+.mi em{font-style:normal;background:var(--brand);color:var(--onbrand);font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px}
+.grp{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:14px 4px 6px}
+.stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.st{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.st b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em}
+.st span{font-size:12px;color:var(--muted)}
+.bar{display:grid;grid-template-columns:170px 1fr 44px;gap:10px;align-items:center;font-size:12.5px;margin:7px 0}
+.bar .tr{height:8px;border-radius:999px;background:var(--soft);overflow:hidden}
+.bar .tr i{display:block;height:100%;background:var(--brand);border-radius:999px}
+.bar b{text-align:right}
+.tbl{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.tr2{display:grid;grid-template-columns:1.3fr 1.6fr .8fr 70px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.tr2.h{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--soft)}
+.tr2:last-child{border-bottom:0}
+.dis{color:var(--muted);opacity:.55}
+.toast{position:absolute;left:12px;right:12px;bottom:78px;background:var(--ink);color:var(--bg);border-radius:14px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;box-shadow:0 10px 24px -10px rgba(0,0,0,.5)}
+.toast b{color:#F5A07A}
+.dt{display:flex;gap:8px}.dt .inp{flex:1;display:flex;justify-content:space-between}
+.danger{color:var(--red);font-weight:600}
+.modal{position:absolute;left:16px;right:16px;top:150px;background:var(--surface);border-radius:18px;padding:18px;box-shadow:0 20px 40px -14px rgba(0,0,0,.5)}
+.modal h4{margin:0 0 6px;font-size:17px}
+.modal p{font-size:13.5px;margin:0 0 12px;line-height:1.5}
+.bdan{background:var(--red);color:#fff}
+.ta{min-height:64px;color:var(--muted)}
+.link{color:var(--brandtx);font-weight:600;font-size:13px}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+</style>
+
+<div class="lot">
+<h2>Lot 3 — Délégué (M9 et M10)</h2>
+<p class="subtitle">Gestion de la classe (demandes, membres, matières, statistiques), création d'un devoir et corbeille. Le délégué voit tout ce que voit un étudiant, plus ces écrans.</p>
+
+<!-- ================= M9 ================= -->
+<div class="blk">
+<h3>M9 — Gestion de la classe</h3>
+<p class="subtitle">Ordinateur : demandes en attente. Mobile : menu Plus du délégué, refus avec motif, matières, membres. Puis les statistiques sur ordinateur.</p>
+<div class="row">
+ <div class="desk L">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Aujourd'hui</div><div class="nav"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="nav"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="nav"><svg class="i"><use href="#m"/></svg>Classe</div><div class="nav on"><svg class="i"><use href="#g"/></svg>Gestion<b>2</b></div><div class="nav"><svg class="i"><use href="#p"/></svg>Plus</div>
+   <div class="kls">Tu es délégué de<strong>GIT3 · 2026–27</strong></div></div>
+  <div class="dmain">
+   <div class="dtop"><h1>Gestion de la classe</h1><span class="bell"><svg class="i"><use href="#b"/></svg><em>3</em></span></div>
+   <div class="gtabs"><span class="on">Demandes <b>2</b></span><span>Membres · 42</span><span>Matières · 7</span><span>Statistiques</span></div>
+   <div class="card">
+    <div class="rq"><span class="av" style="background:#1F6F8B;width:36px;height:36px;font-size:13px">ID</span><div class="tm"><div style="font-weight:700">Ibrahima Diallo</div><div class="small">ibrahima.diallo@esp.sn · demande envoyée il y a 3 h</div></div>
+     <div class="acts" style="margin:0;width:230px"><div class="btn b2">Refuser</div><div class="btn b1">Accepter</div></div></div>
+   </div>
+   <div class="card">
+    <div class="rq"><span class="av" style="background:#8E44AD;width:36px;height:36px;font-size:13px">KS</span><div class="tm"><div style="font-weight:700">Khady Sarr</div><div class="small">khady.sar@gmial.com · hier à 18:20</div><div class="small" style="color:var(--amb);display:flex;gap:5px;align-items:center;margin-top:2px"><svg class="i s"><use href="#al"/></svg>Adresse douteuse : l'email de bienvenue n'a pas pu être envoyé.</div></div>
+     <div class="acts" style="margin:0;width:230px"><div class="btn b2">Refuser</div><div class="btn b1">Accepter</div></div></div>
+   </div>
+   <div class="note" style="margin-top:6px"><svg class="i s"><use href="#al"/></svg>Vérifie l'email de chaque demande : c'est là que l'étudiant recevra ses rappels et pourra récupérer son compte.</div>
+  </div>
+ </div>
+</div>
+<div class="row" style="margin-top:24px">
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="mtop"><h1>Plus</h1><span class="bell"><svg class="i"><use href="#b"/></svg><em>3</em></span></div>
+  <div class="grp">DÉLÉGUÉ</div>
+  <div class="card" style="margin:0 12px;padding:0">
+   <div class="mi"><span class="l"><svg class="i"><use href="#g"/></svg>Gestion de la classe</span><em>2</em></div>
+  </div>
+  <div class="grp">MON COMPTE</div>
+  <div class="card" style="margin:0 12px;padding:0">
+   <div class="mi"><span class="l"><svg class="i"><use href="#u"/></svg>Profil</span><span class="mut">›</span></div>
+   <div class="mi"><span class="l"><svg class="i"><use href="#b"/></svg>Préférences d'email</span><span class="mut">›</span></div>
+   <div class="mi"><span class="l"><svg class="i"><use href="#lock"/></svg>Sessions actives</span><span class="mut">›</span></div>
+   <div class="mi"><span class="l"><svg class="i"><use href="#sun"/></svg>Thème</span><span class="mut">Automatique ›</span></div>
+  </div>
+  <div class="grp">AIDE</div>
+  <div class="card" style="margin:0 12px;padding:0">
+   <div class="mi"><span class="l"><svg class="i"><use href="#a"/></svg>Assistant</span><span class="mut">›</span></div>
+   <div class="mi"><span class="l"><svg class="i"><use href="#f"/></svg>Confidentialité</span><span class="mut">›</span></div>
+  </div>
+  <div style="text-align:center;margin-top:14px" class="danger">Se déconnecter</div>
+  <div class="tabs"><div class="tb"><svg class="i"><use href="#h"/></svg>Accueil</div><div class="tb"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="tb"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="tb"><svg class="i"><use href="#m"/></svg>Classe</div><div class="tb on"><svg class="i"><use href="#p"/></svg>Plus<em>2</em></div></div>
+ </div><p class="cap">Mobile : Gestion en tête du menu Plus, badge repris sur l'onglet.</p></div>
+
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="back"><svg class="i s"><use href="#bk"/></svg>Gestion</div>
+  <div class="pad"><div class="card"><div class="rq"><span class="av" style="background:#1F6F8B">ID</span><div class="tm"><div style="font-weight:700">Ibrahima Diallo</div><div class="small">ibrahima.diallo@esp.sn</div></div></div></div></div>
+  <div class="scrim"></div>
+  <div class="sheet" style="height:380px">
+   <div class="grab"></div>
+   <div class="ahead">Refuser la demande d'Ibrahima ?<svg class="i"><use href="#x"/></svg></div>
+   <p class="small" style="margin:4px 0 12px;line-height:1.5">Cette décision est <b style="color:var(--ink)">définitive</b>. Ibrahima recevra un email et pourra refaire une demande pour cette classe dans 24 h.</p>
+   <div class="field"><label>Motif <span class="mut" style="font-weight:500">(facultatif)</span></label><div class="inp ta">Ex. : tu es inscrit en GIT2, rejoins plutôt cette classe.</div></div>
+   <div class="acts"><div class="btn b2">Annuler</div><div class="btn bdan">Refuser la demande</div></div>
+  </div>
+ </div><p class="cap">Refus : motif facultatif, décision définitive annoncée clairement, bouton qui nomme l'action.</p></div>
+
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="back"><svg class="i s"><use href="#bk"/></svg>Gestion</div>
+  <div class="mtop" style="padding-top:0"><h1>Matières</h1><span class="chip" style="background:var(--brand);color:var(--onbrand);border-color:var(--brand);display:flex;gap:4px;align-items:center"><svg class="i s"><use href="#pl"/></svg>Ajouter</span></div>
+  <div class="card" style="margin:0 12px;padding:0">
+   <div class="mi"><span class="l"><span class="tag" style="--c:#4C5FD5;font-size:14px;color:var(--ink)">Réseaux</span></span><span class="small">12 devoirs</span></div>
+   <div class="mi"><span class="l"><span class="tag" style="--c:#8E44AD;font-size:14px;color:var(--ink)">Bases de données</span></span><span class="small">8 devoirs</span></div>
+   <div class="mi"><span class="l"><span class="tag" style="--c:#1F8A5B;font-size:14px;color:var(--ink)">Anglais</span></span><span class="small">3 devoirs</span></div>
+   <div class="mi"><span class="l"><span class="tag" style="--c:#B7791F;font-size:14px;color:var(--ink)">Économie</span></span><span class="small">Aucun contenu</span></div>
+  </div>
+  <div class="pad" style="margin-top:12px">
+   <div class="card">
+    <div style="font-weight:700;margin-bottom:8px">Réseaux</div>
+    <div class="btn b2" style="margin-bottom:8px">Renommer</div>
+    <div class="btn bdis">Supprimer</div>
+    <div class="small" style="margin-top:7px">Impossible de supprimer une matière utilisée par des devoirs ou des ressources.</div>
+   </div>
+  </div>
+  <div class="tabs"><div class="tb"><svg class="i"><use href="#h"/></svg>Accueil</div><div class="tb"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="tb"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="tb"><svg class="i"><use href="#m"/></svg>Classe</div><div class="tb on"><svg class="i"><use href="#p"/></svg>Plus</div></div>
+ </div><p class="cap">Matières : suppression désactivée si la matière est utilisée, avec la raison.</p></div>
+
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="back"><svg class="i s"><use href="#bk"/></svg>Gestion</div>
+  <div class="mtop" style="padding-top:0"><h1>Membres · 42</h1></div>
+  <div class="pad"><div class="search"><svg class="i s"><use href="#sr"/></svg>Rechercher un membre…</div></div>
+  <div class="card" style="margin:0 12px;padding:0">
+   <div class="mi"><span class="l"><span class="av" style="background:#1F6F8B">MD</span><span>Moussa Diop<br><span class="small" style="font-weight:500">Délégué · moussa.diop@esp.sn</span></span></span></div>
+   <div class="mi"><span class="l"><span class="av" style="background:#C2416B">AD</span><span>Awa Diop<br><span class="small" style="font-weight:500">awa.diop@esp.sn</span></span></span><span class="mut">⋯</span></div>
+   <div class="mi"><span class="l"><span class="av" style="background:#6B7F2A">FN</span><span>Fatou Ndiaye<br><span class="small" style="font-weight:500">fatou.ndiaye@esp.sn</span></span></span><span class="mut">⋯</span></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="modal">
+   <h4>Retirer Fatou Ndiaye de la classe ?</h4>
+   <p>Fatou n'aura plus accès à GIT3. Ses messages et ressources restent visibles. Elle sera prévenue par une notification.</p>
+   <div class="field"><label>Motif <span class="mut" style="font-weight:500">(facultatif)</span></label><div class="inp ta" style="min-height:44px"></div></div>
+   <div class="acts"><div class="btn b2">Annuler</div><div class="btn bdan">Retirer</div></div>
+  </div>
+ </div><p class="cap">Membres avec email visible. Retrait : motif facultatif. Un délégué ne peut pas retirer un autre délégué (pas de menu « ⋯ » sur Moussa).</p></div>
+</div>
+<div class="row" style="margin-top:24px">
+ <div class="desk L" style="height:430px">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Aujourd'hui</div><div class="nav"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="nav"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="nav"><svg class="i"><use href="#m"/></svg>Classe</div><div class="nav on"><svg class="i"><use href="#g"/></svg>Gestion<b>2</b></div><div class="nav"><svg class="i"><use href="#p"/></svg>Plus</div>
+   <div class="kls">Tu es délégué de<strong>GIT3 · 2026–27</strong></div></div>
+  <div class="dmain">
+   <div class="dtop"><h1>Gestion de la classe</h1></div>
+   <div class="gtabs"><span>Demandes <b>2</b></span><span>Membres · 42</span><span>Matières · 7</span><span class="on">Statistiques</span></div>
+   <div class="stat">
+    <div class="st"><b>42</b><span>membres actifs</span></div>
+    <div class="st"><b>2</b><span>demandes en attente</span></div>
+    <div class="st"><b>5</b><span>devoirs à venir</span></div>
+    <div class="st"><b>78 %</b><span>taux de complétion de la classe</span></div>
+   </div>
+   <div class="sect">Complétion par devoir (devoirs passés)</div>
+   <div class="card">
+    <div class="bar"><span>TP Linux — compte rendu</span><span class="tr"><i style="width:91%"></i></span><b>91 %</b></div>
+    <div class="bar"><span>Série 2 — dérivées</span><span class="tr"><i style="width:74%"></i></span><b>74 %</b></div>
+    <div class="bar"><span>Essay — Globalization</span><span class="tr"><i style="width:63%"></i></span><b>63 %</b></div>
+    <div class="small" style="margin-top:6px">Calculé sur les membres actifs à l'échéance, délégués compris. Aucun détail par étudiant.</div>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+
+<!-- ================= M10 ================= -->
+<div class="blk">
+<h3>M10 — Créer ou modifier un devoir, et corbeille</h3>
+<p class="subtitle">Formulaire sur ordinateur, message « Annuler » après suppression, corbeille sur mobile.</p>
+<div class="row">
+ <div class="desk L">
+  <div class="side"><div class="logo">Classe<span>Pulse</span></div>
+   <div class="nav"><svg class="i"><use href="#h"/></svg>Aujourd'hui</div><div class="nav on"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="nav"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="nav"><svg class="i"><use href="#m"/></svg>Classe</div><div class="nav"><svg class="i"><use href="#g"/></svg>Gestion<b>2</b></div><div class="nav"><svg class="i"><use href="#p"/></svg>Plus</div>
+   <div class="kls">Tu es délégué de<strong>GIT3 · 2026–27</strong></div></div>
+  <div class="dmain">
+   <div class="dtop"><h1>Nouveau devoir</h1><div class="r"><div class="btn b2" style="padding:9px 14px">Annuler</div><div class="btn b1" style="padding:9px 14px">Publier le devoir</div></div></div>
+   <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">
+    <div>
+     <div class="field"><label>Titre</label><div class="inp">TP routage OSPF</div></div>
+     <div class="field"><label>Consigne</label><div class="inp ta" style="min-height:120px;color:var(--ink);line-height:1.5">Configurer OSPF sur la topologie du TP 3 (3 routeurs). Rendre le fichier de configuration et une capture de la table de routage.</div></div>
+    </div>
+    <div>
+     <div class="field"><label>Matière</label><div class="inp" style="display:flex;justify-content:space-between"><span class="tag" style="--c:#4C5FD5;color:var(--ink);font-size:14px">Réseaux</span><span class="mut">▾</span></div></div>
+     <div class="field"><label>Échéance</label><div class="dt"><div class="inp">Mer. 15 oct. 2026 <svg class="i s"><use href="#cal"/></svg></div><div class="inp" style="flex:.6">08:00</div></div><div class="hint">Heure de Dakar</div></div>
+     <div class="note"><svg class="i s"><use href="#b"/></svg>Les 42 membres de la classe seront notifiés à la publication.</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+<div class="row" style="margin-top:24px">
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="mtop"><h1>Devoirs</h1><span class="chip" style="background:var(--brand);color:var(--onbrand);border-color:var(--brand);display:flex;gap:4px;align-items:center"><svg class="i s"><use href="#pl"/></svg>Nouveau</span></div>
+  <div class="pad">
+   <div class="seg"><span class="on">À faire · 4</span><span>Passés</span></div>
+   <div class="card task"><span class="box"></span><div class="tm"><div class="tag" style="--c:#8E44AD">Bases de données</div><div class="ttl">Exercices SQL, chap. 4</div><span class="due" style="color:var(--amb)">Dans 3 jours</span></div></div>
+   <div class="card task"><span class="box"></span><div class="tm"><div class="tag" style="--c:#1F8A5B">Anglais</div><div class="ttl">Essay — Smart cities</div><span class="due" style="color:var(--grn)">Dans 6 jours</span></div></div>
+   <div style="text-align:center;margin-top:10px"><span class="link" style="display:inline-flex;gap:6px;align-items:center"><svg class="i s"><use href="#tr"/></svg>Corbeille · 1</span></div>
+  </div>
+  <div class="toast"><span>« TP routage OSPF » mis à la corbeille</span><b>Annuler</b></div>
+  <div class="tabs"><div class="tb"><svg class="i"><use href="#h"/></svg>Accueil</div><div class="tb on"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="tb"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="tb"><svg class="i"><use href="#m"/></svg>Classe</div><div class="tb"><svg class="i"><use href="#p"/></svg>Plus<em>2</em></div></div>
+ </div><p class="cap">Après une suppression : message avec « Annuler ». Accès à la corbeille en bas de la liste. « Nouveau » dans la barre du haut.</p></div>
+
+ <div>
+ <div class="mob L">
+  <div class="status"><span>9:41</span><span>●●● 4G</span></div>
+  <div class="back"><svg class="i s"><use href="#bk"/></svg>Devoirs</div>
+  <div class="mtop" style="padding-top:0"><h1>Corbeille</h1></div>
+  <div class="pad">
+   <div class="note" style="margin-bottom:10px"><svg class="i s"><use href="#al"/></svg>Les devoirs restent 30 jours dans la corbeille, puis sont supprimés définitivement.</div>
+   <div class="card">
+    <div class="tag" style="--c:#4C5FD5">Réseaux</div><div class="ttl">TP routage OSPF</div>
+    <div class="small">Supprimé aujourd'hui par toi · effacé dans 30 jours</div>
+    <div class="acts"><div class="btn b2">Restaurer</div></div>
+   </div>
+   <div class="card">
+    <div class="tag" style="--c:#B7791F">Économie</div><div class="ttl">Lecture chap. 1</div>
+    <div class="small">Supprimé le 20 sept. par Moussa · effacé dans 6 jours</div>
+    <div class="acts"><div class="btn b2">Restaurer</div></div>
+   </div>
+  </div>
+  <div class="tabs"><div class="tb"><svg class="i"><use href="#h"/></svg>Accueil</div><div class="tb on"><svg class="i"><use href="#c"/></svg>Devoirs</div><div class="tb"><svg class="i"><use href="#r"/></svg>Ressources</div><div class="tb"><svg class="i"><use href="#m"/></svg>Classe</div><div class="tb"><svg class="i"><use href="#p"/></svg>Plus<em>2</em></div></div>
+ </div><p class="cap">Corbeille : qui a supprimé, quand, et le délai avant l'effacement définitif.</p></div>
+</div>
+</div>
+</div>
+
+</body></html>
