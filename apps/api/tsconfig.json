@@ -1,1 +1,1 @@
-{ "extends": "../../tsconfig.base.json", "compilerOptions": { "outDir": "dist" }, "include": ["src", "test", "prisma.config.ts"] }
+{ "extends": "../../tsconfig.base.json", "compilerOptions": { "outDir": "dist", "lib": ["ES2024"] }, "include": ["src", "test", "prisma.config.ts"] }

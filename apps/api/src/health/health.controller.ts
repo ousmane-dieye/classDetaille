@@ -1,9 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ReadinessService } from './readiness.service.js';
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly readiness: ReadinessService) {}
+  constructor(@Inject(ReadinessService) private readonly readiness: ReadinessService) {}
 
   @Get()
   async health(): Promise<{ status: 'ok' | 'degraded' }> {
