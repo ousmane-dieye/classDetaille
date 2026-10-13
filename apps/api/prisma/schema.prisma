@@ -1,0 +1,30 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["app"]
+}
+
+model SyncEpoch {
+  id    Int    @id @db.SmallInt
+  epoch String @db.Uuid
+
+  @@map("sync_epoch")
+  @@schema("app")
+}
+
+model OpsSettings {
+  id                      Int       @id @db.SmallInt
+  orphanDeletePausedUntil DateTime? @map("orphan_delete_paused_until") @db.Timestamptz
+  orphanReviewRequired    Boolean   @default(false) @map("orphan_review_required")
+  bulkEmailPaused         Boolean   @default(false) @map("bulk_email_paused")
+  lastRestoreAt           DateTime? @map("last_restore_at") @db.Timestamptz
+  lastRestoreBackupAt     DateTime? @map("last_restore_backup_at") @db.Timestamptz
+
+  @@map("ops_settings")
+  @@schema("app")
+}

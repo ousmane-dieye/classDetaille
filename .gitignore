@@ -2,3 +2,4 @@
 node_modules/
 dist/
 .secrets/
+apps/api/src/generated/

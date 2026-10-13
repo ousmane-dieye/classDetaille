@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import type { TestProject } from 'vitest/node';
 import { PG_IMAGE } from './images.js';
+import { runPrisma } from './prisma-cli.js';
 
 export type PgInfo = { host: string; port: number; superPassword: string; rolePassword: string; templateDb: string; containerId: string };
 
@@ -35,6 +36,14 @@ export default async function setup(project: TestProject): Promise<() => Promise
   }
   const templateDb = 'cp_template';
   await psql(container, ['-d', 'postgres', '-v', `dbname=${templateDb}`, '-f', '/bootstrap/db-bootstrap-database.sql']);
+
+  const migrate = await runPrisma(['migrate', 'deploy'], {
+    host: container.getHost(), port: container.getPort(), database: templateDb, user: 'cp_owner',
+    auth: { mode: 'password', password: rolePassword },
+  });
+  if (migrate.code !== 0) throw new Error(`prisma migrate deploy failed:
+${migrate.stdout}
+${migrate.stderr}`);
 
   project.provide('pg', {
     host: container.getHost(),
