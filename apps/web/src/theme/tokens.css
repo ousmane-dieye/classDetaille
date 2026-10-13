@@ -1,0 +1,60 @@
+/* Généré par scripts/gen-tokens.ts — ne pas modifier à la main. */
+
+:root {
+  --cp-bg: #FFF9F4;
+  --cp-side: #FFFFFF;
+  --cp-surface: #FFFFFF;
+  --cp-ink: #2A211C;
+  --cp-muted: #8C7E73;
+  --cp-line: #F0E3D8;
+  --cp-line2: #DFCBBB;
+  --cp-navon: #FCEBE1;
+  --cp-brand: #C2461F;
+  --cp-onbrand: #FFFFFF;
+  --cp-brandtx: #C2461F;
+  --cp-red: #B42318;
+  --cp-amb: #A15C07;
+  --cp-grn: #1E7A46;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --cp-bg: #1A1411;
+    --cp-side: #1F1814;
+    --cp-surface: #241C18;
+    --cp-ink: #F6EDE6;
+    --cp-muted: #B3A398;
+    --cp-line: #382B24;
+    --cp-line2: #54443A;
+    --cp-navon: #33241D;
+    --cp-brand: #E8703F;
+    --cp-onbrand: #1A1411;
+    --cp-brandtx: #F08A5D;
+    --cp-red: #FF8A7A;
+    --cp-amb: #F2C063;
+    --cp-grn: #72D49B;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --cp-bg: #1A1411;
+  --cp-side: #1F1814;
+  --cp-surface: #241C18;
+  --cp-ink: #F6EDE6;
+  --cp-muted: #B3A398;
+  --cp-line: #382B24;
+  --cp-line2: #54443A;
+  --cp-navon: #33241D;
+  --cp-brand: #E8703F;
+  --cp-onbrand: #1A1411;
+  --cp-brandtx: #F08A5D;
+  --cp-red: #FF8A7A;
+  --cp-amb: #F2C063;
+  --cp-grn: #72D49B;
+  color-scheme: dark;
+}
+
+body { margin: 0; background: var(--cp-bg); color: var(--cp-ink); font-family: Figtree, system-ui, sans-serif; font-size: 16px; }
+
