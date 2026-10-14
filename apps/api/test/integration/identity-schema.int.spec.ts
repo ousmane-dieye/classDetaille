@@ -106,6 +106,9 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
   const CHALLENGES = ['id', 'user_id', 'purpose', 'session_id', 'token_hash', 'code_hmac', 'pending_email', 'ip', 'attempts', 'created_at', 'expires_at', 'consumed_at', 'consumed_reason'];
   const FAILURES = ['id', 'user_id', 'challenge_id', 'purpose', 'occurred_at'];
   const RESETS = ['id', 'user_id', 'token_hash', 'created_at', 'expires_at', 'consumed_at'];
+  const OUTBOX = ['id', 'recipient_user_id', 'to_address', 'kind', 'dedupe_key', 'payload', 'payload_encrypted', 'message_id', 'status', 'normal_attempts', 'ambiguous_retry_scheduled', 'ambiguous_retry_claimed', 'next_attempt_at', 'locked_until', 'claim_token', 'expires_at', 'accepted_at', 'challenge_id', 'created_at'];
+  const ATTEMPTS = ['id', 'email_id', 'attempt_no', 'kind', 'claim_token', 'started_at', 'finished_at', 'outcome', 'smtp_code', 'smtp_response', 'error_code', 'late_outcome', 'late_smtp_code'];
+  const LEASES = ['name', 'holder', 'lease_until', 'fencing_token'];
   const key = privKey;
 
   // Oracle écrit à la main : droits de table.
@@ -120,6 +123,7 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     key('audit_log', 'SELECT'),
     // lot 1b : SELECT en droit de table, INSERT et UPDATE par colonne seulement (jamais de DELETE).
     key('auth_challenges', 'SELECT'), key('second_factor_failures', 'SELECT'), key('password_reset_tokens', 'SELECT'),
+    key('email_outbox', 'SELECT'), key('email_attempts', 'SELECT'), key('job_leases', 'SELECT'),
   ];
   // Oracle écrit à la main : droits par colonne (information_schema.column_privileges inclut ceux issus d'un droit de table).
   const COLUMN_GRANTS = [
@@ -145,8 +149,16 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...RESETS.map((c) => key('password_reset_tokens', 'SELECT', c)),
     ...['id', 'user_id', 'token_hash', 'expires_at'].map((c) => key('password_reset_tokens', 'INSERT', c)),
     key('password_reset_tokens', 'UPDATE', 'consumed_at'),
+    ...OUTBOX.map((c) => key('email_outbox', 'SELECT', c)),
+    ...['id', 'recipient_user_id', 'to_address', 'kind', 'dedupe_key', 'payload', 'payload_encrypted', 'message_id', 'expires_at', 'challenge_id'].map((c) => key('email_outbox', 'INSERT', c)),
+    ...['status', 'normal_attempts', 'ambiguous_retry_scheduled', 'ambiguous_retry_claimed', 'next_attempt_at', 'locked_until', 'claim_token', 'accepted_at', 'payload_encrypted'].map((c) => key('email_outbox', 'UPDATE', c)),
+    ...ATTEMPTS.map((c) => key('email_attempts', 'SELECT', c)),
+    ...['email_id', 'attempt_no', 'kind', 'claim_token'].map((c) => key('email_attempts', 'INSERT', c)),
+    ...['finished_at', 'outcome', 'smtp_code', 'smtp_response', 'error_code', 'late_outcome', 'late_smtp_code'].map((c) => key('email_attempts', 'UPDATE', c)),
+    ...LEASES.map((c) => key('job_leases', 'SELECT', c)),
+    ...['holder', 'lease_until', 'fencing_token'].map((c) => key('job_leases', 'UPDATE', c)),
   ];
-  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens'];
+  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens', 'email_outbox', 'email_attempts', 'job_leases'];
 
   it('droits de table et droits par colonne : listes exactes (jamais de DELETE sur users, sessions, classes, demandes ni audit)', async () => {
     await expectExactCpAppPrivileges(db, TABLES, TABLE_GRANTS, COLUMN_GRANTS);

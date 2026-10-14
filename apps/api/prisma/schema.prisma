@@ -77,6 +77,7 @@ model User {
   createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime              @default(now()) @map("updated_at") @db.Timestamptz
   sessions              Session[]
+  emails                EmailOutbox[]
   secondFactorBlockedAt DateTime?             @map("second_factor_blocked_at") @db.Timestamptz
   authChallenges        AuthChallenge[]
   secondFactorFailures  SecondFactorFailure[]
@@ -237,6 +238,7 @@ model AuthChallenge {
   expiresAt      DateTime                 @map("expires_at") @db.Timestamptz
   consumedAt     DateTime?                @map("consumed_at") @db.Timestamptz
   consumedReason ChallengeConsumedReason? @map("consumed_reason")
+  emails         EmailOutbox[]
 
   @@index([userId, createdAt], map: "auth_challenges_user_created_idx")
   @@map("auth_challenges")
@@ -266,5 +268,117 @@ model PasswordResetToken {
   consumedAt DateTime? @map("consumed_at") @db.Timestamptz
 
   @@map("password_reset_tokens")
+  @@schema("app")
+}
+
+enum EmailKind {
+  WELCOME
+  REFUSAL
+  PASSWORD_RESET
+  DIGEST
+  ANNOUNCEMENT
+  ADMIN_ALERT
+  SECURITY_ALERT
+  ADMIN_SECURITY_ALERT
+  ADMIN_OTP
+  ADMIN_EMAIL_CHANGE_OLD
+  ADMIN_EMAIL_CHANGE_NEW
+  TEST
+
+  @@map("email_kind")
+  @@schema("app")
+}
+
+enum EmailStatus {
+  PENDING
+  SENDING
+  RETRY_WAIT
+  UNCERTAIN
+  ACCEPTED
+  FAILED
+  EXPIRED
+  CANCELLED
+
+  @@map("email_status")
+  @@schema("app")
+}
+
+enum EmailAttemptKind {
+  NORMAL
+  AMBIGUOUS_RETRY
+
+  @@map("email_attempt_kind")
+  @@schema("app")
+}
+
+enum EmailAttemptOutcome {
+  ACCEPTED
+  TEMP_FAIL
+  PERM_FAIL
+  AMBIGUOUS
+  CANCELLED_IN_FLIGHT
+
+  @@map("email_attempt_outcome")
+  @@schema("app")
+}
+
+model EmailOutbox {
+  id                      String         @id @db.Uuid
+  recipientUserId         String?        @map("recipient_user_id") @db.Uuid
+  recipient               User?          @relation(fields: [recipientUserId], references: [id], onDelete: Restrict)
+  toAddress               String         @map("to_address")
+  kind                    EmailKind
+  dedupeKey               String         @unique(map: "email_outbox_dedupe_key_key") @map("dedupe_key")
+  payload                 Json           @default("{}")
+  payloadEncrypted        Bytes?         @map("payload_encrypted")
+  messageId               String         @unique(map: "email_outbox_message_id_key") @map("message_id")
+  status                  EmailStatus    @default(PENDING)
+  normalAttempts          Int            @default(0) @map("normal_attempts") @db.SmallInt
+  ambiguousRetryScheduled Boolean        @default(false) @map("ambiguous_retry_scheduled")
+  ambiguousRetryClaimed   Boolean        @default(false) @map("ambiguous_retry_claimed")
+  nextAttemptAt           DateTime       @default(dbgenerated("clock_timestamp()")) @map("next_attempt_at") @db.Timestamptz
+  lockedUntil             DateTime?      @map("locked_until") @db.Timestamptz
+  claimToken              String?        @map("claim_token") @db.Uuid
+  expiresAt               DateTime       @map("expires_at") @db.Timestamptz
+  acceptedAt              DateTime?      @map("accepted_at") @db.Timestamptz
+  challengeId             String?        @map("challenge_id") @db.Uuid
+  challenge               AuthChallenge? @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+  createdAt               DateTime       @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz
+  attempts                EmailAttempt[]
+
+  @@index([nextAttemptAt], map: "email_outbox_due_idx")
+  @@index([lockedUntil], map: "email_outbox_sending_idx")
+  @@map("email_outbox")
+  @@schema("app")
+}
+
+model EmailAttempt {
+  id           BigInt               @id @default(autoincrement())
+  emailId      String               @map("email_id") @db.Uuid
+  email        EmailOutbox          @relation(fields: [emailId], references: [id], onDelete: Restrict)
+  attemptNo    Int                  @map("attempt_no") @db.SmallInt
+  kind         EmailAttemptKind
+  claimToken   String               @map("claim_token") @db.Uuid
+  startedAt    DateTime             @default(dbgenerated("clock_timestamp()")) @map("started_at") @db.Timestamptz
+  finishedAt   DateTime?            @map("finished_at") @db.Timestamptz
+  outcome      EmailAttemptOutcome?
+  smtpCode     Int?                 @map("smtp_code")
+  smtpResponse String?              @map("smtp_response")
+  errorCode    String?              @map("error_code")
+  lateOutcome  EmailAttemptOutcome? @map("late_outcome")
+  lateSmtpCode Int?                 @map("late_smtp_code")
+
+  @@unique([emailId, attemptNo], map: "email_attempts_email_no_key")
+  @@map("email_attempts")
+  @@schema("app")
+}
+
+model JobLease {
+  name         String    @id
+  holder       String?
+  leaseUntil   DateTime? @map("lease_until") @db.Timestamptz
+  fencingToken BigInt    @default(0) @map("fencing_token")
+
+  @@map("job_leases")
   @@schema("app")
 }
