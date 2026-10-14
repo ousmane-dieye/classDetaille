@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import { readPgLogsSince, resetServerLogging, setServerLogging } from '../support/pg-logs.js';
 import { connectAs, createTestDatabase } from '../support/pg.js';
 
@@ -16,6 +16,18 @@ afterAll(async () => {
     const cfg = r.rows.flatMap((x) => x.setconfig as string[]).sort();
     expect(cfg).toEqual(['idle_in_transaction_session_timeout=10s', 'transaction_timeout=10s']);
     expect(cfg.some((x) => x.startsWith('log_'))).toBe(false);
+    // Aucun réglage log_* laissé par les caractérisations (d4, d5) : ni sur cp_app (toutes bases),
+    // ni pour tous les rôles (setrole = 0) sur le serveur, la base de test ou la base modèle.
+    const left = await c.query(
+      `select count(*)::int as n
+         from pg_db_role_setting s, unnest(s.setconfig) x
+        where x ilike 'log\\_%'
+          and (s.setrole = (select oid from pg_roles where rolname = 'cp_app')
+               or (s.setrole = 0 and (s.setdatabase = 0
+                   or s.setdatabase in (select oid from pg_database where datname in ($1, $2)))))`,
+      [db, inject('pg').templateDb],
+    );
+    expect(left.rows[0].n).toBe(0);
   } finally { await c.end(); }
 });
 
@@ -128,5 +140,36 @@ describe('T-05 — secrets et traces PostgreSQL', () => {
     expect((logs.match(/ERROR:\s+division by zero/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(logs).toContain(`$1 = '${sA}'`); // preuve : la capture fonctionne, la session A fuit ses propres valeurs
     expect(logs).not.toContain(sB);
+  });
+
+  it('(d4, caractérisation) cp_app peut le fixer durablement sur son propre rôle (ALTER ROLE … SET)', async () => {
+    const app = await connectAs('cp_app', db);
+    try {
+      await expect(app.query('ALTER ROLE cp_app SET log_parameter_max_length_on_error = -1')).resolves.toBeDefined();
+      // Le réglage vaut pour toutes les sessions suivantes du rôle.
+      const next = await connectAs('cp_app', db);
+      try {
+        const r = await next.query('show log_parameter_max_length_on_error');
+        expect(r.rows[0].log_parameter_max_length_on_error).toBe('-1');
+      } finally { await next.end(); }
+    } finally {
+      await app.query('ALTER ROLE cp_app RESET log_parameter_max_length_on_error');
+      await app.end();
+    }
+  });
+
+  it('(d5, caractérisation) cp_owner peut le fixer pour toute la base (ALTER DATABASE … SET), pour tous les rôles', async () => {
+    const owner = await connectAs('cp_owner', db);
+    try {
+      await expect(owner.query(`ALTER DATABASE ${db} SET log_parameter_max_length_on_error = -1`)).resolves.toBeDefined();
+      const mon = await connectAs('cp_monitor', db);
+      try {
+        const r = await mon.query('show log_parameter_max_length_on_error');
+        expect(r.rows[0].log_parameter_max_length_on_error).toBe('-1');
+      } finally { await mon.end(); }
+    } finally {
+      await owner.query(`ALTER DATABASE ${db} RESET log_parameter_max_length_on_error`);
+      await owner.end();
+    }
   });
 });

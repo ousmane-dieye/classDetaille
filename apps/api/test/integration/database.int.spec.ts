@@ -1,7 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import 'reflect-metadata';
+import { Logger } from '@nestjs/common';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { DatabaseReadinessProbe } from '../../src/database/database.module.js';
 import { PrismaService } from '../../src/database/prisma.service.js';
 import { isRetryableTxError } from '../../src/database/tx.js';
-import { createTestDatabase, dbConfigFor, runSql } from '../support/pg.js';
+import { connectAs, createTestDatabase, dbConfigFor, runSql } from '../support/pg.js';
 
 let db: string;
 let a: PrismaService;
@@ -61,5 +64,50 @@ describe('module database', () => {
       return 'b';
     });
     await expect(Promise.all([r1, r2])).resolves.toEqual(['a', 'b']);
+  });
+});
+
+describe('détection G4 : réglage log_* enregistré sur un rôle ou sur la base', () => {
+  it('cp_app peut lire pg_db_role_setting (nécessaire à la détection)', async () => {
+    const c = await connectAs('cp_app', db);
+    try {
+      const r = await c.query(`select has_table_privilege('pg_catalog.pg_db_role_setting', 'SELECT') as ok`);
+      expect(r.rows[0].ok).toBe(true);
+    } finally { await c.end(); }
+  });
+
+  it.each([
+    ['ALTER DATABASE … SET (base courante)', (d: string) => `ALTER DATABASE ${d} SET log_min_duration_statement = 1000`, (d: string) => `ALTER DATABASE ${d} RESET log_min_duration_statement`],
+    ['ALTER ROLE … IN DATABASE … SET', (d: string) => `ALTER ROLE cp_monitor IN DATABASE ${d} SET log_statement = 'none'`, (d: string) => `ALTER ROLE cp_monitor IN DATABASE ${d} RESET log_statement`],
+    ['ALTER ROLE … SET (tout le serveur)', () => `ALTER ROLE cp_ops SET log_min_messages = 'warning'`, () => `ALTER ROLE cp_ops RESET log_min_messages`],
+  ])('%s : sonde fausse, puis vraie après retrait', async (_label, set, reset) => {
+    const probe = new DatabaseReadinessProbe(a);
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    try {
+      await expect(probe.check()).resolves.toBe(true);
+      await runSql('postgres', set(db));
+      try {
+        await expect(a.hasLogSettingOverrides()).resolves.toBe(true);
+        await expect(probe.check()).resolves.toBe(false);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(String(warn.mock.calls[0]?.[0])).not.toMatch(/=|1000|none|warning/);
+      } finally {
+        await runSql('postgres', reset(db));
+      }
+      await expect(probe.check()).resolves.toBe(true);
+    } finally { warn.mockRestore(); }
+  });
+
+  it('un réglage d’une autre base ou hors log_* (« _ » échappé : logical_…) ne déclenche pas la détection', async () => {
+    const other = await createTestDatabase();
+    try {
+      await runSql('postgres', `ALTER DATABASE ${other} SET log_statement = 'none'`);
+      await runSql('postgres', `ALTER DATABASE ${db} SET logical_decoding_work_mem = '64MB'`);
+      await expect(a.hasLogSettingOverrides()).resolves.toBe(false);
+      await expect(new DatabaseReadinessProbe(a).check()).resolves.toBe(true);
+    } finally {
+      await runSql('postgres', `ALTER DATABASE ${db} RESET logical_decoding_work_mem`);
+      await runSql('postgres', `DROP DATABASE ${other}`);
+    }
   });
 });
