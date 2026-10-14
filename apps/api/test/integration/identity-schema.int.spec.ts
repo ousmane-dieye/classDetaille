@@ -157,6 +157,9 @@ describe('classes et enrollment_requests (§ 2.2, R8, R9)', () => {
     await expect(insertClass('L3 Info')).rejects.toMatchObject({ code: '23505' });
     await expect(insertClass('L3 Réseaux', '2026-2028')).rejects.toMatchObject({ constraint: 'classes_text_lengths' });
   });
+  it('une année non numérique est refusée par la contrainte (23514), jamais par un cast (22P02)', async () => {
+    await expect(insertClass('L3 Cast', 'abcd-abce')).rejects.toMatchObject({ code: '23514', constraint: 'classes_text_lengths' });
+  });
   it('une seule demande en attente par utilisateur', async () => {
     const c1 = await insertClass('C1');
     const c2 = await insertClass('C2');
@@ -167,12 +170,17 @@ describe('classes et enrollment_requests (§ 2.2, R8, R9)', () => {
   it('refuse une demande pour une classe archivée', async () => {
     const c = await insertClass('C3', '2025-2026', 'ARCHIVED');
     const u = await insertUser('enr2@example.com');
-    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514' });
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514', message: 'enrollment: class is not active' });
   });
   it('refuse une demande d’un administrateur', async () => {
     const c = await insertClass('C4');
     const u = await insertUser('enr3@example.com', { global_role: 'ADMIN' });
-    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514' });
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514', message: 'enrollment: user cannot enroll' });
+  });
+  it('refuse une demande d’un compte non actif', async () => {
+    const c = await insertClass('C4b');
+    const u = await insertUser('enr3b@example.com', { status: 'SUSPENDED' });
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514', message: 'enrollment: user cannot enroll' });
   });
   it('refuse une nouvelle demande pour la même classe moins de 24 h après un refus, l’accepte après', async () => {
     const c = await insertClass('C5');
@@ -181,7 +189,7 @@ describe('classes et enrollment_requests (§ 2.2, R8, R9)', () => {
     const reqId = uuidv7();
     await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [reqId, u, c]);
     await owner.query(`update app.enrollment_requests set status = 'REFUSED', decided_at = now() - interval '23 hours', decided_by = $2 where id = $1`, [reqId, u]);
-    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514' });
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514', message: 'enrollment: refused less than 24 hours ago' });
     await owner.query(`update app.enrollment_requests set decided_at = now() - interval '25 hours' where id = $1`, [reqId]);
     await owner.end();
     await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c]);

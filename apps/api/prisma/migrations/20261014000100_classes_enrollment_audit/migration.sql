@@ -19,8 +19,9 @@ CREATE TABLE app.classes (
   CONSTRAINT classes_text_lengths CHECK (
     char_length(name) BETWEEN 2 AND 80
     AND char_length(level) BETWEEN 1 AND 40
-    AND academic_year ~ '^[0-9]{4}-[0-9]{4}$'
-    AND substr(academic_year, 6, 4)::int = substr(academic_year, 1, 4)::int + 1
+    AND CASE WHEN academic_year ~ '^[0-9]{4}-[0-9]{4}$'
+             THEN substr(academic_year, 6, 4)::int = substr(academic_year, 1, 4)::int + 1
+             ELSE false END
   )
 );
 GRANT SELECT ON app.classes TO cp_app;

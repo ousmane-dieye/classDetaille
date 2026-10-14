@@ -9,7 +9,17 @@ beforeAll(async () => { db = await createTestDatabase(); app = await connectAs('
 afterAll(async () => { await app.end(); });
 
 describe('audit_log (§ 2.5)', () => {
-  it('le trigger remplit source, occurred_at et db_login_role', async () => {
+  it('le trigger écrase source, occurred_at et db_login_role même si le rôle propriétaire les fournit', async () => {
+    const owner = await connectAs('cp_owner', db);
+    try {
+      const r = await owner.query(
+        `insert into app.audit_log (action, source, occurred_at, db_login_role) values ('CLASS_CREATED', 'PRIVILEGED', now() - interval '1 day', 'x')
+         returning source, db_login_role, occurred_at > now() - interval '1 minute' as recent`,
+      );
+      expect(r.rows[0]).toEqual({ source: 'APP', db_login_role: 'cp_owner', recent: true });
+    } finally { await owner.end(); }
+  });
+  it('les valeurs par défaut remplissent source, occurred_at et db_login_role', async () => {
     const r = await app.query(`insert into app.audit_log (action, metadata) values ('CLASS_CREATED', '{"via":"cli"}') returning source, db_login_role, occurred_at is not null as dated`);
     expect(r.rows[0]).toEqual({ source: 'APP', db_login_role: 'cp_app', dated: true });
   });
