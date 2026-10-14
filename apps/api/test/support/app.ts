@@ -101,6 +101,20 @@ export async function query(db: string, sql: string, params: unknown[] = [], rol
   try { return await c.query(sql, params); } finally { await c.end(); }
 }
 
+/**
+ * Prépare l'état « compte supprimé » (ligne anonymisée complète, CHECK users_lifecycle). Le déclencheur users_second_factor_guard
+ * interdit à tout rôle sauf cp_privileged (sans droit direct sur la table) de changer l'email d'un non-administrateur :
+ * les déclencheurs sont neutralisés sous postgres pour cette seule préparation de donnée ; le code testé reste sous cp_app.
+ */
+export async function markDeleted(db: string, userId: string): Promise<void> {
+  const o = await connectAs('postgres', db);
+  try {
+    await o.query('set session_replication_role = replica');
+    await o.query(`update app.users set status = 'DELETED', global_role = 'USER', email = null, first_name = null, last_name = null,
+      password_hash = null, email_reminders = false, email_announcements = false, deleted_at = now() where id = $1`, [userId]);
+  } finally { await o.end(); }
+}
+
 /** Lance la CLI avec une configuration lue depuis des fichiers secrets temporaires (jamais en variables). */
 export async function runCli(db: string, args: string[], stdin = '', envOverride: Record<string, string> = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   const cfg = testConfig(db);

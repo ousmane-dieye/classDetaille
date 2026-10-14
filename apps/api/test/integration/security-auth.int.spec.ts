@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildTestApp, cookieHeader, insertClass, PASSWORD, query, registerStudent, send, type TestApp } from '../support/app.js';
+import { buildTestApp, cookieHeader, insertClass, markDeleted, PASSWORD, query, registerStudent, send, type TestApp } from '../support/app.js';
 import { createTestDatabase } from '../support/pg.js';
 
 const CLEAR = '__Host-cp_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0';
@@ -37,7 +37,7 @@ describe('sécurité — sessions (§ 3.4)', () => {
   it.each([['SUSPENDED', 'SUSPENDED'], ['DELETED', 'ANONYMIZED']])('compte %s (puis ACTIVE si réactivable) : l’ancien cookie reste 401, session révoquée (%s)', async (status, reason) => {
     const s = await registerStudent(t.app, classId);
     // DELETED exige la ligne anonymisée complète (CHECK users_lifecycle) ; l'ancien cookie doit rester mort malgré le retour à ACTIVE.
-    if (status === 'DELETED') await query(db, `update app.users set status = 'DELETED', email = null, first_name = null, last_name = null, password_hash = null, email_reminders = false, email_announcements = false, deleted_at = now() where id = $1`, [s.userId], 'cp_owner');
+    if (status === 'DELETED') await markDeleted(db, s.userId);
     else await query(db, `update app.users set status = $2::app.user_status where id = $1`, [s.userId, status], 'cp_owner');
     const first = await send(t.app, 'GET', '/api/me', undefined, cookieHeader(s.token));
     expect(first.statusCode).toBe(401);

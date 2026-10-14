@@ -87,7 +87,8 @@ export class ChallengesRepository {
   async incrementAttemptsInTx(tx: TxClient, id: string): Promise<number> {
     const r = await tx.$queryRaw<{ attempts: number }[]>`
       update app.auth_challenges set attempts = attempts + 1 where id = ${id}::uuid and attempts < 5 and consumed_at is null returning attempts`;
-    return r[0]?.attempts ?? 5;
+    if (!r[0]) throw new Error('challenge attempts not incremented');
+    return r[0].attempts;
   }
 
   async consumeInTx(tx: TxClient, id: string, reason: ConsumeReason): Promise<void> {

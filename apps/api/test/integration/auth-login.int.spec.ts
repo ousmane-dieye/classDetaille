@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildTestApp, cookieHeader, insertClass, PASSWORD, query, registerStudent, send, sessionCookieOf, type TestApp } from '../support/app.js';
+import { buildTestApp, cookieHeader, insertClass, markDeleted, PASSWORD, query, registerStudent, send, sessionCookieOf, type TestApp } from '../support/app.js';
 import { createTestDatabase } from '../support/pg.js';
 
 let db: string;
@@ -29,8 +29,7 @@ describe('POST /api/auth/login (P2, § 3.2)', () => {
   it('réponse identique : email inconnu, mauvais mot de passe, compte supprimé', async () => {
     const s = await registerStudent(t.app, classId);
     const deleted = await registerStudent(t.app, classId);
-    await query(db, `update app.users set status = 'DELETED', global_role = 'USER', email = null, first_name = null, last_name = null,
-      password_hash = null, email_reminders = false, email_announcements = false, deleted_at = now() where id = $1`, [deleted.userId], 'cp_owner');
+    await markDeleted(db, deleted.userId);
     const r1 = await login({ email: 'nobody@example.com', password: PASSWORD });
     const r2 = await login({ email: s.email, password: `${PASSWORD}!` });
     const r3 = await login({ email: deleted.email, password: PASSWORD });

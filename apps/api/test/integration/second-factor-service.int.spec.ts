@@ -82,6 +82,25 @@ describe('issueInTx', () => {
     await seedHistory(db, d.id, 10, 120); // 10 dans la journée, aucune dans l'heure
     await expect(issueLogin(d.id)).rejects.toMatchObject({ code: 'TOO_MANY_CODE_REQUESTS' });
   });
+  it('Retry-After = le plus long des délais dépassés (minute, heure, jour)', async () => {
+    const a = await createAdmin(db);
+    await seedHistory(db, a.id, 5, 10); // 5 dans l'heure : la plus ancienne (il y a 10 min) sort dans ~50 min
+    await issueLogin(a.id).catch(() => undefined);
+    const e = await issueLogin(a.id).catch((x: unknown) => x as ApiError);
+    expect(e).toMatchObject({ code: 'TOO_MANY_CODE_REQUESTS' });
+    expect(Number((e as ApiError).headers['retry-after'])).toBeGreaterThan(40 * 60); // jamais la seule minute
+  });
+  it('R21 : EMAIL_CHANGE_NEW n’est ni comptée ni limitée ; RECOVERY et EMAIL_CHANGE_NEW sont exclues du décompte', async () => {
+    const a = await createAdmin(db);
+    const s = await createAdminSession(db, a.id);
+    const actor = { kind: 'user', userId: a.id, globalRole: 'ADMIN', sessionId: s } as const;
+    const old = await prisma.withTx((tx) => sf.issueInTx(tx, actor, { userId: a.id, purpose: 'EMAIL_CHANGE_OLD', sessionId: s, pendingEmail: 'nouvelle@example.com', tokenHash: null, ip: null }));
+    await prisma.withTx(async (tx) => { await sf.consumeInTx(tx, actor, { id: old.challengeId, purpose: 'EMAIL_CHANGE_OLD', sessionId: s, pendingEmail: 'nouvelle@example.com' }, 'USED'); });
+    const nw = await prisma.withTx((tx) => sf.issueInTx(tx, actor, { userId: a.id, purpose: 'EMAIL_CHANGE_NEW', sessionId: s, pendingEmail: 'nouvelle@example.com', tokenHash: null, ip: null }));
+    expect(nw.expiresInSeconds).toBe(600);
+    const repo = t.app.get(ChallengesRepository, { strict: false });
+    expect(await prisma.withTx((tx) => repo.requestCountsInTx(tx, a.id))).toMatchObject({ minute: 1, hour: 1, day: 1 });
+  });
   it('un administrateur bloqué : 403 SECOND_FACTOR_BLOCKED, aucune vérification, aucun email', async () => {
     const a = await createAdmin(db);
     const c = await connectAs('cp_app', db);
@@ -328,20 +347,16 @@ describe('OtpLimiter', () => {
     const r = await Promise.allSettled(Array.from({ length: 25 }, () => lim.hitRequest('198.51.100.30')));
     expect(r.filter((x) => x.status === 'fulfilled')).toHaveLength(10);
   });
-  it('plafond de lignes (D13) : au-delà, aucune ligne n’est créée pour une IP nouvelle, les IP connues restent limitées', async () => {
+  it('plafond de lignes (D13) : au-delà, une IP nouvelle est quand même comptée puis limitée (pas de contournement par rotation)', async () => {
     const lim = t.app.get(OtpLimiter, { strict: false });
-    for (let i = 0; i < 10; i++) await lim.hitRequest('198.51.100.40'); // seau existant, déjà à la limite
     const o = await connectAs('cp_owner', db);
     try {
       await o.query(`insert into app.rate_limit_buckets (key, window_start, attempts) select 'ip:' || to_hex(i + 1048576), clock_timestamp(), 1 from generate_series(1, $1::int) i`, [BUCKET_ROW_CAP + 1]);
-      await lim.hitRequest('198.51.100.41'); // IP nouvelle : passe, sans créer de ligne
-      expect(await rows(`select 1 from app.rate_limit_buckets where key = 'otp-ip:198.51.100.41'`)).toHaveLength(0);
-      await expect(lim.hitRequest('198.51.100.40')).rejects.toMatchObject({ code: 'TOO_MANY_ATTEMPTS' });
+      for (let i = 0; i < 10; i++) await lim.hitRequest('198.51.100.41');
+      await expect(lim.hitRequest('198.51.100.41')).rejects.toMatchObject({ code: 'TOO_MANY_ATTEMPTS' });
     } finally {
       await o.query(`delete from app.rate_limit_buckets where key ~ '^ip:[0-9a-f]+$'`);
       await o.end();
     }
-    await lim.hitRequest('198.51.100.41'); // plafond levé : le seau est de nouveau créé
-    expect(await rows(`select 1 from app.rate_limit_buckets where key = 'otp-ip:198.51.100.41'`)).toHaveLength(1);
   });
 });

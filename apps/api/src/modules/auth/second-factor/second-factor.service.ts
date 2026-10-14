@@ -77,7 +77,8 @@ export class SecondFactorService {
     // R21 : EMAIL_CHANGE_NEW n'est ni comptée ni limitée.
     if (input.purpose !== 'EMAIL_CHANGE_NEW') {
       const n = await this.repo.requestCountsInTx(tx, u.id);
-      const wait = n.minute >= LIMITS.minute ? n.retryMinute : n.hour >= LIMITS.hour ? n.retryHour : n.day >= LIMITS.day ? n.retryDay : 0;
+      const wait = Math.max(
+        n.minute >= LIMITS.minute ? n.retryMinute : 0, n.hour >= LIMITS.hour ? n.retryHour : 0, n.day >= LIMITS.day ? n.retryDay : 0);
       if (wait > 0) throw tooManyRequests('TOO_MANY_CODE_REQUESTS', wait);
     }
     await this.repo.supersedeActiveInTx(tx, u.id, input.purpose);
