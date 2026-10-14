@@ -31,7 +31,7 @@ const config: AppConfig = {
   nodeEnv: 'test', httpPort: 0, readyPort: 0, readyHost: '127.0.0.1',
   db: { host: '127.0.0.1', port: 1, database: 'x', user: 'cp_app', auth: { mode: 'password', password: 'x' } },
   http: { origin: ORIGIN, trustProxy: 0, logLevel: 'silent' },
-  security: { rateLimitHmacKey: 'k'.repeat(64) },
+  security: { rateLimitHmacKey: 'k'.repeat(64), otpPepper: 'p'.repeat(40), outboxPayloadKey: Buffer.alloc(32, 7) },
   turnstile: { secret: 's', verifyUrl: 'http://127.0.0.1:1/' },
   limits: { loginPerIp: 100, throttlePerIp: 5, throttlePerSession: 300 },
 };

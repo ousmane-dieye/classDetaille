@@ -4,4 +4,6 @@ export type UserActor = { kind: 'user'; userId: string; globalRole: 'USER' | 'AD
 export type AnonymousActor = { kind: 'anonymous'; ip: string };
 /** Commandes en ligne (R1). */
 export type CliActor = { kind: 'cli'; command: 'create-admin' | 'create-class' };
-export type Actor = UserActor | AnonymousActor | CliActor;
+/** Traitements du worker (R1 du lot 1b). */
+export type SystemActor = { kind: 'system'; job: 'email.send' | 'maintenance.purge' };
+export type Actor = UserActor | AnonymousActor | CliActor | SystemActor;

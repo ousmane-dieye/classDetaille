@@ -15,12 +15,15 @@ type LightMyRequestResponse = Awaited<ReturnType<NestFastifyApplication['inject'
 
 export const ORIGIN = 'https://app.test';
 
+export const TEST_OUTBOX_KEY = Buffer.alloc(32, 7);
+export const TEST_OTP_PEPPER = 'test-otp-pepper-'.padEnd(48, 'x');
+
 export function testConfig(db: string, over: Partial<AppConfig> = {}): AppConfig {
   return {
     nodeEnv: 'test', httpPort: 0, readyPort: 0, readyHost: '127.0.0.1',
     db: dbConfigFor('cp_app', db),
     http: { origin: ORIGIN, trustProxy: 0, logLevel: 'silent' },
-    security: { rateLimitHmacKey: 'test-hmac-key-'.padEnd(64, 'x') },
+    security: { rateLimitHmacKey: 'test-hmac-key-'.padEnd(64, 'x'), otpPepper: TEST_OTP_PEPPER, outboxPayloadKey: TEST_OUTBOX_KEY },
     turnstile: { secret: 'unused', verifyUrl: 'http://127.0.0.1:1/' },
     limits: { loginPerIp: 100, throttlePerIp: 10_000, throttlePerSession: 10_000 },
     ...over,
@@ -110,6 +113,8 @@ export async function runCli(db: string, args: string[], stdin = '', envOverride
     DB_PASSWORD_FILE: file('db', auth.password),
     RATE_LIMIT_HMAC_KEY_FILE: file('hmac', cfg.security.rateLimitHmacKey),
     TURNSTILE_SECRET_FILE: file('turnstile', cfg.turnstile.secret),
+    OTP_PEPPER_FILE: file('pepper', TEST_OTP_PEPPER),
+    OUTBOX_PAYLOAD_KEY_FILE: file('outbox', TEST_OUTBOX_KEY.toString('hex')),
     ...envOverride,
   };
   try {

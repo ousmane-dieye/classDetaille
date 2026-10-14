@@ -1,8 +1,8 @@
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { APP_CONFIG } from '../config/config.module.js';
+import { DB_CONFIG } from '../config/config.module.js';
 import { toPgPoolConfig } from '../config/database-connection.js';
-import type { AppConfig, DbConfig } from '../config/load-config.js';
+import type { DbConfig } from '../config/load-config.js';
 import { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { runWithRetry } from './tx.js';
 
@@ -49,6 +49,6 @@ export class PrismaService implements OnModuleDestroy {
 
 export const prismaServiceProvider = {
   provide: PrismaService,
-  inject: [APP_CONFIG],
-  useFactory: (cfg: AppConfig) => new PrismaService(cfg.db),
+  inject: [DB_CONFIG],
+  useFactory: (db: DbConfig) => new PrismaService(db),
 };

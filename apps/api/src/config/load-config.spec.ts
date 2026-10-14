@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadConfig, loadDbConfig } from './load-config.js';
+import { loadConfig, loadDbConfig, loadOpsConfig, loadWorkerConfig } from './load-config.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'cp-cfg-'));
 const pw = join(dir, 'pw');
@@ -11,6 +11,17 @@ const hmac = join(dir, 'hmac');
 writeFileSync(hmac, `${'a1'.repeat(32)}\n`);
 const turnstile = join(dir, 'turnstile');
 writeFileSync(turnstile, '1x0000000000000000000000000000000AA\n');
+
+const hex = 'a'.repeat(64);
+/** Écrit un fichier de secret temporaire et renvoie son chemin. */
+let secretSeq = 0;
+function secretFile(value: string): string {
+  const p = join(dir, `secret-${secretSeq++}`);
+  writeFileSync(p, `${value}\n`);
+  return p;
+}
+const otpPepper = secretFile('p'.repeat(40));
+const outboxKey = secretFile(hex);
 
 const base = {
   NODE_ENV: 'development',
@@ -25,7 +36,12 @@ const base = {
   APP_ORIGIN: 'http://localhost:5173',
   RATE_LIMIT_HMAC_KEY_FILE: hmac,
   TURNSTILE_SECRET_FILE: turnstile,
+  OTP_PEPPER_FILE: otpPepper,
+  OUTBOX_PAYLOAD_KEY_FILE: outboxKey,
 };
+
+/** Variables de la base seules (NODE_ENV et DB_*), pour le worker et ops. */
+const dbOnlyEnv = () => Object.fromEntries(Object.entries(base).filter(([k]) => k === 'NODE_ENV' || k.startsWith('DB_')));
 
 describe('loadConfig', () => {
   it('construit une configuration typée en mode mot de passe (développement)', () => {
@@ -55,21 +71,21 @@ describe('loadConfig', () => {
   });
   it('un message d’erreur ne contient jamais le contenu d’un fichier de secret', () => {
     const value = `S3CRET_${Math.random().toString(36).slice(2)}`;
-    const secretFile = join(dir, 'secret');
-    writeFileSync(secretFile, `${value}\n`);
+    const leaked = join(dir, 'secret');
+    writeFileSync(leaked, `${value}\n`);
     const cases: Record<string, string | undefined>[] = [
       // Fichier de secret configuré, mode mot de passe refusé en production.
-      { ...base, DB_PASSWORD_FILE: secretFile, NODE_ENV: 'production' },
+      { ...base, DB_PASSWORD_FILE: leaked, NODE_ENV: 'production' },
       // Erreur de validation d'un autre champ, secret configuré.
-      { ...base, DB_PASSWORD_FILE: secretFile, DB_PORT: 'abc' },
+      { ...base, DB_PASSWORD_FILE: leaked, DB_PORT: 'abc' },
       // Mode cert : fichier de mot de passe PKCS#12 configuré, clé privée manquante.
-      { ...base, DB_AUTH_MODE: 'cert', DB_PASSWORD_FILE: undefined, DB_SSL_CA_FILE: '/x/ca', DB_SSL_CERT_FILE: '/x/c', DB_SSL_P12_PASSWORD_FILE: secretFile },
+      { ...base, DB_AUTH_MODE: 'cert', DB_PASSWORD_FILE: undefined, DB_SSL_CA_FILE: '/x/ca', DB_SSL_CERT_FILE: '/x/c', DB_SSL_P12_PASSWORD_FILE: leaked },
       // Secret passé aussi directement : refusé sans recopier la valeur.
-      { ...base, DB_PASSWORD_FILE: secretFile, PGPASSWORD: value },
+      { ...base, DB_PASSWORD_FILE: leaked, PGPASSWORD: value },
       // Clé HMAC lue depuis le fichier de secret, autre variable invalide.
-      { ...base, RATE_LIMIT_HMAC_KEY_FILE: secretFile, APP_ORIGIN: 'pas une url' },
+      { ...base, RATE_LIMIT_HMAC_KEY_FILE: leaked, APP_ORIGIN: 'pas une url' },
       // Clé HMAC trop courte : refusée sans recopier sa valeur.
-      { ...base, RATE_LIMIT_HMAC_KEY_FILE: secretFile },
+      { ...base, RATE_LIMIT_HMAC_KEY_FILE: leaked },
     ];
     for (const env of cases) {
       let message = '';
@@ -78,7 +94,7 @@ describe('loadConfig', () => {
       expect(message).not.toContain(value);
     }
     // Contre-épreuve : la lecture fonctionne bien quand la configuration est valide.
-    expect(loadConfig({ ...base, DB_PASSWORD_FILE: secretFile }).db.auth).toEqual({ mode: 'password', password: value });
+    expect(loadConfig({ ...base, DB_PASSWORD_FILE: leaked }).db.auth).toEqual({ mode: 'password', password: value });
   });
   it('lit l’origine, les secrets de sécurité et les seuils par défaut', () => {
     const cfg = loadConfig(base);
@@ -96,8 +112,7 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...base, RATE_LIMIT_HMAC_KEY_FILE: join(dir, 'short') })).toThrow(/RATE_LIMIT_HMAC_KEY/);
   });
   it('loadDbConfig ne demande que les variables de la base', () => {
-    const dbOnly = Object.fromEntries(Object.entries(base).filter(([k]) => k === 'NODE_ENV' || k.startsWith('DB_')));
-    expect(loadDbConfig(dbOnly).user).toBe('cp_app');
+    expect(loadDbConfig(dbOnlyEnv()).user).toBe('cp_app');
   });
   it('lit les chemins des certificats en mode cert', () => {
     const cfg = loadConfig({
@@ -110,5 +125,29 @@ describe('loadConfig', () => {
       DB_SSL_KEY_FILE: '/run/secrets/client.key',
     });
     expect(cfg.db.auth).toEqual({ mode: 'cert', caFile: '/run/secrets/ca.crt', certFile: '/run/secrets/client.crt', keyFile: '/run/secrets/client.key' });
+  });
+});
+
+describe('lot 1b : secrets et worker', () => {
+  it('loadConfig lit OTP_PEPPER_FILE et OUTBOX_PAYLOAD_KEY_FILE', () => {
+    const c = loadConfig({ ...base, OTP_PEPPER_FILE: secretFile('p'.repeat(40)), OUTBOX_PAYLOAD_KEY_FILE: secretFile(hex) });
+    expect(c.security.otpPepper).toBe('p'.repeat(40));
+    expect(c.security.outboxPayloadKey).toEqual(Buffer.from(hex, 'hex'));
+  });
+  it.each([['court', hex], ['p'.repeat(40), 'zz'.repeat(32)], ['p'.repeat(40), 'a'.repeat(62)]])('refuse pepper %j / clé %j', (pepper, key) => {
+    expect(() => loadConfig({ ...base, OTP_PEPPER_FILE: secretFile(pepper), OUTBOX_PAYLOAD_KEY_FILE: secretFile(key) })).toThrow(/OTP_PEPPER|OUTBOX_PAYLOAD_KEY/);
+  });
+  it('loadWorkerConfig : Mailpit en développement, sans identifiants', () => {
+    const w = loadWorkerConfig({ ...dbOnlyEnv(), APP_ORIGIN: 'https://app.test', OUTBOX_PAYLOAD_KEY_FILE: secretFile(hex), MAIL_FROM: 'no-reply@app.test', SMTP_HOST: '127.0.0.1', SMTP_PORT: '1025', SMTP_SECURITY: 'none' });
+    expect(w.mail.smtp).toMatchObject({ host: '127.0.0.1', port: 1025, security: 'none', auth: null, timeoutMs: 30_000 });
+  });
+  it('loadWorkerConfig : SMTP_SECURITY=none refusé en production, identifiants incomplets refusés', () => {
+    const env = { ...dbOnlyEnv(), APP_ORIGIN: 'https://app.test', OUTBOX_PAYLOAD_KEY_FILE: secretFile(hex), MAIL_FROM: 'no-reply@app.test', SMTP_HOST: 'smtp.example', SMTP_PORT: '587' };
+    expect(() => loadWorkerConfig({ ...env, NODE_ENV: 'production', SMTP_SECURITY: 'none' })).toThrow(/SMTP_SECURITY/);
+    expect(() => loadWorkerConfig({ ...env, SMTP_SECURITY: 'starttls', SMTP_USER: 'u' })).toThrow(/SMTP_PASSWORD_FILE/);
+  });
+  it('loadOpsConfig lit OTP_PEPPER_FILE et la base, rien d’autre', () => {
+    const o = loadOpsConfig({ ...dbOnlyEnv(), OTP_PEPPER_FILE: secretFile('p'.repeat(40)) });
+    expect(o.otpPepper).toBe('p'.repeat(40));
   });
 });

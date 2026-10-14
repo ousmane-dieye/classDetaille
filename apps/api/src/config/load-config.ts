@@ -1,4 +1,4 @@
-import { dbEnvSchema, envSchema } from './config.schema.js';
+import { dbEnvSchema, envSchema, opsEnvSchema, workerEnvSchema } from './config.schema.js';
 import { readSecretFile } from './secret-file.js';
 
 export type DbAuth =
@@ -18,16 +18,38 @@ export type AppConfig = {
   db: DbConfig;
   /** `origin` : origine exacte de l'application web (CSRF, § 3.5) ; `trustProxy` : nombre de mandataires de confiance. */
   http: { origin: string; trustProxy: number; logLevel: LogLevel };
-  security: { rateLimitHmacKey: string };
+  security: { rateLimitHmacKey: string; otpPepper: string; outboxPayloadKey: Buffer };
   turnstile: { secret: string; verifyUrl: string };
   limits: { loginPerIp: number; throttlePerIp: number; throttlePerSession: number };
 };
+
+export type SmtpSecurity = 'none' | 'starttls' | 'tls';
+export type WorkerConfig = {
+  nodeEnv: 'development' | 'test' | 'production'; db: DbConfig; logLevel: LogLevel; appOrigin: string; outboxPayloadKey: Buffer;
+  mail: { from: string; smtp: { host: string; port: number; security: SmtpSecurity; auth: { user: string; password: string } | null; timeoutMs: number } };
+};
+export type OpsConfig = { nodeEnv: 'development' | 'test' | 'production'; db: DbConfig; otpPepper: string };
 
 // PGPASSWORD / PGPASSFILE : lus implicitement par la bibliothèque pg, ils contourneraient les fichiers *_FILE.
 const FORBIDDEN_DIRECT_SECRETS = ['DB_PASSWORD', 'DATABASE_URL', 'PGPASSWORD', 'PGPASSFILE'] as const;
 
 /** Clé HMAC des seaux de limitation : 32 caractères au moins (§ 2.2). */
 const MIN_HMAC_KEY_LENGTH = 32;
+
+const MIN_PEPPER_LENGTH = 32;
+
+function readPepper(file: string): string {
+  const v = readSecretFile(file);
+  if (v.length < MIN_PEPPER_LENGTH) throw new Error(`invalid configuration: OTP_PEPPER (${MIN_PEPPER_LENGTH} characters minimum)`);
+  return v;
+}
+
+/** 64 caractères hexadécimaux = 32 octets (R13) ; seul le nom de la variable figure dans l'erreur. */
+function readHexKey(file: string): Buffer {
+  const v = readSecretFile(file);
+  if (!/^[0-9a-fA-F]{64}$/.test(v)) throw new Error('invalid configuration: OUTBOX_PAYLOAD_KEY (64 hexadecimal characters)');
+  return Buffer.from(v, 'hex');
+}
 
 function checkForbidden(env: NodeJS.ProcessEnv): void {
   for (const key of FORBIDDEN_DIRECT_SECRETS) {
@@ -79,8 +101,30 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     readyHost: e.READY_HOST,
     db,
     http: { origin: new URL(e.APP_ORIGIN).origin, trustProxy: e.TRUST_PROXY, logLevel: e.LOG_LEVEL },
-    security: { rateLimitHmacKey },
+    security: { rateLimitHmacKey, otpPepper: readPepper(e.OTP_PEPPER_FILE), outboxPayloadKey: readHexKey(e.OUTBOX_PAYLOAD_KEY_FILE) },
     turnstile: { secret: readSecretFile(e.TURNSTILE_SECRET_FILE), verifyUrl: e.TURNSTILE_VERIFY_URL },
     limits: { loginPerIp: e.LOGIN_LIMIT_PER_IP, throttlePerIp: e.THROTTLE_PER_IP, throttlePerSession: e.THROTTLE_PER_SESSION },
   };
+}
+
+export function loadWorkerConfig(env: NodeJS.ProcessEnv): WorkerConfig {
+  checkForbidden(env);
+  const parsed = workerEnvSchema.safeParse(env);
+  if (!parsed.success) throw new Error(`invalid configuration: ${issuesOf(parsed.error)}`);
+  const e = parsed.data;
+  if (e.NODE_ENV === 'production' && e.SMTP_SECURITY === 'none') throw new Error('invalid configuration: SMTP_SECURITY (none is not allowed in production)');
+  if (Boolean(e.SMTP_USER) !== Boolean(e.SMTP_PASSWORD_FILE)) throw new Error('invalid configuration: SMTP_USER, SMTP_PASSWORD_FILE (both or none)');
+  const auth = e.SMTP_USER && e.SMTP_PASSWORD_FILE ? { user: e.SMTP_USER, password: readSecretFile(e.SMTP_PASSWORD_FILE) } : null;
+  return {
+    nodeEnv: e.NODE_ENV, db: loadDbConfig(env), logLevel: e.LOG_LEVEL, appOrigin: new URL(e.APP_ORIGIN).origin,
+    outboxPayloadKey: readHexKey(e.OUTBOX_PAYLOAD_KEY_FILE),
+    mail: { from: e.MAIL_FROM, smtp: { host: e.SMTP_HOST, port: e.SMTP_PORT, security: e.SMTP_SECURITY, auth, timeoutMs: e.SMTP_TIMEOUT_MS } },
+  };
+}
+
+export function loadOpsConfig(env: NodeJS.ProcessEnv): OpsConfig {
+  checkForbidden(env);
+  const parsed = opsEnvSchema.safeParse(env);
+  if (!parsed.success) throw new Error(`invalid configuration: ${issuesOf(parsed.error)}`);
+  return { nodeEnv: parsed.data.NODE_ENV, db: loadDbConfig(env), otpPepper: readPepper(parsed.data.OTP_PEPPER_FILE) };
 }

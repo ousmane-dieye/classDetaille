@@ -41,11 +41,18 @@ Secrets de sécurité de développement : clé HMAC des seaux de limitation (32 
 [ -f .secrets/dev/turnstile_secret ] || echo 1x0000000000000000000000000000000AA > .secrets/dev/turnstile_secret
 ```
 
+Secrets du lot 1b : poivre des codes administrateur (32 caractères au moins, lu par l'API et par `ops`) et clé de chiffrement de la file d'emails (64 caractères hexadécimaux, lue par l'API et par le worker) :
+
+```bash
+[ -f .secrets/dev/otp_pepper ] || openssl rand -base64 48 > .secrets/dev/otp_pepper
+[ -f .secrets/dev/outbox_payload_key ] || openssl rand -hex 32 > .secrets/dev/outbox_payload_key
+```
+
 Puis, depuis `apps/api` (adapter `DB_PORT` si PostgreSQL est publié sur un autre port) :
 
 ```bash
 export NODE_ENV=development HTTP_PORT=3000 READY_PORT=3001 DB_HOST=127.0.0.1 DB_PORT=5432 DB_NAME=classepulse DB_AUTH_MODE=password
-export APP_ORIGIN=http://localhost:5173 RATE_LIMIT_HMAC_KEY_FILE=../../.secrets/dev/rate_limit_hmac_key TURNSTILE_SECRET_FILE=../../.secrets/dev/turnstile_secret
+export APP_ORIGIN=http://localhost:5173 RATE_LIMIT_HMAC_KEY_FILE=../../.secrets/dev/rate_limit_hmac_key TURNSTILE_SECRET_FILE=../../.secrets/dev/turnstile_secret OTP_PEPPER_FILE=../../.secrets/dev/otp_pepper OUTBOX_PAYLOAD_KEY_FILE=../../.secrets/dev/outbox_payload_key
 DB_USER=cp_owner DB_PASSWORD_FILE=../../.secrets/dev/cp_owner pnpm exec prisma migrate deploy
 DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm cli create-class --name "L3 Informatique" --level L3 --year 2026-2027
 DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm exec tsx --conditions=source src/main.ts
@@ -87,11 +94,29 @@ Variables de l'API :
 | `APP_ORIGIN` | oui | Origine exacte de l'application web (schéma, hôte, port ; sans chemin), comparée à `Origin` pour le CSRF |
 | `RATE_LIMIT_HMAC_KEY_FILE` | oui | Fichier de la clé HMAC des seaux de limitation (32 caractères au moins) |
 | `TURNSTILE_SECRET_FILE` | oui | Fichier du secret Turnstile |
+| `OTP_PEPPER_FILE` | oui | Fichier du poivre des codes administrateur (32 caractères au moins) |
+| `OUTBOX_PAYLOAD_KEY_FILE` | oui | Fichier de la clé de chiffrement de la file d'emails (64 caractères hexadécimaux) |
 | `TURNSTILE_VERIFY_URL` | non | Point de vérification Turnstile (`https://challenges.cloudflare.com/turnstile/v0/siteverify`) |
 | `TRUST_PROXY` | non | Nombre de mandataires inverses de confiance pour l'IP du client, de 0 à 3 (`0`). N'utiliser une valeur > 0 que si l'API n'est joignable qu'à travers ces proxys : sinon un client choisit lui-même sa clé de limitation |
 | `LOG_LEVEL` | non | `fatal`, `error`, `warn`, `info`, `debug` ou `silent` (`info`) |
 | `LOGIN_LIMIT_PER_IP` | non | Tentatives de connexion par IP sur 15 min (`100`) |
 | `THROTTLE_PER_IP` / `THROTTLE_PER_SESSION` | non | Limitation générale par minute (`600` / `300`) |
+
+### Emails en développement
+
+Les emails partent par SMTP. En développement, Mailpit les reçoit sans les expédier (interface sur http://127.0.0.1:8025) :
+
+```bash
+docker compose -f docker-compose.dev.yml up -d mailpit
+```
+
+Le worker envoie la file d'emails ; il lit la base, `OUTBOX_PAYLOAD_KEY_FILE` et les identifiants SMTP, rien d'autre. Depuis `apps/api` (variables de base `NODE_ENV`, `DB_*`, `APP_ORIGIN` comme ci-dessus) :
+
+```bash
+SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_SECURITY=none MAIL_FROM=no-reply@classepulse.test OUTBOX_PAYLOAD_KEY_FILE=../../.secrets/dev/outbox_payload_key DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api worker
+```
+
+Variables du worker : `APP_ORIGIN`, `MAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY` (`none`, `starttls` ou `tls` ; `none` est refusé en production), `OUTBOX_PAYLOAD_KEY_FILE` (obligatoires) ; `SMTP_USER` et `SMTP_PASSWORD_FILE` (ensemble ou aucun), `SMTP_TIMEOUT_MS` (`30000`), `LOG_LEVEL` (`info`) facultatives. La commande `ops` ne lit que la base et `OTP_PEPPER_FILE`.
 
 Les secrets ne passent jamais par une variable directe : `DB_PASSWORD`, `DATABASE_URL`, `PGPASSWORD` et `PGPASSFILE` sont refusés au démarrage. `prisma migrate deploy` ne lit que les variables `DB_*`.
 

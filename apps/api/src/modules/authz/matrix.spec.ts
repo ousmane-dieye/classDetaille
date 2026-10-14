@@ -7,6 +7,7 @@ const ACTORS = {
   user: { kind: 'user', userId: 'u', globalRole: 'USER', sessionId: 's' },
   admin: { kind: 'user', userId: 'a', globalRole: 'ADMIN', sessionId: 's' },
   cli: { kind: 'cli', command: 'create-admin' },
+  system: { kind: 'system', job: 'email.send' },
 } satisfies Record<string, Actor>;
 type Name = keyof typeof ACTORS;
 
@@ -25,6 +26,24 @@ const EXPECTED: Record<Action, readonly Name[]> = {
   'me.revokeOtherSessions': ['user', 'admin'],
   'admin.createFirst': ['cli'],
   'classes.create': ['cli'],
+  // Lot 1b.
+  'auth.verifyCode': ['anonymous'],
+  'auth.resendCode': ['anonymous'],
+  'auth.verifyRecovery': ['anonymous'],
+  'auth.forgotPassword': ['anonymous'],
+  'auth.resetPassword': ['anonymous'],
+  'me.reauth': ['user', 'admin'],
+  'me.stepUp': ['admin'],
+  'me.stepUpVerify': ['admin'],
+  'stepUp.assertFresh': ['admin'],
+  'reauth.assertRecent': ['user', 'admin'],
+  'me.changeEmailStart': ['admin'],
+  'me.changeEmailVerifyOld': ['admin'],
+  'me.changeEmailVerifyNew': ['admin'],
+  'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
+  'mail.deliver': ['system'],
+  'mail.sweep': ['system'],
+  'maintenance.purge': ['system'],
 };
 
 describe('matrice d’autorisation (§ 5.4 : 100 %)', () => {
@@ -40,6 +59,10 @@ describe('matrice d’autorisation (§ 5.4 : 100 %)', () => {
       });
     }
   }
+  it('la classe system n’a que les quatre actions du worker', () => {
+    const sys = ACTIONS.filter((a) => MATRIX[a].includes('system')).sort();
+    expect(sys).toEqual(['mail.deliver', 'mail.enqueue', 'mail.sweep', 'maintenance.purge']);
+  });
   it('actorClass distingue l’administrateur de l’étudiant', () => {
     expect(actorClass(ACTORS.admin)).toBe('admin');
     expect(actorClass(ACTORS.user)).toBe('user');

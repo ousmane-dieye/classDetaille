@@ -35,6 +35,8 @@ export const envSchema = dbEnvSchema.extend({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'silent']).default('info'),
   RATE_LIMIT_HMAC_KEY_FILE: z.string().min(1),
   TURNSTILE_SECRET_FILE: z.string().min(1),
+  OTP_PEPPER_FILE: z.string().min(1),
+  OUTBOX_PAYLOAD_KEY_FILE: z.string().min(1),
   TURNSTILE_VERIFY_URL: z.url().default('https://challenges.cloudflare.com/turnstile/v0/siteverify'),
   LOGIN_LIMIT_PER_IP: z.coerce.number().int().min(1).default(100),
   THROTTLE_PER_IP: z.coerce.number().int().min(1).default(600),
@@ -42,3 +44,18 @@ export const envSchema = dbEnvSchema.extend({
 });
 
 export type Env = z.infer<typeof envSchema>;
+
+export const workerEnvSchema = dbEnvSchema.extend({
+  APP_ORIGIN: origin,
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'silent']).default('info'),
+  OUTBOX_PAYLOAD_KEY_FILE: z.string().min(1),
+  MAIL_FROM: z.email(),
+  SMTP_HOST: z.string().min(1),
+  SMTP_PORT: port,
+  SMTP_SECURITY: z.enum(['none', 'starttls', 'tls']),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASSWORD_FILE: z.string().min(1).optional(),
+  SMTP_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(30_000),
+});
+
+export const opsEnvSchema = dbEnvSchema.extend({ OTP_PEPPER_FILE: z.string().min(1) });
