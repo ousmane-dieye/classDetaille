@@ -65,11 +65,20 @@ export class LoginRateLimiter {
 
   /** Le compte du seau IP + compte est déjà fait par check() ; ici : échec par IP (alerte) et exigence Turnstile suivante. */
   async recordFailure(keys: LoginKeys, degraded: boolean): Promise<{ turnstileRequired: boolean }> {
+    await this.countIpFailure(keys);
+    const acct = await this.repo.readFailures(keys.accountKey, WINDOW_SECONDS);
+    return { turnstileRequired: !degraded && (acct?.failures ?? 0) >= TURNSTILE_AFTER_FAILURES };
+  }
+
+  /** Un rejet « Turnstile exigé » est un échec d'IP comme un mauvais mot de passe (§ 3.2, alerte au-delà de 50 en 15 min). */
+  async recordTurnstileRejection(keys: LoginKeys): Promise<void> {
+    await this.countIpFailure(keys);
+  }
+
+  private async countIpFailure(keys: LoginKeys): Promise<void> {
     const ipFailures = await this.repo.addIpFailure(keys.ipKey);
     // Alerte d'exploitation au passage du seuil (§ 3.2), une fois par fenêtre.
     if (ipFailures === IP_ALERT_FAILURES + 1) this.logger.warn(`alert: login failures above ${IP_ALERT_FAILURES} for ${keys.ipKey} in 15 min`);
-    const acct = await this.repo.readFailures(keys.accountKey, WINDOW_SECONDS);
-    return { turnstileRequired: !degraded && (acct?.failures ?? 0) >= TURNSTILE_AFTER_FAILURES };
   }
 
   async recordSuccess(keys: LoginKeys): Promise<void> {

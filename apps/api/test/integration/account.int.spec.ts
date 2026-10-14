@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildTestApp, cookieHeader, insertClass, PASSWORD, query, registerStudent, send, sessionCookieOf, type TestApp } from '../support/app.js';
 import { createTestDatabase } from '../support/pg.js';
+import { loginAdmin } from '../support/second-factor.js';
 
 let db: string;
 let t: TestApp;
@@ -100,5 +101,32 @@ describe('sessions actives', () => {
     expect((await send(t.app, 'GET', '/api/me/sessions', undefined, cookieHeader(s.token))).json()).toHaveLength(1);
     const audit = await query(db, `select metadata from app.audit_log where action = 'SESSIONS_REVOKED' and target_id = $1`, [s.userId]);
     expect(audit.rows).toEqual([{ metadata: { reason: 'OTHER_DEVICES', count: 1 } }]);
+  });
+});
+
+describe('POST /api/me/password : administrateur et jetons de réinitialisation', () => {
+  const pendingResetTokens = async (userId: string) => (await query(db, `select count(*)::int as n from app.password_reset_tokens where user_id = $1 and consumed_at is null`, [userId])).rows[0].n as number;
+  const forgot = (email: string) => send(t.app, 'POST', '/api/auth/forgot-password', { email, turnstileToken: 'tok' });
+
+  it('R16 : un administrateur change son mot de passe sans vérification supplémentaire ; autres sessions révoquées ; jeton de réinitialisation en attente annulé ; 15 caractères refusés', async () => {
+    const a = await loginAdmin(t.app, db);
+    const other = await loginAdmin(t.app, db, a.admin);
+    expect((await forgot(a.admin.email)).statusCode).toBe(202);
+    expect(await pendingResetTokens(a.admin.id)).toBe(1);
+    const short = await send(t.app, 'POST', '/api/me/password', { currentPassword: a.admin.password, newPassword: 'k3v9-zx2m-q8w5-' }, a.headers);
+    expect([short.statusCode, short.json().error.code]).toEqual([400, 'PASSWORD_TOO_SHORT']);
+    const res = await send(t.app, 'POST', '/api/me/password', { currentPassword: a.admin.password, newPassword: 'k3v9-zx2m-q8w5-pL' }, a.headers);
+    expect(res.statusCode).toBe(204);
+    expect((await send(t.app, 'GET', '/api/me', undefined, other.headers)).statusCode).toBe(401);
+    expect((await send(t.app, 'GET', '/api/me', undefined, a.headers)).statusCode).toBe(200);
+    expect((await query(db, `select count(*)::int as n from app.sessions where user_id = $1 and revoke_reason = 'PASSWORD_CHANGED'`, [a.admin.id])).rows[0].n).toBe(1);
+    expect(await pendingResetTokens(a.admin.id)).toBe(0);
+  });
+  it('un jeton de réinitialisation en attente est annulé par le changement de mot de passe d’un étudiant', async () => {
+    const s = await registerStudent(t.app, classId);
+    await forgot(s.email);
+    expect(await pendingResetTokens(s.userId)).toBe(1);
+    expect((await send(t.app, 'POST', '/api/me/password', { currentPassword: PASSWORD, newPassword: NEW_PASSWORD }, cookieHeader(s.token))).statusCode).toBe(204);
+    expect(await pendingResetTokens(s.userId)).toBe(0);
   });
 });

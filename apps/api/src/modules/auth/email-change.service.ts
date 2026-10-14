@@ -11,6 +11,7 @@ import { UsersService } from '../users/users.service.js';
 import type { ClientContext } from './client-context.js';
 import { CredentialsChecker } from './credentials-checker.js';
 import { OtpLimiter } from './second-factor/otp-limiter.js';
+import { PasswordResetRepository } from './password-reset.repository.js';
 import { SecondFactorService, outcomeToError, type CheckOutcome } from './second-factor/second-factor.service.js';
 import { SessionsService } from './sessions.service.js';
 
@@ -29,6 +30,7 @@ export class EmailChangeService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(MailService) private readonly mail: MailService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(PasswordResetRepository) private readonly resetTokens: PasswordResetRepository,
   ) {}
 
   /**
@@ -85,6 +87,7 @@ export class EmailChangeService {
         const revoked = await this.sessions.revokeOthersInTx(tx, actor, 'EMAIL_CHANGED');
         if (!(await this.sessions.lockCurrentValidInTx(tx, actor))) throw new SessionGone();
         const oldEmail = await this.users.changeEmailInTx(tx, actor, newEmail);
+        await this.resetTokens.supersedeActiveInTx(tx, actor.userId); // un jeton demandé pour l'ancienne adresse est annulé
         await this.audit.recordInTx(tx, actor, { action: 'ADMIN_EMAIL_CHANGED', targetType: 'USER', targetId: actor.userId, metadata: { revokedSessions: revoked } });
         // L'ancienne adresse est prévenue ; les autres administrateurs aussi.
         await this.mail.enqueueInTx(tx, actor, {

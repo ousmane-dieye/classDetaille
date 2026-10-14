@@ -63,3 +63,16 @@ describe('Semaphore (au plus 4 calculs simultanés)', () => {
     await expect(s.run(async () => 'ok')).resolves.toBe('ok');
   });
 });
+
+describe('préchauffage (report R14 du lot 1a)', () => {
+  it('le démarrage calcule le hachage factice une fois : la première connexion d’un email inconnu n’est plus plus lente', async () => {
+    const h = new PasswordHasher();
+    const dummy = () => (h as unknown as { dummyHash?: Promise<string> }).dummyHash;
+    expect(dummy()).toBeUndefined();
+    await h.onApplicationBootstrap();
+    expect(dummy()).toBeDefined();
+    const before = dummy();
+    await h.verifyDummy('x'.repeat(16));
+    expect(dummy()).toBe(before); // pas recalculé
+  });
+});

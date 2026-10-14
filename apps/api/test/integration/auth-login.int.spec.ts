@@ -146,3 +146,16 @@ describe('POST /api/auth/logout', () => {
     expect(res.headers['set-cookie']).toBeUndefined();
   });
 });
+
+describe('rejet TURNSTILE_REQUIRED compté (report du lot 1a)', () => {
+  it('un rejet à la connexion incrémente les échecs du seau de l’IP', async () => {
+    const ip = '198.51.100.201';
+    const email = 'turnstile.count@example.com';
+    const failures = async () => (await query(db, `select failures from app.rate_limit_buckets where key = $1`, [`ip:${ip}`])).rows[0].failures as number;
+    for (let i = 0; i < 3; i++) { await login({ email, password: 'mauvais mot de passe long' }, ip); await ageFailures(); }
+    const before = await failures();
+    const res = await login({ email, password: 'mauvais mot de passe long' }, ip); // Turnstile exigé, absent
+    expect(res.json().error.code).toBe('TURNSTILE_REQUIRED');
+    expect(await failures()).toBe(before + 1);
+  });
+});

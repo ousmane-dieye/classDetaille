@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { type ForgotPasswordBody, type ResetPasswordBody } from '@classepulse/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { v7 as uuidv7 } from 'uuid';
@@ -71,14 +71,14 @@ export class PasswordResetService {
       accountAllowed = (await this.buckets.hit(`forgot-acct:${mac}`, HOUR)).attempts <= RESET_REQUESTS_PER_ACCOUNT_HOUR;
     }
     const user = await this.users.findForPasswordReset(actor, body.email);
-    // Même travail (jeton, empreinte, transaction, verrou) que le compte existe ou non, pour ne pas distinguer par le temps.
     const token = randomBytes(32).toString('base64url');
     const tokenHash = hashToken(token);
     const id = uuidv7();
     const target = accountAllowed && user !== null && user.status === 'ACTIVE' ? user : null;
     await this.prisma.withTx(async (tx) => {
-      const locked = await this.repo.lockUserInTx(tx, target?.id ?? randomUUID());
-      if (!target || !locked || locked.status !== 'ACTIVE') return;
+      if (!target) return; // R9 : l'écart de durée résiduel est accepté, les réponses restent identiques
+      const locked = await this.repo.lockUserInTx(tx, target.id);
+      if (!locked || locked.status !== 'ACTIVE') return;
       await this.repo.supersedeActiveInTx(tx, target.id); // une nouvelle demande annule la précédente
       await this.repo.insertInTx(tx, { id, userId: target.id, tokenHash, ttlSeconds: RESET_TTL_SECONDS });
       await this.mail.enqueueInTx(tx, actor, {

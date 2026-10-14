@@ -122,3 +122,19 @@ describe('LoginRateLimiter (§ 3.2)', () => {
     warn.mockRestore();
   });
 });
+
+describe('rejets TURNSTILE_REQUIRED (report du lot 1a)', () => {
+  it('comptent pour l’alerte des 50 échecs par IP', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const keys = limiter.keys('198.51.100.200', 'alerte@example.com');
+    const alerts = () => warn.mock.calls.filter(([m]) => String(m).includes('login failures above')).length;
+    await limiter.check(keys, false); // crée le seau de l'IP
+    for (let i = 0; i < 50; i++) await limiter.recordTurnstileRejection(keys);
+    expect(alerts()).toBe(0);
+    await limiter.recordTurnstileRejection(keys); // le 51ᵉ franchit le seuil
+    expect(alerts()).toBe(1);
+    await limiter.recordTurnstileRejection(keys); // une seule alerte par fenêtre
+    expect(alerts()).toBe(1);
+    warn.mockRestore();
+  });
+});

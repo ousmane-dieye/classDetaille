@@ -64,6 +64,20 @@ describe('parcours complet (§ 3.3)', () => {
   });
 });
 
+describe('jetons de réinitialisation en attente', () => {
+  it('l’aboutissement du changement d’adresse annule un jeton de réinitialisation demandé pour l’ancienne adresse', async () => {
+    const a = await loginAdmin(t.app, db);
+    expect((await send(t.app, 'POST', '/api/auth/forgot-password', { email: a.admin.email, turnstileToken: 'tok' })).statusCode).toBe(202);
+    const pending = async () => (await rows(`select count(*)::int as n from app.password_reset_tokens where user_id = $1 and consumed_at is null`, [a.admin.id]))[0].n as number;
+    expect(await pending()).toBe(1);
+    const target = newAddress();
+    const code = await toNewStep(a, target);
+    expect(await pending()).toBe(1); // pas avant l'aboutissement
+    expect((await send(t.app, 'POST', '/api/me/email-change/verify-new', { code }, a.headers)).statusCode).toBe(200);
+    expect(await pending()).toBe(0);
+  });
+});
+
 describe('début du parcours', () => {
   it('mot de passe faux, même adresse, adresse déjà prise : aucune vérification, aucune session révoquée (Review Focus 6)', async () => {
     const taken = await createAdmin(db);

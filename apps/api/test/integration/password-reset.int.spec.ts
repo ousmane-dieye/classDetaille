@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { BUCKET_ROW_CAP } from '../../src/modules/auth/login-rate-limiter.js';
 import { buildTestApp, insertClass, registerStudent, send, type TestApp } from '../support/app.js';
 import { waitForLockWait } from '../support/lock-wait.js';
 import { cipher } from '../support/mail.js';
@@ -69,6 +70,20 @@ describe('POST /api/auth/forgot-password', () => {
     const fourth = await forgot(s.email);
     expect([fourth.statusCode, fourth.json()]).toEqual([202, { status: 'RESET_REQUESTED' }]);
     expect(await rows(`select 1 from app.email_outbox where kind = 'PASSWORD_RESET' and to_address = $1`, [s.email])).toHaveLength(3);
+  });
+  it('D13 : au-delà du plafond de lignes, la limite par IP reste appliquée, celle par compte est suspendue', async () => {
+    await rows(`insert into app.rate_limit_buckets (key, window_start) select 'ip:10.' || (g / 65536) || '.' || ((g / 256) % 256) || '.' || (g % 256), clock_timestamp() from generate_series(1, $1::int) g`, [BUCKET_ROW_CAP + 1]);
+    try {
+      const s = await registerStudent(t.app, classId);
+      const ip = '198.51.100.99';
+      const codes: number[] = [];
+      for (let i = 0; i < 4; i++) codes.push((await forgot(s.email, ip)).statusCode); // 4 > 3 par compte : toutes servies
+      for (let i = 0; i < 7; i++) codes.push((await forgot(`d13.${i}@example.com`, ip)).statusCode);
+      expect(codes).toEqual([...Array(10).fill(202), 429]);
+      expect(await rows(`select 1 from app.email_outbox where kind = 'PASSWORD_RESET' and to_address = $1`, [s.email])).toHaveLength(4);
+    } finally {
+      await rows(`delete from app.rate_limit_buckets where key like 'ip:10.%'`);
+    }
   });
   it('10 demandes par heure et par IP, puis 429', async () => {
     const ip = '198.51.100.88';

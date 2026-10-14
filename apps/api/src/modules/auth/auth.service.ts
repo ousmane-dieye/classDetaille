@@ -11,6 +11,7 @@ import { AuthzService } from '../authz/authz.service.js';
 import { ClassesService } from '../classes/classes.service.js';
 import { MembershipsService } from '../memberships/memberships.service.js';
 import { CommonPasswords } from '../users/common-passwords.js';
+import { PasswordResetRepository } from './password-reset.repository.js';
 import { PasswordHasher } from '../users/password-hasher.js';
 import { validateNewPassword } from '../users/password-policy.js';
 import { UsersService } from '../users/users.service.js';
@@ -46,6 +47,7 @@ export class AuthService {
     @Inject(SecondFactorService) private readonly secondFactor: SecondFactorService,
     @Inject(OtpLimiter) private readonly otpLimiter: OtpLimiter,
     @Inject(CredentialsChecker) private readonly credentials: CredentialsChecker,
+    @Inject(PasswordResetRepository) private readonly resetTokens: PasswordResetRepository,
   ) {}
 
   /** P1 : compte + demande d'adhésion + session dans une seule transaction (§ 0.3, R3). */
@@ -83,9 +85,15 @@ export class AuthService {
     if (gate.kind === 'limited') throw tooManyAttempts(gate.retryAfterSeconds);
     if (gate.turnstileRequired) {
       const t = await this.turnstile.check(body.turnstileToken, actor.ip);
-      if (t === 'invalid') throw new ApiError(401, 'TURNSTILE_REQUIRED', { turnstileRequired: true });
+      if (t === 'invalid') {
+        await this.limiter.recordTurnstileRejection(keys);
+        throw new ApiError(401, 'TURNSTILE_REQUIRED', { turnstileRequired: true });
+      }
       // Erreur isolée, mode dégradé pas encore atteint : on refuse plutôt que de laisser passer sans CAPTCHA.
-      if (t === 'unavailable' && !this.turnstile.isDegraded()) throw new ApiError(401, 'TURNSTILE_REQUIRED', { turnstileRequired: true });
+      if (t === 'unavailable' && !this.turnstile.isDegraded()) {
+        await this.limiter.recordTurnstileRejection(keys);
+        throw new ApiError(401, 'TURNSTILE_REQUIRED', { turnstileRequired: true });
+      }
       // 'unavailable' avec mode dégradé : les limites réduites s'appliquent aux tentatives suivantes.
     }
     const password = normalizePassword(body.password);
@@ -173,7 +181,8 @@ export class AuthService {
     await this.credentials.verifyOrThrow(actor, body.currentPassword, ctx);
     const passwordHash = await this.hasher.hash(pw.normalized);
     await this.prisma.withTx(async (tx) => {
-      await this.users.setPasswordHashInTx(tx, actor, passwordHash);
+      await this.users.setPasswordHashInTx(tx, actor, passwordHash); // verrou de la ligne users pris ici
+      await this.resetTokens.supersedeActiveInTx(tx, actor.userId); // un jeton de réinitialisation en attente ne survit pas
       const revokedSessions = await this.sessions.revokeOthersInTx(tx, actor, 'PASSWORD_CHANGED');
       await this.sessions.markReauthInTx(tx, actor);
       await this.audit.recordInTx(tx, actor, { action: 'PASSWORD_CHANGED', targetType: 'USER', targetId: actor.userId, metadata: { revokedSessions } });
