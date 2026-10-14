@@ -166,11 +166,13 @@ CREATE TRIGGER email_attempts_once BEFORE UPDATE ON app.email_attempts
 CREATE FUNCTION app.challenge_consumed_cancels_emails() RETURNS trigger
   LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
+  -- La tentative en cours n'est close que pour les emails réellement annulés (ordre de verrouillage : email, puis tentative).
+  WITH cancelled AS (
+    UPDATE app.email_outbox SET status = 'CANCELLED', claim_token = NULL, locked_until = NULL, payload_encrypted = NULL
+     WHERE challenge_id = NEW.id AND status IN ('PENDING', 'SENDING', 'RETRY_WAIT', 'UNCERTAIN')
+    RETURNING id)
   UPDATE app.email_attempts a SET outcome = 'CANCELLED_IN_FLIGHT', finished_at = clock_timestamp()
-    FROM app.email_outbox o
-   WHERE o.challenge_id = NEW.id AND o.status = 'SENDING' AND a.email_id = o.id AND a.outcome IS NULL;
-  UPDATE app.email_outbox SET status = 'CANCELLED', claim_token = NULL, locked_until = NULL, payload_encrypted = NULL
-   WHERE challenge_id = NEW.id AND status IN ('PENDING', 'SENDING', 'RETRY_WAIT', 'UNCERTAIN');
+    FROM cancelled c WHERE a.email_id = c.id AND a.outcome IS NULL;
   RETURN NULL;
 END $$;
 CREATE TRIGGER challenge_consumed_cancels_emails AFTER UPDATE OF consumed_at ON app.auth_challenges

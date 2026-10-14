@@ -53,11 +53,21 @@ describe('cycle de vie (propriété)', () => {
   });
 });
 
-describe('cohérence avec le SQL (D15)', () => {
-  it('tout délai exprimé en minutes dans la migration de l’outbox est un délai de la politique', () => {
-    const sql = readFileSync(new URL('../../../prisma/migrations/20261014000300_email_outbox/migration.sql', import.meta.url), 'utf8');
-    const seconds = [...sql.matchAll(/interval '(\d+) minutes?'/g)].map((m) => Number(m[1]) * 60);
+describe('cohérence avec le SQL (D15), fail-closed', () => {
+  const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
+  const UNIT: Record<string, number> = { second: 1, minute: 60, hour: 3600 };
+  /** Tout délai littéral : interval 'N unit' ou make_interval(secs => N), converti en secondes. */
+  const delays = (sql: string): number[] => [
+    ...[...sql.matchAll(/interval '(\d+) (second|minute|hour)s?'/g)].map((m) => Number(m[1]) * UNIT[m[2]!]!),
+    ...[...sql.matchAll(/make_interval\(\s*secs\s*=>\s*(\d+)\s*\)/g)].map((m) => Number(m[1])),
+  ];
+  it('le dépôt ne contient qu’un délai littéral, celui de la reprise ambiguë ; les autres viennent de la politique', () => {
+    const repo = read('./outbox.repository.ts');
+    expect(delays(repo)).toEqual([AMBIGUOUS_RETRY_DELAY_SECONDS]);
+    expect(/RETRY_DELAYS_SECONDS|delaySeconds/.test(repo)).toBe(true);
+  });
+  it('la migration de l’outbox ne contient aucun délai hors politique', () => {
     const allowed = new Set<number>([...RETRY_DELAYS_SECONDS, AMBIGUOUS_RETRY_DELAY_SECONDS]);
-    for (const s of seconds) expect(allowed.has(s)).toBe(true);
+    for (const s of delays(read('../../../prisma/migrations/20261014000300_email_outbox/migration.sql'))) expect(allowed.has(s)).toBe(true);
   });
 });
