@@ -8,6 +8,8 @@ const EXPECTED_ROUTES: Record<string, { public: boolean }> = {
   'GET /api/classes/active': { public: true },
   'POST /api/auth/register': { public: true },
   'POST /api/auth/login': { public: true },
+  'POST /api/auth/verify-code': { public: true },
+  'POST /api/auth/resend-code': { public: true },
   'POST /api/auth/logout': { public: false },
   'GET /api/me': { public: false },
   'PATCH /api/me/profile': { public: false },
@@ -34,6 +36,8 @@ const entries = () => Object.entries(EXPECTED_ROUTES).map(([k, v]) => {
 const VALID_BODY: Record<string, () => Record<string, unknown>> = {
   'POST /api/auth/register': () => registration(classId),
   'POST /api/auth/login': () => ({ email: 'inconnu@example.com', password: PASSWORD }),
+  'POST /api/auth/verify-code': () => ({ code: '123456' }),
+  'POST /api/auth/resend-code': () => ({}),
   'POST /api/auth/logout': () => ({}),
   'PATCH /api/me/profile': () => ({ firstName: 'Awa', lastName: 'Diop' }),
   'PATCH /api/me/email-preferences': () => ({ emailReminders: false }),

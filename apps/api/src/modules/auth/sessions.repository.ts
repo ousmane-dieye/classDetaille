@@ -5,6 +5,7 @@ export type RevokeReason = 'LOGOUT' | 'PASSWORD_CHANGED' | 'OTHER_DEVICES' | 'SU
 export type NewSessionRow = {
   id: string; tokenHash: Buffer; userId: string;
   idleSeconds: number; absoluteSeconds: number; ip: string | null; userAgent: string | null;
+  secondFactorMethod: 'EMAIL_CODE' | 'RECOVERY_CODE' | null;
 };
 
 @Injectable()
@@ -14,11 +15,12 @@ export class SessionsRepository {
   /** Échéances calculées par l'horloge de la base (§ 2.1) : un seul clock_timestamp() pour les deux (A9). */
   async createInTx(tx: TxClient, s: NewSessionRow): Promise<void> {
     await tx.$executeRaw`
-      insert into app.sessions (id, token_hash, user_id, idle_expires_at, absolute_expires_at, ip, user_agent)
+      insert into app.sessions (id, token_hash, user_id, idle_expires_at, absolute_expires_at, ip, user_agent, second_factor_at, second_factor_method)
       select ${s.id}::uuid, ${s.tokenHash}, ${s.userId}::uuid,
              n.t + make_interval(secs => ${s.idleSeconds}::double precision),
              n.t + make_interval(secs => ${s.absoluteSeconds}::double precision),
-             ${s.ip}::inet, ${s.userAgent}
+             ${s.ip}::inet, ${s.userAgent},
+             case when ${s.secondFactorMethod}::text is null then null else n.t end, ${s.secondFactorMethod}::text
         from (select clock_timestamp() as t) n`;
   }
 

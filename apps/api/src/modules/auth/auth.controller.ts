@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Inject, Post, Req, Res } from '@nestjs/common';
-import { LoginBody, RegisterBody } from '@classepulse/shared';
+import { LoginBody, RegisterBody, VerifyCodeBody } from '@classepulse/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
 import { Public } from '../../http/public.decorator.js';
@@ -8,7 +8,10 @@ import { ZodPipe } from '../../http/zod.pipe.js';
 import type { UserActor } from '../authz/actor.js';
 import type { MeDto } from '../users/me.dto.js';
 import { MeService } from '../users/me.service.js';
+import type { AdminCodeRequiredDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
+import { CHALLENGE_COOKIE } from '../../http/session-cookie-name.js';
+import { challengeClearCookie, challengeSetCookie } from './second-factor/otp.js';
 import { clientContextOf } from './client-context.js';
 import { sessionClearCookie, sessionSetCookie } from './session-cookie.js';
 
@@ -25,13 +28,36 @@ export class AuthController {
     return this.me.me(opened.actor);
   }
 
+  /** `@Res()` sans passthrough : le statut (200 étudiant, 202 administrateur) et les cookies sont posés explicitement. */
   @Public()
   @Post('login')
+  async login(@Body(new ZodPipe(LoginBody)) body: LoginBody, @Req() req: FastifyRequest, @Res() reply: FastifyReply): Promise<void> {
+    const r = await this.auth.login({ kind: 'anonymous', ip: req.ip }, body, clientContextOf(req));
+    if (r.kind === 'second-factor') {
+      const dto: AdminCodeRequiredDto = { status: 'ADMIN_CODE_REQUIRED', expiresInSeconds: r.sent.expiresInSeconds, resendAfterSeconds: r.sent.resendAfterSeconds };
+      await reply.code(202).header('set-cookie', challengeSetCookie(r.sent.cookieToken)).send(dto);
+      return;
+    }
+    const me: MeDto = await this.me.me(r.opened.actor);
+    await reply.code(200).header('set-cookie', sessionSetCookie(r.opened.token, r.opened.maxAgeSeconds)).send(me);
+  }
+
+  @Public()
+  @Post('verify-code')
   @HttpCode(200)
-  async login(@Body(new ZodPipe(LoginBody)) body: LoginBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<MeDto> {
-    const opened = await this.auth.login({ kind: 'anonymous', ip: req.ip }, body, clientContextOf(req));
-    reply.header('set-cookie', sessionSetCookie(opened.token, opened.maxAgeSeconds));
+  async verifyCode(@Body(new ZodPipe(VerifyCodeBody)) body: VerifyCodeBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<MeDto> {
+    const opened = await this.auth.verifyCode({ kind: 'anonymous', ip: req.ip }, body, req.cookies?.[CHALLENGE_COOKIE], clientContextOf(req));
+    reply.header('set-cookie', [sessionSetCookie(opened.token, opened.maxAgeSeconds), challengeClearCookie()]);
     return this.me.me(opened.actor);
+  }
+
+  @Public()
+  @Post('resend-code')
+  @HttpCode(202)
+  async resendCode(@Body(new ZodPipe(EmptyBody)) _body: unknown, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<AdminCodeRequiredDto> {
+    const sent = await this.auth.resendCode({ kind: 'anonymous', ip: req.ip }, req.cookies?.[CHALLENGE_COOKIE], clientContextOf(req));
+    reply.header('set-cookie', challengeSetCookie(sent.cookieToken));
+    return { status: 'ADMIN_CODE_REQUIRED', expiresInSeconds: sent.expiresInSeconds, resendAfterSeconds: sent.resendAfterSeconds };
   }
 
   @Post('logout')

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { normalizePassword, type ChangePasswordBody, type LoginBody, type RegisterBody } from '@classepulse/shared';
+import { normalizePassword, type ChangePasswordBody, type LoginBody, type RegisterBody, type VerifyCodeBody } from '@classepulse/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { isUniqueViolation } from '../../database/errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
@@ -16,8 +16,14 @@ import { validateNewPassword } from '../users/password-policy.js';
 import { UsersService } from '../users/users.service.js';
 import type { ClientContext } from './client-context.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
+import { OtpLimiter } from './second-factor/otp-limiter.js';
+import { hashChallengeToken, newChallengeToken } from './second-factor/otp.js';
+import { SecondFactorService, outcomeToError } from './second-factor/second-factor.service.js';
 import { SessionsService, type OpenedSession } from './sessions.service.js';
 import { TurnstileGate } from './turnstile.js';
+
+export type AdminCodeSent = { cookieToken: string; expiresInSeconds: 600; resendAfterSeconds: 60 };
+export type LoginResult = { kind: 'session'; opened: OpenedSession } | { kind: 'second-factor'; sent: AdminCodeSent };
 
 /** Nouvel essai de Turnstile 60 s après l'entrée en mode dégradé (R7). */
 const SIGNUP_RETRY_AFTER_SECONDS = 60;
@@ -36,6 +42,8 @@ export class AuthService {
     @Inject(PasswordHasher) private readonly hasher: PasswordHasher,
     @Inject(CommonPasswords) private readonly common: CommonPasswords,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(SecondFactorService) private readonly secondFactor: SecondFactorService,
+    @Inject(OtpLimiter) private readonly otpLimiter: OtpLimiter,
   ) {}
 
   /** P1 : compte + demande d'adhésion + session dans une seule transaction (§ 0.3, R3). */
@@ -65,7 +73,7 @@ export class AuthService {
   }
 
   /** P2 : message identique dans tous les cas ; hachage factice ; suspension signalée après un mot de passe correct. */
-  async login(actor: AnonymousActor, body: LoginBody, ctx: ClientContext): Promise<OpenedSession> {
+  async login(actor: AnonymousActor, body: LoginBody, ctx: ClientContext): Promise<LoginResult> {
     this.authz.assert(actor, 'auth.login');
     const keys = this.limiter.keys(actor.ip, body.email);
     const degraded = this.turnstile.isDegraded();
@@ -87,8 +95,49 @@ export class AuthService {
     }
     await this.limiter.recordSuccess(keys);
     if (user.status === 'SUSPENDED') throw new ApiError(403, 'ACCOUNT_SUSPENDED');
-    if (user.globalRole === 'ADMIN') throw new ApiError(403, 'ADMIN_SECOND_FACTOR_REQUIRED'); // R2 : code par email au lot 1b
-    return this.prisma.withTx((tx) => this.sessions.openInTx(tx, actor, { id: user.id, globalRole: 'USER' }, ctx));
+    if (user.globalRole === 'ADMIN') {
+      await this.otpLimiter.hitRequest(ctx.ip);
+      return { kind: 'second-factor', sent: await this.issueLoginCode(actor, user.id, ctx) };
+    }
+    return { kind: 'session', opened: await this.prisma.withTx((tx) => this.sessions.openInTx(tx, actor, { id: user.id, globalRole: 'USER' }, ctx)) };
+  }
+
+  /** Mot de passe correct, administrateur (ou renvoi) : une vérification LOGIN et son email (§ 3.3). Aucun accès tant que le code n'est pas saisi. */
+  private async issueLoginCode(actor: AnonymousActor, userId: string, ctx: ClientContext): Promise<AdminCodeSent> {
+    const challenge = newChallengeToken();
+    const issued = await this.prisma.withTx((tx) => this.secondFactor.issueInTx(tx, actor, { userId, purpose: 'LOGIN', sessionId: null, pendingEmail: null, tokenHash: challenge.hash, ip: ctx.ip }));
+    return { cookieToken: challenge.token, expiresInSeconds: issued.expiresInSeconds, resendAfterSeconds: issued.resendAfterSeconds };
+  }
+
+  /** Cookie de vérification absent, mal formé, inconnu, expiré ou consommé : toujours la même erreur, cookie effacé. */
+  private async loginChallengeOf(actor: AnonymousActor, cookieToken: string | undefined) {
+    const hash = cookieToken ? hashChallengeToken(cookieToken) : null;
+    const found = hash ? await this.secondFactor.findLoginChallenge(actor, hash) : null;
+    if (!found) throw outcomeToError({ ok: false, reason: 'EXPIRED' }, { clearChallengeCookie: true });
+    return found;
+  }
+
+  async verifyCode(actor: AnonymousActor, body: VerifyCodeBody, cookieToken: string | undefined, ctx: ClientContext): Promise<OpenedSession> {
+    this.authz.assert(actor, 'auth.verifyCode');
+    await this.otpLimiter.hitTry(ctx.ip);
+    const ref = await this.loginChallengeOf(actor, cookieToken);
+    const outcome = await this.prisma.withTx(async (tx) => {
+      const r = await this.secondFactor.checkInTx(tx, actor, { userId: ref.userId, purpose: 'LOGIN', code: body.code, challengeId: ref.challengeId });
+      if (!r.ok) return r; // valider la transaction : essai, échec, blocage et alertes sont enregistrés
+      await this.secondFactor.consumeInTx(tx, actor, r.challenge, 'USED');
+      const opened = await this.sessions.openAdminInTx(tx, actor, { id: ref.userId }, 'EMAIL_CODE', ctx);
+      await this.audit.recordInTx(tx, actor, { action: 'ADMIN_LOGIN', targetType: 'USER', targetId: ref.userId, metadata: { method: 'EMAIL_CODE' } });
+      return { ok: true as const, opened };
+    });
+    if (!outcome.ok) throw outcomeToError(outcome, { clearChallengeCookie: outcome.reason !== 'WRONG' });
+    return outcome.opened;
+  }
+
+  async resendCode(actor: AnonymousActor, cookieToken: string | undefined, ctx: ClientContext): Promise<AdminCodeSent> {
+    this.authz.assert(actor, 'auth.resendCode');
+    await this.otpLimiter.hitRequest(ctx.ip);
+    const ref = await this.loginChallengeOf(actor, cookieToken);
+    return this.issueLoginCode(actor, ref.userId, ctx);
   }
 
   async logout(actor: UserActor): Promise<void> {

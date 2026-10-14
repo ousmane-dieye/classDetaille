@@ -47,14 +47,14 @@ describe('POST /api/auth/login (P2, § 3.2)', () => {
     expect(ok.statusCode).toBe(403);
     expect(ok.json().error.code).toBe('ACCOUNT_SUSPENDED');
   });
-  it('administrateur (R2) : 403 ADMIN_SECOND_FACTOR_REQUIRED, aucune session', async () => {
+  it('administrateur : 202 (code requis), aucun cookie de session', async () => {
     const s = await registerStudent(t.app, classId);
     // Préparation de donnée : promotion directe par le propriétaire (le parcours de promotion arrive au lot 2).
     await query(db, `update app.users set global_role = 'ADMIN' where id = $1`, [s.userId], 'cp_owner');
     const before = (await query(db, `select count(*)::int as n from app.sessions where user_id = $1`, [s.userId])).rows[0].n;
     const res = await login({ email: s.email, password: PASSWORD });
-    expect(res.statusCode).toBe(403);
-    expect(res.json().error.code).toBe('ADMIN_SECOND_FACTOR_REQUIRED');
+    expect(res.statusCode).toBe(202);
+    expect(res.json().status).toBe('ADMIN_CODE_REQUIRED');
     expect(sessionCookieOf(res)).toBeUndefined();
     expect((await query(db, `select count(*)::int as n from app.sessions where user_id = $1`, [s.userId])).rows[0].n).toBe(before);
   });

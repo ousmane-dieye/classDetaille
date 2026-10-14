@@ -6,7 +6,7 @@ import type { AnonymousActor, UserActor } from '../authz/actor.js';
 import { AuthzService } from '../authz/authz.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { ClientContext } from './client-context.js';
-import { hashSessionToken, newSessionToken, STUDENT_SESSION_SECONDS } from './session-cookie.js';
+import { hashSessionToken, newSessionToken, ADMIN_ABSOLUTE_SECONDS, ADMIN_IDLE_SECONDS, STUDENT_SESSION_SECONDS } from './session-cookie.js';
 import { SessionsRepository } from './sessions.repository.js';
 
 export type OpenedSession = { token: string; maxAgeSeconds: number; actor: UserActor };
@@ -34,9 +34,18 @@ export class SessionsService {
     await this.repo.createInTx(tx, {
       id, tokenHash: hash, userId: user.id,
       idleSeconds: STUDENT_SESSION_SECONDS, absoluteSeconds: STUDENT_SESSION_SECONDS,
-      ip: ctx.ip, userAgent: ctx.userAgent,
+      ip: ctx.ip, userAgent: ctx.userAgent, secondFactorMethod: null,
     });
     return { token, maxAgeSeconds: STUDENT_SESSION_SECONDS, actor: { kind: 'user', userId: user.id, globalRole: user.globalRole, sessionId: id } };
+  }
+
+  /** Session d'administrateur (§ 3.3, R10) : créée seulement après le code (ou le code de récupération). */
+  async openAdminInTx(tx: TxClient, actor: AnonymousActor, user: { id: string }, method: 'EMAIL_CODE' | 'RECOVERY_CODE', ctx: ClientContext): Promise<OpenedSession> {
+    this.authz.assert(actor, 'auth.verifyCode');
+    const { token, hash } = newSessionToken();
+    const id = uuidv7();
+    await this.repo.createInTx(tx, { id, tokenHash: hash, userId: user.id, idleSeconds: ADMIN_IDLE_SECONDS, absoluteSeconds: ADMIN_ABSOLUTE_SECONDS, ip: ctx.ip, userAgent: ctx.userAgent, secondFactorMethod: method });
+    return { token, maxAgeSeconds: ADMIN_ABSOLUTE_SECONDS, actor: { kind: 'user', userId: user.id, globalRole: 'ADMIN', sessionId: id } };
   }
 
   /**
@@ -57,7 +66,7 @@ export class SessionsService {
       return null;
     }
     const role = state.role;
-    if (s.stale) await this.repo.touch(s.sessionId, STUDENT_SESSION_SECONDS);
+    if (s.stale) await this.repo.touch(s.sessionId, role === 'ADMIN' ? ADMIN_IDLE_SECONDS : STUDENT_SESSION_SECONDS);
     return { kind: 'user', userId: s.userId, globalRole: role, sessionId: s.sessionId };
   }
 

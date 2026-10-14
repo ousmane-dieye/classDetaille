@@ -3,6 +3,9 @@ import { SESSION_COOKIE } from '../../http/session-cookie-name.js';
 
 /** Étudiant : Max-Age de 30 jours, fixé à la connexion (§ 3.4) ; inactivité = même durée (R4). */
 export const STUDENT_SESSION_SECONDS = 30 * 24 * 3600;
+/** Administrateur (R10) : 30 min d'inactivité, 8 h au total. */
+export const ADMIN_IDLE_SECONDS = 30 * 60;
+export const ADMIN_ABSOLUTE_SECONDS = 8 * 3600;
 const ATTRS = 'Path=/; Secure; HttpOnly; SameSite=Lax';
 
 export function newSessionToken(): { token: string; hash: Buffer } {
