@@ -4,6 +4,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { isUniqueViolation } from '../../database/errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { ApiError } from '../../http/errors.js';
+import { tooManyAttempts } from '../../http/too-many-attempts.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { AnonymousActor, UserActor } from '../authz/actor.js';
 import { AuthzService } from '../authz/authz.service.js';
@@ -20,10 +21,6 @@ import { TurnstileGate } from './turnstile.js';
 
 /** Nouvel essai de Turnstile 60 s après l'entrée en mode dégradé (R7). */
 const SIGNUP_RETRY_AFTER_SECONDS = 60;
-
-function tooManyAttempts(retryAfter: number): ApiError {
-  return new ApiError(429, 'TOO_MANY_ATTEMPTS', { retryAfter }, { 'retry-after': String(retryAfter) });
-}
 
 @Injectable()
 export class AuthService {

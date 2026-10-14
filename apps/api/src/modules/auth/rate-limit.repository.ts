@@ -19,6 +19,22 @@ export class RateLimitRepository {
     return { attempts: r[0]!.attempts, resetIn: r[0]!.reset_in };
   }
 
+  /**
+   * Comme `hit`, mais sans jamais créer de ligne : retourne null si le seau n'existe pas. Sert au-delà du plafond de
+   * lignes (D13), pour que la table ne grossisse plus tout en continuant de limiter les seaux déjà connus.
+   */
+  async hitExisting(key: string, windowSeconds: number): Promise<{ attempts: number; resetIn: number } | null> {
+    const r = await this.prisma.client.$queryRaw<{ attempts: number; reset_in: number }[]>`
+      update app.rate_limit_buckets as b set
+        attempts = case when b.window_start <= clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision) then 1 else b.attempts + 1 end,
+        failures = case when b.window_start <= clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision) then 0 else b.failures end,
+        window_start = case when b.window_start <= clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision) then clock_timestamp() else b.window_start end
+       where b.key = ${key}
+      returning attempts,
+        greatest(0, ceil(extract(epoch from (window_start + make_interval(secs => ${windowSeconds}::double precision) - clock_timestamp()))))::int as reset_in`;
+    return r[0] ? { attempts: r[0].attempts, resetIn: r[0].reset_in } : null;
+  }
+
   async readFailures(key: string, windowSeconds: number): Promise<{ failures: number; sinceLastMs: number; resetIn: number } | null> {
     const r = await this.prisma.client.$queryRaw<{ failures: number; since_ms: number; reset_in: number }[]>`
       select failures,

@@ -36,12 +36,13 @@ export class FakeTurnstile extends TurnstileVerifier {
   async verify(): Promise<VerifierResult> { this.calls++; return this.next; }
 }
 
-export type TestApp = { app: NestFastifyApplication; routes: RouteInfo[]; turnstile: FakeTurnstile; close: () => Promise<void> };
+export type TestApp = { app: NestFastifyApplication; routes: RouteInfo[]; turnstile: FakeTurnstile; config: () => AppConfig; close: () => Promise<void> };
 
 export async function buildTestApp(db: string, opts: { config?: Partial<AppConfig>; turnstile?: FakeTurnstile; logStream?: NodeJS.WritableStream } = {}): Promise<TestApp> {
   const turnstile = opts.turnstile ?? new FakeTurnstile();
-  const { app, routes } = await buildApiApp(testConfig(db, opts.config), { turnstile, ...(opts.logStream ? { logStream: opts.logStream } : {}) });
-  return { app, routes, turnstile, close: () => app.close() };
+  const config = testConfig(db, opts.config);
+  const { app, routes } = await buildApiApp(config, { turnstile, ...(opts.logStream ? { logStream: opts.logStream } : {}) });
+  return { app, routes, turnstile, config: () => config, close: () => app.close() };
 }
 
 let ipSeq = 0;

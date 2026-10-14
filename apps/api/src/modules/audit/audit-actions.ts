@@ -10,6 +10,10 @@ export const AUDIT_METADATA = {
   ACCOUNT_REGISTERED: z.strictObject({ classId: z.uuid(), enrollmentRequestId: z.uuid() }),
   PASSWORD_CHANGED: z.strictObject({ revokedSessions: z.number().int().min(0) }),
   SESSIONS_REVOKED: z.strictObject({ reason: z.literal('OTHER_DEVICES'), count: z.number().int().min(0) }),
+  ADMIN_LOGIN: z.strictObject({ method: z.enum(['EMAIL_CODE', 'RECOVERY_CODE']) }),
+  ADMIN_EMAIL_CHANGED: z.strictObject({ revokedSessions: z.number().int().min(0) }),
+  PASSWORD_RESET_COMPLETED: z.strictObject({ revokedSessions: z.number().int().min(0) }),
+  ADMIN_SECOND_FACTOR_BLOCKED: z.strictObject({ failures: z.number().int().min(0) }),
 } as const;
 export type AppAuditAction = keyof typeof AUDIT_METADATA;
 export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST';
