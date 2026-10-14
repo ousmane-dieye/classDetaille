@@ -35,9 +35,9 @@ export class FakeTurnstile extends TurnstileVerifier {
 
 export type TestApp = { app: NestFastifyApplication; routes: RouteInfo[]; turnstile: FakeTurnstile; close: () => Promise<void> };
 
-export async function buildTestApp(db: string, opts: { config?: Partial<AppConfig>; turnstile?: FakeTurnstile } = {}): Promise<TestApp> {
+export async function buildTestApp(db: string, opts: { config?: Partial<AppConfig>; turnstile?: FakeTurnstile; logStream?: NodeJS.WritableStream } = {}): Promise<TestApp> {
   const turnstile = opts.turnstile ?? new FakeTurnstile();
-  const { app, routes } = await buildApiApp(testConfig(db, opts.config), { turnstile });
+  const { app, routes } = await buildApiApp(testConfig(db, opts.config), { turnstile, ...(opts.logStream ? { logStream: opts.logStream } : {}) });
   return { app, routes, turnstile, close: () => app.close() };
 }
 

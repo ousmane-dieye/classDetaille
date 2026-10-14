@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Inject, Post, Req } from '@nestjs/comm
 import { ChangePasswordBody } from '@classepulse/shared';
 import type { FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
+import { EmptyBody } from '../../http/empty-body.js';
 import { ZodPipe } from '../../http/zod.pipe.js';
 import type { UserActor } from '../authz/actor.js';
 import { AuthService } from './auth.service.js';
@@ -25,7 +26,8 @@ export class AccountController {
 
   @Post('sessions/revoke-others')
   @HttpCode(200)
-  async revokeOthers(@CurrentActor() actor: UserActor): Promise<{ revoked: number }> {
+  async revokeOthers(@CurrentActor() actor: UserActor, @Body(new ZodPipe(EmptyBody)) _body: unknown): Promise<{ revoked: number }> {
+    void _body; // lu uniquement pour être validé : aucun champ n'est accepté
     return { revoked: await this.sessions.revokeOthers(actor) };
   }
 }

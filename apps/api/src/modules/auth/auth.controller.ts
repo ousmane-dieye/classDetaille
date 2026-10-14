@@ -3,6 +3,7 @@ import { LoginBody, RegisterBody } from '@classepulse/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
 import { Public } from '../../http/public.decorator.js';
+import { EmptyBody } from '../../http/empty-body.js';
 import { ZodPipe } from '../../http/zod.pipe.js';
 import type { UserActor } from '../authz/actor.js';
 import type { MeDto } from '../users/me.dto.js';
@@ -35,7 +36,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
-  async logout(@CurrentActor() actor: UserActor, @Res({ passthrough: true }) reply: FastifyReply): Promise<void> {
+  async logout(@CurrentActor() actor: UserActor, @Body(new ZodPipe(EmptyBody)) _body: unknown, @Res({ passthrough: true }) reply: FastifyReply): Promise<void> {
     await this.auth.logout(actor);
     reply.header('set-cookie', sessionClearCookie());
   }
