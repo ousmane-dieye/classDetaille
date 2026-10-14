@@ -38,33 +38,38 @@ export class LoginRateLimiter {
     return { ipKey: `ip:${prefix}`, accountKey: `ip+acct:${prefix}:${mac}` };
   }
 
+  /**
+   * Réserve la tentative (atomique) : le seau IP + compte compte l'essai comme un échec dès maintenant, de sorte que
+   * des tentatives parallèles ne dépassent ni la limite, ni le délai croissant. recordSuccess l'efface.
+   * Turnstile est exigé si au moins 3 échecs précèdent cette tentative.
+   */
   async check(keys: LoginKeys, degraded: boolean): Promise<Gate> {
     const ipLimit = degraded ? DEGRADED_LIMITS.ip : this.config.limits.loginPerIp;
     const accountLimit = degraded ? DEGRADED_LIMITS.account : ACCOUNT_LIMIT;
     const ip = await this.repo.hit(keys.ipKey, WINDOW_SECONDS);
     if (ip.attempts > ipLimit) return { kind: 'limited', retryAfterSeconds: Math.max(1, ip.resetIn) };
-    const acct = await this.repo.readFailures(keys.accountKey, WINDOW_SECONDS);
-    if (acct) {
-      if (acct.failures >= accountLimit) return { kind: 'limited', retryAfterSeconds: Math.max(1, acct.resetIn) };
-      const waitMs = backoffSeconds(acct.failures) * 1000 - acct.sinceLastMs;
-      if (waitMs > 0) return { kind: 'limited', retryAfterSeconds: Math.ceil(waitMs / 1000) };
-    }
-    return { kind: 'allowed', turnstileRequired: !degraded && (acct?.failures ?? 0) >= TURNSTILE_AFTER_FAILURES };
-  }
-
-  async recordFailure(keys: LoginKeys, degraded: boolean): Promise<{ turnstileRequired: boolean }> {
-    const ipFailures = await this.repo.addIpFailure(keys.ipKey);
-    // Alerte d'exploitation au passage du seuil (§ 3.2), une fois par fenêtre.
-    if (ipFailures === IP_ALERT_FAILURES + 1) this.logger.warn(`alert: login failures above ${IP_ALERT_FAILURES} for ${keys.ipKey} in 15 min`);
     if ((await this.repo.rowCountUpTo(BUCKET_ROW_CAP + 1)) > BUCKET_ROW_CAP) {
       // Au-delà de 50 000 lignes, seule la limite par IP s'applique (§ 2.2).
       if (!this.capWarned) this.logger.warn(`alert: rate_limit_buckets above ${BUCKET_ROW_CAP} rows, per-account limit suspended`);
       this.capWarned = true;
-      return { turnstileRequired: false };
+      return { kind: 'allowed', turnstileRequired: false };
     }
     this.capWarned = false;
-    const failures = await this.repo.addAccountFailure(keys.accountKey, WINDOW_SECONDS);
-    return { turnstileRequired: !degraded && failures >= TURNSTILE_AFTER_FAILURES };
+    const after = await this.repo.reserveAccountAttempt(keys.accountKey, WINDOW_SECONDS, accountLimit);
+    if (after !== null) return { kind: 'allowed', turnstileRequired: !degraded && after - 1 >= TURNSTILE_AFTER_FAILURES };
+    const acct = await this.repo.readFailures(keys.accountKey, WINDOW_SECONDS);
+    if (!acct) return { kind: 'limited', retryAfterSeconds: 1 };
+    if (acct.failures >= accountLimit) return { kind: 'limited', retryAfterSeconds: Math.max(1, acct.resetIn) };
+    return { kind: 'limited', retryAfterSeconds: Math.max(1, Math.ceil((backoffSeconds(acct.failures) * 1000 - acct.sinceLastMs) / 1000)) };
+  }
+
+  /** Le compte du seau IP + compte est déjà fait par check() ; ici : échec par IP (alerte) et exigence Turnstile suivante. */
+  async recordFailure(keys: LoginKeys, degraded: boolean): Promise<{ turnstileRequired: boolean }> {
+    const ipFailures = await this.repo.addIpFailure(keys.ipKey);
+    // Alerte d'exploitation au passage du seuil (§ 3.2), une fois par fenêtre.
+    if (ipFailures === IP_ALERT_FAILURES + 1) this.logger.warn(`alert: login failures above ${IP_ALERT_FAILURES} for ${keys.ipKey} in 15 min`);
+    const acct = await this.repo.readFailures(keys.accountKey, WINDOW_SECONDS);
+    return { turnstileRequired: !degraded && (acct?.failures ?? 0) >= TURNSTILE_AFTER_FAILURES };
   }
 
   async recordSuccess(keys: LoginKeys): Promise<void> {

@@ -35,51 +35,62 @@ describe('LoginRateLimiter (§ 3.2)', () => {
     expect(k.accountKey).not.toContain('awa');
   });
   it('par IP : la tentative au-delà de la limite est refusée jusqu’à la fin de la fenêtre', async () => {
-    const k = limiter.keys('203.0.113.1', 'a@example.com');
-    for (let i = 0; i < 3; i++) expect((await limiter.check(k, false)).kind).toBe('allowed');
-    const g = await limiter.check(k, false);
+    for (let i = 0; i < 3; i++) expect((await limiter.check(limiter.keys('203.0.113.1', `a${i}@example.com`), false)).kind).toBe('allowed');
+    const g = await limiter.check(limiter.keys('203.0.113.1', 'a9@example.com'), false);
     expect(g).toMatchObject({ kind: 'limited' });
     expect((g as { retryAfterSeconds: number }).retryAfterSeconds).toBeGreaterThan(800);
   });
-  it('par IP + compte : délai croissant, Turnstile après 3 échecs, refus au 5ᵉ échec', async () => {
+  it('par IP + compte : délai croissant, Turnstile après 3 échecs, 5ᵉ tentative permise, 6ᵉ refusée', async () => {
     const k = limiter.keys('203.0.113.2', 'b@example.com');
     const big = new LoginRateLimiter(new RateLimitRepository(prisma), { ...config, limits: { ...config.limits, loginPerIp: 100 } } as AppConfig);
-    expect(await big.recordFailure(k, false)).toEqual({ turnstileRequired: false });
+    expect(await big.check(k, false)).toEqual({ kind: 'allowed', turnstileRequired: false }); // 1re
     expect(await big.check(k, false)).toEqual({ kind: 'limited', retryAfterSeconds: 1 });
     await ageFailures(k.accountKey);
-    await big.recordFailure(k, false);
+    expect(await big.check(k, false)).toEqual({ kind: 'allowed', turnstileRequired: false }); // 2e
     await ageFailures(k.accountKey);
+    expect(await big.check(k, false)).toEqual({ kind: 'allowed', turnstileRequired: false }); // 3e
     expect(await big.recordFailure(k, false)).toEqual({ turnstileRequired: true });
     await ageFailures(k.accountKey);
-    expect(await big.check(k, false)).toEqual({ kind: 'allowed', turnstileRequired: true });
-    await big.recordFailure(k, false); await ageFailures(k.accountKey);
-    await big.recordFailure(k, false); await ageFailures(k.accountKey);
-    expect((await big.check(k, false)).kind).toBe('limited');
+    expect(await big.check(k, false)).toEqual({ kind: 'allowed', turnstileRequired: true }); // 4e, 3 échecs avant
+    await ageFailures(k.accountKey);
+    expect(await big.check(k, false)).toEqual({ kind: 'allowed', turnstileRequired: true }); // 5e : permise après 4 échecs
+    await ageFailures(k.accountKey);
+    const sixth = await big.check(k, false);
+    expect(sixth.kind).toBe('limited');
+    expect((sixth as { retryAfterSeconds: number }).retryAfterSeconds).toBeGreaterThan(0);
+  });
+  it('tentatives parallèles : au plus 5 passent pour un même IP + compte', async () => {
+    const big = new LoginRateLimiter(new RateLimitRepository(prisma), { ...config, limits: { ...config.limits, loginPerIp: 100 } } as AppConfig);
+    const k = big.keys('203.0.113.8', 'par@example.com');
+    const gates = await Promise.all(Array.from({ length: 10 }, () => big.check(k, false)));
+    const allowed = gates.filter((g) => g.kind === 'allowed').length;
+    expect(allowed).toBeLessThanOrEqual(5);
+    expect(allowed).toBe(1); // le délai croissant (R5) borne en plus à une seule tentative simultanée
   });
   it('un compte n’est jamais bloqué depuis une autre IP', async () => {
     const big = new LoginRateLimiter(new RateLimitRepository(prisma), { ...config, limits: { ...config.limits, loginPerIp: 100 } } as AppConfig);
     const attacker = big.keys('198.51.100.66', 'victim@example.com');
-    for (let i = 0; i < 5; i++) { await big.recordFailure(attacker, false); await ageFailures(attacker.accountKey); }
+    for (let i = 0; i < 5; i++) { expect((await big.check(attacker, false)).kind).toBe('allowed'); await ageFailures(attacker.accountKey); }
     expect((await big.check(attacker, false)).kind).toBe('limited');
     expect(await big.check(big.keys('203.0.113.77', 'victim@example.com'), false)).toEqual({ kind: 'allowed', turnstileRequired: false });
   });
   it('un succès efface le seau IP + compte', async () => {
     const big = new LoginRateLimiter(new RateLimitRepository(prisma), { ...config, limits: { ...config.limits, loginPerIp: 100 } } as AppConfig);
     const k = big.keys('203.0.113.3', 'c@example.com');
-    await big.recordFailure(k, false);
+    await big.check(k, false);
     await big.recordSuccess(k);
     expect((await sql('select count(*)::int as n from app.rate_limit_buckets where key = $1', [k.accountKey])).rows[0].n).toBe(0);
   });
   it('mode dégradé : 5 par IP et 2 par couple, sans Turnstile', async () => {
     const big = new LoginRateLimiter(new RateLimitRepository(prisma), { ...config, limits: { ...config.limits, loginPerIp: 100 } } as AppConfig);
     const k = big.keys('203.0.113.4', 'd@example.com');
-    await big.recordFailure(k, true); await ageFailures(k.accountKey);
-    expect(await big.recordFailure(k, true)).toEqual({ turnstileRequired: false });
+    expect((await big.check(k, true)).kind).toBe('allowed'); await ageFailures(k.accountKey);
+    expect(await big.check(k, true)).toEqual({ kind: 'allowed', turnstileRequired: false });
     await ageFailures(k.accountKey);
     expect((await big.check(k, true)).kind).toBe('limited');
-    const ipOnly = big.keys('203.0.113.5', 'e@example.com');
-    for (let i = 0; i < 5; i++) expect((await big.check(ipOnly, true)).kind).toBe('allowed');
-    expect((await big.check(ipOnly, true)).kind).toBe('limited');
+    // Comptes distincts depuis la même IP : seule la limite par IP (5) joue.
+    for (let i = 0; i < 5; i++) expect((await big.check(big.keys('203.0.113.5', `e${i}@example.com`), true)).kind).toBe('allowed');
+    expect((await big.check(big.keys('203.0.113.5', 'e9@example.com'), true)).kind).toBe('limited');
   });
   it('alerte au 51ᵉ échec d’une IP dans la fenêtre', async () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);

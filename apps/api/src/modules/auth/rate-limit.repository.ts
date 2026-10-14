@@ -36,15 +36,25 @@ export class RateLimitRepository {
     return r[0]?.failures ?? 0;
   }
 
-  async addAccountFailure(key: string, windowSeconds: number): Promise<number> {
+  /**
+   * Réserve atomiquement une tentative sur le seau IP + compte : elle compte comme un échec dès cet instant
+   * (recordSuccess efface le seau). La ligne n'est mise à jour que si la limite n'est pas atteinte et que le délai
+   * croissant (R5) est écoulé ; le verrou de ligne sérialise les tentatives parallèles. Retourne le nombre d'échecs
+   * après réservation, ou null si la tentative est refusée.
+   */
+  async reserveAccountAttempt(key: string, windowSeconds: number, limit: number): Promise<number | null> {
     const r = await this.prisma.client.$queryRaw<{ failures: number }[]>`
       insert into app.rate_limit_buckets as b (key, window_start, failures, last_failure_at) values (${key}, clock_timestamp(), 1, clock_timestamp())
       on conflict (key) do update set
         failures = case when b.window_start <= clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision) then 1 else b.failures + 1 end,
         window_start = case when b.window_start <= clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision) then clock_timestamp() else b.window_start end,
         last_failure_at = clock_timestamp()
+      where b.window_start <= clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision)
+         or (b.failures < ${limit}::int
+             and (b.last_failure_at is null
+                  or clock_timestamp() - b.last_failure_at >= make_interval(secs => case when b.failures <= 0 then 0::double precision else least(power(2, b.failures - 1), 30) end)))
       returning failures`;
-    return r[0]!.failures;
+    return r[0]?.failures ?? null;
   }
 
   async clear(key: string): Promise<void> {
