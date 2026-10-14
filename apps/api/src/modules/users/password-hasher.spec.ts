@@ -48,8 +48,12 @@ describe('Semaphore (au plus 4 calculs simultanés)', () => {
       for (let i = 0; i < hops; i++) await Promise.resolve();
       all.push(task()); // arrive entre la libération et la reprise de l'attente
       await new Promise((r) => setTimeout(r, 0));
-      while (gates.length) gates.shift()!();
-      await Promise.all(all);
+      let settled = false;
+      void Promise.all(all).then(() => { settled = true; });
+      while (!settled) {
+        while (gates.length) gates.shift()!();
+        await new Promise((r) => setTimeout(r, 0));
+      }
       expect(peak, `hops=${hops}`).toBeLessThanOrEqual(2);
     }
   });
