@@ -3,3 +3,4 @@ export * from './email.js';
 export * from './password.js';
 export * from './names.js';
 export * from './identity-schemas.js';
+export * from './second-factor-schemas.js';
