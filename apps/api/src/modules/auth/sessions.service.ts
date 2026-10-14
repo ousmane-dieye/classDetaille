@@ -39,7 +39,7 @@ export class SessionsService {
     return { token, maxAgeSeconds: STUDENT_SESSION_SECONDS, actor: { kind: 'user', userId: user.id, globalRole: user.globalRole, sessionId: id } };
   }
 
-  /** Session d'administrateur (§ 3.3, R10) : créée seulement après le code (ou le code de récupération). */
+  /** Session d'administrateur (§ 3.3, R10) ; l'appelant a verrouillé la ligne users et vérifié ACTIVE + ADMIN (checkInTx) dans la même transaction. Créée seulement après le code (ou le code de récupération). */
   async openAdminInTx(tx: TxClient, actor: AnonymousActor, user: { id: string }, method: 'EMAIL_CODE' | 'RECOVERY_CODE', ctx: ClientContext): Promise<OpenedSession> {
     this.authz.assert(actor, 'auth.verifyCode');
     const { token, hash } = newSessionToken();

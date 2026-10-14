@@ -8,7 +8,7 @@ import { ZodPipe } from '../../http/zod.pipe.js';
 import type { UserActor } from '../authz/actor.js';
 import type { MeDto } from '../users/me.dto.js';
 import { MeService } from '../users/me.service.js';
-import type { AdminCodeRequiredDto } from './auth.dto.js';
+import { adminCodeRequiredDto, type AdminCodeRequiredDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
 import { CHALLENGE_COOKIE } from '../../http/session-cookie-name.js';
 import { challengeClearCookie, challengeSetCookie } from './second-factor/otp.js';
@@ -34,8 +34,7 @@ export class AuthController {
   async login(@Body(new ZodPipe(LoginBody)) body: LoginBody, @Req() req: FastifyRequest, @Res() reply: FastifyReply): Promise<void> {
     const r = await this.auth.login({ kind: 'anonymous', ip: req.ip }, body, clientContextOf(req));
     if (r.kind === 'second-factor') {
-      const dto: AdminCodeRequiredDto = { status: 'ADMIN_CODE_REQUIRED', expiresInSeconds: r.sent.expiresInSeconds, resendAfterSeconds: r.sent.resendAfterSeconds };
-      await reply.code(202).header('set-cookie', challengeSetCookie(r.sent.cookieToken)).send(dto);
+      await reply.code(202).header('set-cookie', challengeSetCookie(r.sent.cookieToken)).send(adminCodeRequiredDto(r.sent));
       return;
     }
     const me: MeDto = await this.me.me(r.opened.actor);
@@ -57,7 +56,7 @@ export class AuthController {
   async resendCode(@Body(new ZodPipe(EmptyBody)) _body: unknown, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<AdminCodeRequiredDto> {
     const sent = await this.auth.resendCode({ kind: 'anonymous', ip: req.ip }, req.cookies?.[CHALLENGE_COOKIE], clientContextOf(req));
     reply.header('set-cookie', challengeSetCookie(sent.cookieToken));
-    return { status: 'ADMIN_CODE_REQUIRED', expiresInSeconds: sent.expiresInSeconds, resendAfterSeconds: sent.resendAfterSeconds };
+    return adminCodeRequiredDto(sent);
   }
 
   @Post('logout')

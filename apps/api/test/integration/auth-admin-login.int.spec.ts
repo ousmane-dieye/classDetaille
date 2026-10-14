@@ -149,6 +149,25 @@ describe('POST /api/auth/verify-code', () => {
   });
 });
 
+describe('compte modifié entre le mot de passe et le code', () => {
+  it.each([
+    ['suspendu', `update app.users set status = 'SUSPENDED' where id = $1`],
+    ['rétrogradé en USER', `update app.users set global_role = 'USER' where id = $1`],
+  ])('%s : CHALLENGE_EXPIRED, aucune session, aucun ADMIN_LOGIN', async (_n, sql) => {
+    const a = await createAdmin(db);
+    const { header } = await startLogin(a);
+    const code = await latestCode(db, a.email);
+    const o = await connectAs('cp_owner', db);
+    await o.query(sql, [a.id]);
+    await o.end();
+    const res = await send(t.app, 'POST', '/api/auth/verify-code', { code }, header);
+    expect([res.statusCode, res.json().error.code]).toEqual([400, 'CHALLENGE_EXPIRED']);
+    expect(sessionCookieOf(res)).toBeUndefined();
+    expect(await rows(`select 1 from app.sessions where user_id = $1`, [a.id])).toHaveLength(0);
+    expect(await rows(`select 1 from app.audit_log where target_id = $1 and action = 'ADMIN_LOGIN'`, [a.id])).toHaveLength(0);
+  });
+});
+
 describe('deux validations simultanées de la même vérification (verrou observé)', () => {
   async function holdThenVerify(outcome: 'COMMIT' | 'ROLLBACK') {
     const a = await createAdmin(db);
