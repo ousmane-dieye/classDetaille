@@ -47,7 +47,35 @@ Puis, depuis `apps/api` (adapter `DB_PORT` si PostgreSQL est publié sur un autr
 export NODE_ENV=development HTTP_PORT=3000 READY_PORT=3001 DB_HOST=127.0.0.1 DB_PORT=5432 DB_NAME=classepulse DB_AUTH_MODE=password
 export APP_ORIGIN=http://localhost:5173 RATE_LIMIT_HMAC_KEY_FILE=../../.secrets/dev/rate_limit_hmac_key TURNSTILE_SECRET_FILE=../../.secrets/dev/turnstile_secret
 DB_USER=cp_owner DB_PASSWORD_FILE=../../.secrets/dev/cp_owner pnpm exec prisma migrate deploy
+DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm cli create-class --name "L3 Informatique" --level L3 --year 2026-2027
 DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm exec tsx --conditions=source src/main.ts
+```
+
+### Commandes d'administration (`create-admin`, `create-class`)
+
+Elles s'exécutent sous le rôle `cp_app` (jamais `cp_owner` ni `postgres`), avec les mêmes variables d'environnement que l'API. En lot 1a, on les lance par `pnpm --filter @classepulse/api cli …` (ou `pnpm cli …` depuis `apps/api`), c'est-à-dire `tsx --conditions=source src/cli.ts`. `node dist/src/cli.js` ne fonctionnera qu'une fois le paquet partagé construit (lot 7).
+
+```bash
+# Premier administrateur : le mot de passe (16 caractères au moins) est lu sur l'entrée standard, jamais en argument.
+# Sur un terminal, la saisie est masquée et confirmée ; sinon, la première ligne de l'entrée standard est utilisée.
+[ -f ../../.secrets/dev/admin_password ] || openssl rand -base64 24 > ../../.secrets/dev/admin_password
+DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api cli create-admin   --email admin@example.com --first-name Moussa --last-name Faye < ../../.secrets/dev/admin_password
+# Classe active
+DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api cli create-class   --name "L3 Informatique" --level L3 --year 2026-2027
+```
+
+Codes de sortie : `0` succès ; `1` erreur (une ligne `erreur : <CODE>` sur la sortie d'erreur, par exemple `ADMIN_ALREADY_EXISTS`, `EMAIL_TAKEN`, `PASSWORD_TOO_SHORT`, `CLASS_ALREADY_EXISTS`, `INVALID_ACADEMIC_YEAR`, `INVALID_ARGUMENTS`) ; `2` usage. Aucun mot de passe n'est affiché.
+
+### Vérification manuelle (inscription, profil, déconnexion)
+
+Avec l'API démarrée et une classe créée (`CLASS_ID` : identifiant renvoyé par `GET /api/classes/active`). Chaque requête qui modifie porte l'en-tête `Origin` égal à `APP_ORIGIN` (protection CSRF) ; la déconnexion exige un corps JSON `{}`.
+
+```bash
+O='Origin: http://localhost:5173'; J='Content-Type: application/json'
+curl -s -i -c cookies.txt -X POST http://127.0.0.1:3000/api/auth/register -H "$O" -H "$J"   -d '{"firstName":"Awa","lastName":"Diop","email":"awa@example.com","password":"une phrase de passe assez longue","classId":"<CLASS_ID>","turnstileToken":"x"}'   # → 201, cookie de session
+curl -s -b cookies.txt http://127.0.0.1:3000/api/me                                   # → profil de l'étudiante
+curl -s -i -b cookies.txt -X POST http://127.0.0.1:3000/api/auth/logout -H "$O" -H "$J" -d '{}'   # → 204, cookie effacé
+curl -s -i -b cookies.txt http://127.0.0.1:3000/api/me                                # → 401 UNAUTHENTICATED
 ```
 
 Variables de l'API :

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { isAcceptedEmail, normalizeEmail, normalizeName, type UpdatePreferencesBody, type UpdateProfileBody } from '@classepulse/shared';
 import { v7 as uuidv7 } from 'uuid';
+import { isUniqueViolation } from '../../database/errors.js';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
 import { ApiError } from '../../http/errors.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -60,12 +61,18 @@ export class UsersService {
     if (!pw.ok) throw new ApiError(400, pw.code);
     const passwordHash = await this.hasher.hash(pw.normalized);
     const id = uuidv7();
-    await this.prisma.withTx(async (tx) => {
-      await this.repo.lockRoleGuardInTx(tx);
-      if (await this.repo.activeAdminExistsInTx(tx)) throw new ApiError(409, 'ADMIN_ALREADY_EXISTS');
-      await this.repo.createInTx(tx, { id, email, firstName, lastName, passwordHash, globalRole: 'ADMIN' });
-      await this.audit.recordInTx(tx, actor, { action: 'ADMIN_CREATED', targetType: 'USER', targetId: id, metadata: { via: 'cli' } });
-    });
+    try {
+      await this.prisma.withTx(async (tx) => {
+        await this.repo.lockRoleGuardInTx(tx);
+        if (await this.repo.activeAdminExistsInTx(tx)) throw new ApiError(409, 'ADMIN_ALREADY_EXISTS');
+        await this.repo.createInTx(tx, { id, email, firstName, lastName, passwordHash, globalRole: 'ADMIN' });
+        await this.audit.recordInTx(tx, actor, { action: 'ADMIN_CREATED', targetType: 'USER', targetId: id, metadata: { via: 'cli' } });
+      });
+    } catch (e) {
+      // L'adresse appartient déjà à un compte non administrateur : erreur propre, jamais l'erreur brute de la base.
+      if (isUniqueViolation(e)) throw new ApiError(409, 'EMAIL_TAKEN');
+      throw e;
+    }
     return id;
   }
 
