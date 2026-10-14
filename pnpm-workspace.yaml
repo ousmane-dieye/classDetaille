@@ -17,4 +17,3 @@ auditConfig:
     - GHSA-86w9-cpqp-85rv
 minimumReleaseAgeExclude:
   - mysql2@3.24.6
-  - nodemailer@10.1.1
