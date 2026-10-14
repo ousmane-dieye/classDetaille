@@ -28,3 +28,75 @@ model OpsSettings {
   @@map("ops_settings")
   @@schema("app")
 }
+
+enum GlobalRole {
+  USER
+  ADMIN
+
+  @@map("global_role")
+  @@schema("app")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+
+  @@map("user_status")
+  @@schema("app")
+}
+
+enum SessionRevokeReason {
+  LOGOUT
+  PASSWORD_CHANGED
+  ROLE_CHANGED
+  SUSPENDED
+  ANONYMIZED
+  EMAIL_CHANGED
+  ADMIN_REVOKED
+  OTHER_DEVICES
+  RESTORE
+
+  @@map("session_revoke_reason")
+  @@schema("app")
+}
+
+model User {
+  id                   String     @id @db.Uuid
+  email                String?    @unique
+  firstName            String?    @map("first_name")
+  lastName             String?    @map("last_name")
+  passwordHash         String?    @map("password_hash")
+  globalRole           GlobalRole @default(USER) @map("global_role")
+  status               UserStatus @default(ACTIVE)
+  emailFlaggedAt       DateTime?  @map("email_flagged_at") @db.Timestamptz
+  emailReminders       Boolean    @default(true) @map("email_reminders")
+  emailAnnouncements   Boolean    @default(true) @map("email_announcements")
+  unsubscribeTokenHash Bytes?     @map("unsubscribe_token_hash")
+  deletedAt            DateTime?  @map("deleted_at") @db.Timestamptz
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime   @default(now()) @map("updated_at") @db.Timestamptz
+  sessions             Session[]
+
+  @@map("users")
+  @@schema("app")
+}
+
+model Session {
+  id                String               @id @db.Uuid
+  tokenHash         Bytes                @unique @map("token_hash")
+  userId            String               @map("user_id") @db.Uuid
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  lastSeenAt        DateTime             @default(now()) @map("last_seen_at") @db.Timestamptz
+  idleExpiresAt     DateTime             @map("idle_expires_at") @db.Timestamptz
+  absoluteExpiresAt DateTime             @map("absolute_expires_at") @db.Timestamptz
+  reauthAt          DateTime?            @map("reauth_at") @db.Timestamptz
+  ip                String?              @db.Inet
+  userAgent         String?              @map("user_agent")
+  revokedAt         DateTime?            @map("revoked_at") @db.Timestamptz
+  revokeReason      SessionRevokeReason? @map("revoke_reason")
+
+  @@map("sessions")
+  @@schema("app")
+}
