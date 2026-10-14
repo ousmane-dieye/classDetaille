@@ -31,3 +31,12 @@
 - **D-2** (durées B2) : à trancher **après T-06**, avant la création des buckets de production (lot 7).
 - **Partie C** (authentification par certificat) : conditionnée à **T-01** (lot 0, tâche 10). Si T-01 échoue, la méthode d'authentification de `cp_owner` est soumise au responsable avant le lot 1.
 - **Photo des pages d'accès** : à fournir par le responsable avant la fin du lot 1.
+
+## Décisions du responsable sur le lot 1 (2026-10-14)
+- **Découpage en trois sous-plans**, livrés dans l'ordre, chacun avec un logiciel qui démarre et des tests verts :
+  - **1a — API identité** : comptes, mots de passe, sessions, CSRF, limitations, Turnstile, audit, `authz`, `create-admin` ;
+  - **1b — Emails et administrateurs** : `email_outbox`, worker d'envoi, code administrateur, récupération, vérification supplémentaire, changement d'email d'un administrateur, mot de passe oublié ;
+  - **1c — Écrans** : M7, M8, M14 (profil et sessions) et parcours P1, P2, P10 de bout en bout.
+- **Classes minimales au lot 1** : table `classes`, liste des classes actives, création d'une classe en ligne de commande, demande d'adhésion créée à l'inscription et écran « demande en attente ». Les décisions d'admission (P8) restent au lot 2.
+- **Suppression de compte (anonymisation) au lot 2**, avec `priv.anonymize_user` et son écran, quand les appartenances existent. Le profil du lot 1 n'a pas de bouton de suppression.
+- **Worker d'envoi des emails au lot 1 (1b)** : processus worker et traitement `email.send` (bail, réservation, nouvelles tentatives, résultat ambigu, § 2.4). `job_runs`, Healthchecks.io et les autres traitements restent au lot 5.
