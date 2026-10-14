@@ -12,13 +12,18 @@ export class Semaphore {
   constructor(private readonly max: number) {}
 
   async run<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.active >= this.max) await new Promise<void>((resolve) => this.waiting.push(resolve));
-    this.active++;
+    if (this.active >= this.max) {
+      // La place est cédée directement à l'attente : `active` ne baisse pas, aucune demande ne peut s'intercaler.
+      await new Promise<void>((resolve) => this.waiting.push(resolve));
+    } else {
+      this.active++;
+    }
     try {
       return await fn();
     } finally {
-      this.active--;
-      this.waiting.shift()?.();
+      const next = this.waiting.shift();
+      if (next) next();
+      else this.active--;
     }
   }
 }
@@ -41,7 +46,11 @@ export class PasswordHasher {
 
   /** Même coût qu'une vérification réelle, quand l'email est inconnu (§ 3.2). */
   async verifyDummy(normalized: string): Promise<false> {
-    this.dummyHash ??= this.hash(randomBytes(32).toString('hex'));
+    if (!this.dummyHash) {
+      const computing = this.hash(randomBytes(32).toString('hex'));
+      this.dummyHash = computing;
+      computing.catch(() => { if (this.dummyHash === computing) this.dummyHash = undefined; });
+    }
     await this.verify(await this.dummyHash, normalized);
     return false;
   }

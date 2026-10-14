@@ -31,6 +31,28 @@ describe('Semaphore (au plus 4 calculs simultanés)', () => {
     })));
     expect(peak).toBe(4);
   });
+  it('une nouvelle demande arrivant juste après une libération ne dépasse pas la limite', async () => {
+    for (let hops = 0; hops < 10; hops++) {
+      const s = new Semaphore(2);
+      let running = 0;
+      let peak = 0;
+      const gates: (() => void)[] = [];
+      const task = () => s.run(async () => {
+        running++; peak = Math.max(peak, running);
+        await new Promise<void>((r) => gates.push(r));
+        running--;
+      });
+      const all = [task(), task(), task()]; // deux en cours, une en attente
+      await Promise.resolve();
+      gates[0]!(); // libère une place
+      for (let i = 0; i < hops; i++) await Promise.resolve();
+      all.push(task()); // arrive entre la libération et la reprise de l'attente
+      await new Promise((r) => setTimeout(r, 0));
+      while (gates.length) gates.shift()!();
+      await Promise.all(all);
+      expect(peak, `hops=${hops}`).toBeLessThanOrEqual(2);
+    }
+  });
   it('libère la place même si la tâche échoue', async () => {
     const s = new Semaphore(1);
     await expect(s.run(async () => { throw new Error('x'); })).rejects.toThrow('x');
