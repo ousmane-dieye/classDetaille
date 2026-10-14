@@ -18,6 +18,9 @@ const EXPECTED_ROUTES: Record<string, { public: boolean }> = {
   'POST /api/me/password': { public: false },
   'GET /api/me/sessions': { public: false },
   'POST /api/me/sessions/revoke-others': { public: false },
+  'POST /api/me/reauth': { public: false },
+  'POST /api/me/step-up': { public: false },
+  'POST /api/me/step-up/verify': { public: false },
 };
 
 let t: TestApp;
@@ -45,6 +48,9 @@ const VALID_BODY: Record<string, () => Record<string, unknown>> = {
   'PATCH /api/me/email-preferences': () => ({ emailReminders: false }),
   'POST /api/me/password': () => ({ currentPassword: PASSWORD, newPassword: 'un autre mot de passe tres long 42' }),
   'POST /api/me/sessions/revoke-others': () => ({}),
+  'POST /api/me/reauth': () => ({ password: PASSWORD }),
+  'POST /api/me/step-up': () => ({ password: PASSWORD }),
+  'POST /api/me/step-up/verify': () => ({ code: '123456' }),
 };
 
 const modifying = () => entries().filter((r) => r.method !== 'GET');

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Post, Req } from '@nestjs/common';
-import { ChangePasswordBody } from '@classepulse/shared';
+import { ChangePasswordBody, PasswordBody, VerifyCodeBody } from '@classepulse/shared';
 import type { FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
 import { EmptyBody } from '../../http/empty-body.js';
@@ -7,11 +7,12 @@ import { ZodPipe } from '../../http/zod.pipe.js';
 import type { UserActor } from '../authz/actor.js';
 import { AuthService } from './auth.service.js';
 import { clientContextOf } from './client-context.js';
+import { StepUpService } from './step-up.service.js';
 import { SessionsService, type SessionDto } from './sessions.service.js';
 
 @Controller('me')
 export class AccountController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService, @Inject(SessionsService) private readonly sessions: SessionsService) {}
+  constructor(@Inject(AuthService) private readonly auth: AuthService, @Inject(SessionsService) private readonly sessions: SessionsService, @Inject(StepUpService) private readonly stepUp: StepUpService) {}
 
   @Post('password')
   @HttpCode(204)
@@ -29,5 +30,18 @@ export class AccountController {
   async revokeOthers(@CurrentActor() actor: UserActor, @Body(new ZodPipe(EmptyBody)) _body: unknown): Promise<{ revoked: number }> {
     void _body; // lu uniquement pour être validé : aucun champ n'est accepté
     return { revoked: await this.sessions.revokeOthers(actor) };
+  }
+
+  @Post('reauth') @HttpCode(204)
+  async reauth(@CurrentActor() actor: UserActor, @Body(new ZodPipe(PasswordBody)) body: PasswordBody, @Req() req: FastifyRequest): Promise<void> {
+    await this.stepUp.reauth(actor, body.password, clientContextOf(req));
+  }
+  @Post('step-up') @HttpCode(202)
+  startStepUp(@CurrentActor() actor: UserActor, @Body(new ZodPipe(PasswordBody)) body: PasswordBody, @Req() req: FastifyRequest): Promise<{ expiresInSeconds: 600 }> {
+    return this.stepUp.startStepUp(actor, body.password, clientContextOf(req));
+  }
+  @Post('step-up/verify') @HttpCode(204)
+  async verifyStepUp(@CurrentActor() actor: UserActor, @Body(new ZodPipe(VerifyCodeBody)) body: VerifyCodeBody, @Req() req: FastifyRequest): Promise<void> {
+    await this.stepUp.verifyStepUp(actor, body.code, clientContextOf(req));
   }
 }

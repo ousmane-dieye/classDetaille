@@ -15,6 +15,7 @@ import { PasswordHasher } from '../users/password-hasher.js';
 import { validateNewPassword } from '../users/password-policy.js';
 import { UsersService } from '../users/users.service.js';
 import type { ClientContext } from './client-context.js';
+import { CredentialsChecker } from './credentials-checker.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
 import { OtpLimiter } from './second-factor/otp-limiter.js';
 import { hashChallengeToken, newChallengeToken } from './second-factor/otp.js';
@@ -44,6 +45,7 @@ export class AuthService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(SecondFactorService) private readonly secondFactor: SecondFactorService,
     @Inject(OtpLimiter) private readonly otpLimiter: OtpLimiter,
+    @Inject(CredentialsChecker) private readonly credentials: CredentialsChecker,
   ) {}
 
   /** P1 : compte + demande d'adhésion + session dans une seule transaction (§ 0.3, R3). */
@@ -168,18 +170,7 @@ export class AuthService {
     this.authz.assert(actor, 'me.changePassword');
     const pw = validateNewPassword(body.newPassword, actor.globalRole, this.common);
     if (!pw.ok) throw new ApiError(400, pw.code);
-    const user = await this.users.credentialsOf(actor);
-    const keys = this.limiter.keys(ctx.ip, user.email);
-    const degraded = this.turnstile.isDegraded();
-    const gate = await this.limiter.check(keys, degraded);
-    if (gate.kind === 'limited') throw tooManyAttempts(gate.retryAfterSeconds);
-    const current = normalizePassword(body.currentPassword);
-    const ok = user.passwordHash ? await this.hasher.verify(user.passwordHash, current) : await this.hasher.verifyDummy(current);
-    if (!ok) {
-      await this.limiter.recordFailure(keys, degraded);
-      throw new ApiError(400, 'CURRENT_PASSWORD_INVALID');
-    }
-    await this.limiter.recordSuccess(keys);
+    await this.credentials.verifyOrThrow(actor, body.currentPassword, ctx);
     const passwordHash = await this.hasher.hash(pw.normalized);
     await this.prisma.withTx(async (tx) => {
       await this.users.setPasswordHashInTx(tx, actor, passwordHash);

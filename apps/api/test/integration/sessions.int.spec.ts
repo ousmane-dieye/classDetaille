@@ -7,6 +7,7 @@ import { AuditRepository } from '../../src/modules/audit/audit.repository.js';
 import { AuditService } from '../../src/modules/audit/audit.service.js';
 import { SessionsRepository } from '../../src/modules/auth/sessions.repository.js';
 import { SessionsService } from '../../src/modules/auth/sessions.service.js';
+import { ChallengesRepository } from '../../src/modules/auth/second-factor/challenges.repository.js';
 import type { AnonymousActor } from '../../src/modules/authz/actor.js';
 import { AuthzService } from '../../src/modules/authz/authz.service.js';
 import { CommonPasswords } from '../../src/modules/users/common-passwords.js';
@@ -27,7 +28,7 @@ beforeAll(async () => {
   const authz = new AuthzService();
   const audit = new AuditService(new AuditRepository());
   const users = new UsersService(new UsersRepository(prisma), authz, audit, new PasswordHasher(), new CommonPasswords([]), prisma);
-  sessions = new SessionsService(new SessionsRepository(prisma), users, authz, audit, prisma);
+  sessions = new SessionsService(new SessionsRepository(prisma), users, authz, audit, prisma, new ChallengesRepository(prisma));
 });
 afterAll(async () => { await prisma.onModuleDestroy(); });
 

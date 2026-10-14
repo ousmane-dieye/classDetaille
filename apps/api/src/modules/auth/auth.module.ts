@@ -10,12 +10,14 @@ import { UsersModule } from '../users/users.module.js';
 import { AccountController } from './account.controller.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { CredentialsChecker } from './credentials-checker.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
 import { ChallengesRepository } from './second-factor/challenges.repository.js';
 import { OtpLimiter } from './second-factor/otp-limiter.js';
 import { SecondFactorService } from './second-factor/second-factor.service.js';
 import { RateLimitRepository } from './rate-limit.repository.js';
 import { SessionGuard } from './session.guard.js';
+import { StepUpService } from './step-up.service.js';
 import { SessionsRepository } from './sessions.repository.js';
 import { SessionsService } from './sessions.service.js';
 import { HttpTurnstileVerifier, TurnstileGate, TurnstileVerifier } from './turnstile.js';
@@ -33,9 +35,9 @@ export class AuthModule {
         { provide: APP_GUARD, useClass: SessionGuard },
         { provide: TurnstileVerifier, useValue: o.turnstile ?? new HttpTurnstileVerifier(config.turnstile.secret, config.turnstile.verifyUrl) },
         TurnstileGate, RateLimitRepository, LoginRateLimiter, SessionsRepository, SessionsService, AuthService,
-        ChallengesRepository, SecondFactorService, OtpLimiter,
+        ChallengesRepository, SecondFactorService, OtpLimiter, CredentialsChecker, StepUpService,
       ],
-      exports: [SessionsService, AuthService, SecondFactorService],
+      exports: [SessionsService, AuthService, SecondFactorService, StepUpService],
     };
   }
 }

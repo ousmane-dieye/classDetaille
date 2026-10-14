@@ -7,6 +7,7 @@ import { AuthzService } from '../authz/authz.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { ClientContext } from './client-context.js';
 import { hashSessionToken, newSessionToken, ADMIN_ABSOLUTE_SECONDS, ADMIN_IDLE_SECONDS, STUDENT_SESSION_SECONDS } from './session-cookie.js';
+import { ChallengesRepository } from './second-factor/challenges.repository.js';
 import { SessionsRepository } from './sessions.repository.js';
 
 export type OpenedSession = { token: string; maxAgeSeconds: number; actor: UserActor };
@@ -20,7 +21,20 @@ export class SessionsService {
     @Inject(AuthzService) private readonly authz: AuthzService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ChallengesRepository) private readonly challenges: ChallengesRepository,
   ) {}
+
+  /** § 3.4 : verrou users, puis vérifications liées aux sessions qui vont être révoquées (SESSION_ENDED), puis (par l'appelant) les sessions. */
+  private async endChallengesInTx(tx: TxClient, userId: string, sessionIds: readonly string[]): Promise<void> {
+    await this.challenges.lockUserInTx(tx, userId);
+    await this.challenges.consumeBySessionsInTx(tx, sessionIds);
+  }
+
+  private async revokeOthersCoreInTx(tx: TxClient, actor: UserActor, reason: 'PASSWORD_CHANGED' | 'OTHER_DEVICES'): Promise<number> {
+    await this.challenges.lockUserInTx(tx, actor.userId);
+    await this.challenges.consumeBySessionsInTx(tx, await this.repo.otherActiveIdsInTx(tx, actor.userId, actor.sessionId));
+    return this.repo.revokeOthersInTx(tx, actor.userId, actor.sessionId, reason);
+  }
 
   /**
    * Nouveau jeton à chaque connexion (§ 3.4). Au lot 1a, seuls les comptes USER ouvrent une session (R2).
@@ -72,7 +86,10 @@ export class SessionsService {
 
   async logout(actor: UserActor): Promise<void> {
     this.authz.assert(actor, 'auth.logout');
-    await this.repo.revoke(actor.sessionId, 'LOGOUT');
+    await this.prisma.withTx(async (tx) => {
+      await this.endChallengesInTx(tx, actor.userId, [actor.sessionId]);
+      await this.repo.revokeInTx(tx, actor.sessionId, 'LOGOUT');
+    });
   }
 
   async list(actor: UserActor): Promise<SessionDto[]> {
@@ -84,7 +101,7 @@ export class SessionsService {
   async revokeOthers(actor: UserActor): Promise<number> {
     this.authz.assert(actor, 'me.revokeOtherSessions');
     return this.prisma.withTx(async (tx) => {
-      const count = await this.repo.revokeOthersInTx(tx, actor.userId, actor.sessionId, 'OTHER_DEVICES');
+      const count = await this.revokeOthersCoreInTx(tx, actor, 'OTHER_DEVICES');
       await this.audit.recordInTx(tx, actor, { action: 'SESSIONS_REVOKED', targetType: 'USER', targetId: actor.userId, metadata: { reason: 'OTHER_DEVICES', count } });
       return count;
     });
@@ -92,7 +109,7 @@ export class SessionsService {
 
   async revokeOthersInTx(tx: TxClient, actor: UserActor, reason: 'PASSWORD_CHANGED'): Promise<number> {
     this.authz.assert(actor, 'me.changePassword');
-    return this.repo.revokeOthersInTx(tx, actor.userId, actor.sessionId, reason);
+    return this.revokeOthersCoreInTx(tx, actor, reason);
   }
 
   async markReauthInTx(tx: TxClient, actor: UserActor): Promise<void> {

@@ -59,6 +59,37 @@ export class SessionsRepository {
     await tx.$executeRaw`update app.sessions set reauth_at = clock_timestamp() where id = ${sessionId}::uuid`;
   }
 
+  /** Fraîcheur (moins de 5 min) du mot de passe et du code, sous `FOR SHARE` : la session ne peut pas être révoquée pendant l'action. `null` : session invalide. */
+  async freshnessInTx(tx: TxClient, sessionId: string): Promise<{ password: boolean; code: boolean } | null> {
+    const r = await tx.$queryRaw<{ pw: boolean; code: boolean }[]>`
+      select coalesce(reauth_at > clock_timestamp() - interval '5 minutes', false) as pw,
+             coalesce(step_up_at > clock_timestamp() - interval '5 minutes', false) as code
+        from app.sessions
+       where id = ${sessionId}::uuid and revoked_at is null and idle_expires_at > clock_timestamp() and absolute_expires_at > clock_timestamp()
+         for share`;
+    return r[0] ? { password: r[0].pw, code: r[0].code } : null;
+  }
+
+  async markStepUpInTx(tx: TxClient, sessionId: string): Promise<boolean> {
+    const r = await tx.$queryRaw<{ n: number }[]>`
+      update app.sessions set step_up_at = clock_timestamp() where id = ${sessionId}::uuid and revoked_at is null returning 1 as n`;
+    return r.length === 1;
+  }
+
+  /** Révocation dans la transaction de l'appelant (après la consommation des vérifications liées, § 3.4). */
+  async revokeInTx(tx: TxClient, sessionId: string, reason: RevokeReason): Promise<void> {
+    await tx.$executeRaw`
+      update app.sessions set revoked_at = clock_timestamp(), revoke_reason = ${reason}::app.session_revoke_reason
+       where id = ${sessionId}::uuid and revoked_at is null`;
+  }
+
+  /** Sessions actives de l'utilisateur autres que celle conservée : ce que revokeOthersInTx va révoquer. */
+  async otherActiveIdsInTx(tx: TxClient, userId: string, keepSessionId: string): Promise<string[]> {
+    const r = await tx.$queryRaw<{ id: string }[]>`
+      select id from app.sessions where user_id = ${userId}::uuid and id <> ${keepSessionId}::uuid and revoked_at is null`;
+    return r.map((x) => x.id);
+  }
+
   async listActive(userId: string): Promise<{ id: string; createdAt: Date; lastSeenAt: Date; userAgent: string | null }[]> {
     const rows = await this.prisma.client.$queryRaw<{ id: string; created_at: Date; last_seen_at: Date; user_agent: string | null }[]>`
       select id, created_at, last_seen_at, user_agent from app.sessions

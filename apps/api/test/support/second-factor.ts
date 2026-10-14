@@ -2,7 +2,8 @@ import { v7 as uuidv7 } from 'uuid';
 import { normalizePassword } from '@classepulse/shared';
 import { PasswordHasher } from '../../src/modules/users/password-hasher.js';
 import { cipher } from './mail.js';
-import { PASSWORD } from './app.js';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { PASSWORD, cookieHeader, send, sessionCookieOf } from './app.js';
 import { connectAs } from './pg.js';
 
 /** Administrateur actif (insertion sous cp_app, comme la CLI) ; mot de passe = PASSWORD. */
@@ -66,4 +67,17 @@ export async function createAdminSession(db: string, userId: string): Promise<st
       [id, userId]);
   } finally { await c.end(); }
   return id;
+}
+
+/** Connexion complète d'un administrateur (mot de passe, code lu en base, session). Vieillit d'abord ses demandes de code (limite d'une par minute). */
+export async function loginAdmin(app: NestFastifyApplication, db: string, existing?: { id: string; email: string; password: string }) {
+  const admin = existing ?? (await createAdmin(db));
+  await ageChallenges(db, admin.id, 2);
+  const login = await send(app, 'POST', '/api/auth/login', { email: admin.email, password: admin.password });
+  if (login.statusCode !== 202) throw new Error(`login administrateur : ${login.statusCode} ${login.body}`);
+  const set = [login.headers['set-cookie']].flat().find((c) => String(c).startsWith('__Host-cp_challenge='))!;
+  const res = await send(app, 'POST', '/api/auth/verify-code', { code: await latestCode(db, admin.email) }, { cookie: String(set).split(';')[0]! });
+  if (res.statusCode !== 200) throw new Error(`verify-code : ${res.statusCode} ${res.body}`);
+  const token = sessionCookieOf(res)!;
+  return { admin, token, headers: cookieHeader(token) };
 }
