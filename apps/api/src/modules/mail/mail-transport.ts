@@ -20,7 +20,8 @@ const NETWORK_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ETIMED
  */
 const CONNECT_ONLY_SYSTEM_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH']);
 const CONNECT_ONLY_TIMEOUTS = new Set(['CONNECT_TIMEOUT', 'GREETING_TIMEOUT', 'UPGRADE_TIMEOUT']);
-const SESSION_COMMANDS = new Set(['CONN', 'EHLO', 'HELO', 'LHLO', 'STARTTLS']);
+/** Un 5xx ici vise le serveur, le relais ou l'expéditeur (530, 553, 550 sender policy), jamais le destinataire : TEMP_FAIL. */
+const SESSION_COMMANDS = new Set(['CONN', 'EHLO', 'HELO', 'LHLO', 'STARTTLS', 'MAIL FROM']);
 
 const clip = (s: unknown): string | null => (typeof s === 'string' ? s.slice(0, 200) : null);
 const str = (v: unknown): string | null => (typeof v === 'string' ? v : null);
@@ -47,6 +48,7 @@ export function classifySmtpError(e: unknown): SendResult {
     }
     return { ...base, kind: 'AMBIGUOUS' };
   }
+  if (code === 'ETLS') return { ...base, kind: 'TEMP_FAIL' }; // la mise à niveau TLS précède toujours DATA
   if (code !== null && NETWORK_CODES.has(code)) {
     if (command !== null && BEFORE_DATA.has(command)) return { ...base, kind: 'TEMP_FAIL' };
     if (command === 'CONN') {
