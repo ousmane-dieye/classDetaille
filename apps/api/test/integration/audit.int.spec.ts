@@ -1,7 +1,10 @@
 import { v7 as uuidv7 } from 'uuid';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { connectAs, createTestDatabase } from '../support/pg.js';
+import { PrismaService } from '../../src/database/prisma.service.js';
+import { AuditRepository } from '../../src/modules/audit/audit.repository.js';
+import { AuditService } from '../../src/modules/audit/audit.service.js';
+import { connectAs, createTestDatabase, dbConfigFor } from '../support/pg.js';
 
 let db: string;
 let app: pg.Client;
@@ -43,5 +46,26 @@ describe('audit_log (§ 2.5)', () => {
   it('cible : type et identifiant ensemble, type dans la liste', async () => {
     await expect(app.query(`insert into app.audit_log (action, target_type) values ('CLASS_CREATED', 'CLASS')`)).rejects.toMatchObject({ constraint: 'audit_target' });
     await expect(app.query(`insert into app.audit_log (action, target_type, target_id) values ('CLASS_CREATED', 'FILE', $1)`, [uuidv7()])).rejects.toMatchObject({ constraint: 'audit_target' });
+  });
+});
+
+describe('AuditService sous cp_app', () => {
+  it('écrit une entrée APP dans la transaction ; rien si la transaction échoue', async () => {
+    const prisma = new PrismaService(dbConfigFor('cp_app', db));
+    const svc = new AuditService(new AuditRepository());
+    const cli = { kind: 'cli', command: 'create-class' } as const;
+    const kept = uuidv7();
+    const rolled = uuidv7();
+    try {
+      await prisma.withTx((tx) => svc.recordInTx(tx, cli, { action: 'CLASS_CREATED', targetType: 'CLASS', targetId: kept, metadata: { via: 'cli' } }));
+      await expect(prisma.withTx(async (tx) => {
+        await svc.recordInTx(tx, cli, { action: 'CLASS_CREATED', targetType: 'CLASS', targetId: rolled, metadata: { via: 'cli' } });
+        throw new Error('rollback');
+      })).rejects.toThrow('rollback');
+    } finally {
+      await prisma.onModuleDestroy();
+    }
+    const r = await app.query(`select target_id, source from app.audit_log where target_id = any($1::uuid[])`, [[kept, rolled]]);
+    expect(r.rows).toEqual([{ target_id: kept, source: 'APP' }]);
   });
 });
