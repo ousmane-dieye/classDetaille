@@ -55,14 +55,17 @@ describe('aucun secret dans les journaux, les métadonnées d’audit ni les col
       JSON.stringify(await rows('select payload, to_address, dedupe_key, message_id from app.email_outbox')),
       JSON.stringify(await rows('select smtp_response, error_code from app.email_attempts')),
     ].join('\n');
-    for (const secret of secrets) expect(visible, `fuite de ${secret.slice(0, 4)}…`).not.toContain(secret);
-  });
-  it('un email dans un état final n’a plus de contenu chiffré', async () => {
-    expect(await rows(`select 1 from app.email_outbox where status in ('ACCEPTED', 'FAILED', 'EXPIRED', 'CANCELLED') and payload_encrypted is not null`)).toHaveLength(0);
+    // les codes à 6 chiffres sont cherchés entre non-chiffres (horodatages et identifiants contiennent des suites de chiffres)
+    for (const secret of secrets) {
+      if (/^\d{6}$/.test(secret)) expect(new RegExp(`(?<![0-9])${secret}(?![0-9])`).test(visible), `fuite d’un code`).toBe(false);
+      else expect(visible, `fuite de ${secret.slice(0, 4)}…`).not.toContain(secret);
+    }
   });
   it('les journaux du worker ne contiennent ni adresse ni contenu', async () => {
     const lines: string[] = [];
     const spies = (['log', 'warn', 'error'] as const).map((m) => vi.spyOn(Logger.prototype, m).mockImplementation((msg: unknown) => { lines.push(String(msg)); }));
+    let seeded: Awaited<ReturnType<typeof seedChallengeEmail>>;
+    try {
     const { EmailSender } = await import('../../src/modules/mail/email-sender.js');
     const { MailWorkerModule } = await import('../../src/modules/mail/mail-worker.module.js');
     const { MailTransport } = await import('../../src/modules/mail/mail-transport.js');
@@ -74,14 +77,20 @@ describe('aucun secret dans les journaux, les métadonnées d’audit ni les col
     class Accepting extends MailTransport { async send() { return { kind: 'ACCEPTED' as const, smtpCode: 250, response: '250 OK dest', errorCode: null }; } }
     const mod = await Test.createTestingModule({ imports: [ConfigModule.forRoot(testConfig(db)), DatabaseModule, AuthzModule, MailWorkerModule.register(workerConfigFor(db), new Accepting())] }).compile();
     await mod.init();
-    const seeded = await seedChallengeEmail(db, '424242');
+    seeded = await seedChallengeEmail(db, '424242');
     await mod.get(EmailSender).drain(SYSTEM, new AbortController().signal);
     await mod.close();
-    for (const s of spies) s.mockRestore();
+    } finally {
+      for (const s of spies) s.mockRestore();
+    }
     const all = lines.join('\n');
-    expect(all).toContain(seeded.emailId);
-    expect(all).not.toContain(seeded.email);
-    expect(all).not.toContain('424242');
+    expect(all).toContain(seeded!.emailId);
+    expect(all).not.toContain(seeded!.email);
+    expect(/(?<!\d)424242(?!\d)/.test(all)).toBe(false);
+  });
+  it('un email dans un état final n’a plus de contenu chiffré', async () => {
+    expect((await rows(`select 1 from app.email_outbox where status in ('ACCEPTED', 'FAILED', 'EXPIRED', 'CANCELLED')`)).length, 'au moins un email en état final').toBeGreaterThan(0);
+    expect(await rows(`select 1 from app.email_outbox where status in ('ACCEPTED', 'FAILED', 'EXPIRED', 'CANCELLED') and payload_encrypted is not null`)).toHaveLength(0);
   });
 });
 
@@ -130,7 +139,7 @@ describe('contrat avec le lot 1c : codes d’erreur stables (R4)', () => {
     for (const f of files) for (const m of readFileSync(f, 'utf8').matchAll(/(?:new ApiError\(\d{3}, |tooManyRequests\()'([A-Z_]+)'/g)) found.add(m[1]!);
     for (const m of readFileSync(resolve(dir, 'auth/second-factor/second-factor.service.ts'), 'utf8').matchAll(/(?:new ApiError\(\d{3}, |tooManyRequests\()'([A-Z_]+)'/g)) found.add(m[1]!);
     // le code TOO_MANY_ATTEMPTS est levé par l'assistant tooManyAttempts()
-    if (files.some((f) => readFileSync(f, 'utf8').includes('tooManyAttempts('))) found.add('TOO_MANY_ATTEMPTS');
+    if (files.some((f) => readFileSync(f, 'utf8').includes('throw tooManyAttempts('))) found.add('TOO_MANY_ATTEMPTS');
     expect([...found].sort()).toEqual([
       'CHALLENGE_EXPIRED', 'CODE_INVALID', 'CODE_LOCKED', 'CURRENT_PASSWORD_INVALID', 'EMAIL_TAKEN', 'EMAIL_UNCHANGED', 'INVALID_CREDENTIALS',
       'REAUTH_REQUIRED', 'RESET_TOKEN_INVALID', 'RESET_UNAVAILABLE', 'SECOND_FACTOR_BLOCKED', 'SIGNUP_UNAVAILABLE', 'STEP_UP_REQUIRED',

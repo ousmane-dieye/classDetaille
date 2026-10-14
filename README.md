@@ -151,10 +151,11 @@ Gardes que le lot 2 appelle dans la transaction de l'action sensible : `StepUpSe
 Un administrateur qui n'a plus accès à sa boîte email obtient un code de récupération (12 caractères, valable 15 minutes). Depuis un terminal, sous `DB_USER=cp_ops` :
 
 ```
-pnpm --filter @classepulse/api ops admin-recovery-code --email <email> [--clear-block]
+# Depuis apps/api (variables DB_*, NODE_ENV, APP_ORIGIN comme ci-dessus ; le mot de passe de cp_ops est lu dans un fichier)
+OTP_PEPPER_FILE=../../.secrets/dev/otp_pepper DB_USER=cp_ops DB_PASSWORD_FILE=../../.secrets/dev/cp_ops pnpm ops admin-recovery-code --email <email> [--clear-block]
 ```
 
-Le code s'affiche une seule fois, après validation en base ; appuie sur Entrée pour effacer l'écran. Transmets-le par un canal sûr : il ne sert qu'après le mot de passe (`POST /api/auth/verify-recovery`, avec le cookie de vérification). Seul son HMAC est stocké.
+La commande exige un vrai terminal (TTY). Sous Git Bash/mintty, préfixe-la de `winpty` ou lance-la depuis PowerShell ou Windows Terminal ; `cp_ops` doit avoir un mot de passe (même méthode que pour `cp_app`, fichier `.secrets/dev/cp_ops`). Le code s'affiche une seule fois, après validation en base ; appuie sur Entrée pour effacer l'écran. Transmets-le par un canal sûr : il ne sert qu'après le mot de passe (`POST /api/auth/verify-recovery`, avec le cookie de vérification). Seul son HMAC est stocké.
 
 Limites (§ 3.3) : la commande refuse de s'exécuter sans terminal, mais c'est un garde-fou, pas une garantie (historique du shell, enregistrement de session, `ulimit -c 0` et journaux Docker : lot 7). Un compte bloqué (10 échecs) n'obtient aucun code, sauf avec `--clear-block`, qui lève le blocage et est audité. Tous les administrateurs actifs reçoivent une alerte.
 
