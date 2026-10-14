@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildTestApp, cookieHeader, insertClass, ORIGIN, registerStudent, send, type TestApp } from '../support/app.js';
+import { buildTestApp, cookieHeader, insertClass, ORIGIN, PASSWORD, registerStudent, registration, send, type TestApp } from '../support/app.js';
 import { createTestDatabase } from '../support/pg.js';
 
 /** Toute route de l'API doit figurer ici (R11). `public` : accessible sans session. */
@@ -30,6 +30,17 @@ const entries = () => Object.entries(EXPECTED_ROUTES).map(([k, v]) => {
   const [method, url] = k.split(' ') as ['GET' | 'POST' | 'PATCH', string];
   return { key: k, method, url, ...v };
 });
+/** Corps valide par route modifiante : la sonde « champ inconnu » ajoute `__x` à un corps qui passe la validation. */
+const VALID_BODY: Record<string, () => Record<string, unknown>> = {
+  'POST /api/auth/register': () => registration(classId),
+  'POST /api/auth/login': () => ({ email: 'inconnu@example.com', password: PASSWORD }),
+  'POST /api/auth/logout': () => ({}),
+  'PATCH /api/me/profile': () => ({ firstName: 'Awa', lastName: 'Diop' }),
+  'PATCH /api/me/email-preferences': () => ({ emailReminders: false }),
+  'POST /api/me/password': () => ({ currentPassword: PASSWORD, newPassword: 'un autre mot de passe tres long 42' }),
+  'POST /api/me/sessions/revoke-others': () => ({}),
+};
+
 const modifying = () => entries().filter((r) => r.method !== 'GET');
 
 describe('méta-test des routes (§ 5.4, R11)', () => {
@@ -50,10 +61,20 @@ describe('méta-test des routes (§ 5.4, R11)', () => {
     const res = await t.app.inject({ method, url, payload: 'a=b', headers: { origin: ORIGIN, 'content-type': 'text/plain' } });
     expect(res.statusCode).toBe(415);
   });
-  it.each(modifying())('$key : 400 sur un champ inconnu (session et origine valides), jamais 2xx ni 500', async ({ method, url }) => {
-    const s = await registerStudent(t.app, classId); // une session neuve par route (la déconnexion en consomme une)
-    const res = await send(t.app, method, url, { __x: 1 }, cookieHeader(s.token));
+  it('chaque route modifiante a un corps valide déclaré', () => {
+    expect(Object.keys(VALID_BODY).sort()).toEqual(modifying().map((r) => r.key).sort());
+  });
+  it.each(modifying())('$key : le corps valide seul ne donne pas 400 VALIDATION_FAILED (témoin)', async ({ key, method, url }) => {
+    const s = await registerStudent(t.app, classId);
+    const res = await send(t.app, method, url, VALID_BODY[key]!(), cookieHeader(s.token));
+    expect(res.statusCode).toBeLessThan(500);
+    expect(res.body ? res.json().error?.code : undefined).not.toBe('VALIDATION_FAILED');
+  });
+  it.each(modifying())('$key : corps valide + champ inconnu → 400 VALIDATION_FAILED, jamais 2xx ni 500', async ({ key, method, url }) => {
+    const s = await registerStudent(t.app, classId); // une session neuve par sonde (la déconnexion en consomme une)
+    const res = await send(t.app, method, url, { ...VALID_BODY[key]!(), __x: 1 }, cookieHeader(s.token));
     expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('VALIDATION_FAILED');
     expect(res.json().requestId).toBeTruthy();
   });
 });

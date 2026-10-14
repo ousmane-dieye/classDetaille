@@ -37,6 +37,8 @@ describe('sécurité — sessions (§ 3.4)', () => {
   it.each(['', 'not-a-token', 'a'.repeat(43), '<script>'])('cookie mal formé %j → 401', async (value) => {
     const res = await send(t.app, 'GET', '/api/me', undefined, { cookie: `__Host-cp_session=${value}` });
     expect(res.statusCode).toBe(401);
+    // Un cookie vide équivaut à l'absence de cookie : rien à effacer ; tout autre jeton invalide est effacé.
+    expect(res.headers['set-cookie']).toBe(value === '' ? undefined : CLEAR);
   });
   it('un jeton n’est jamais stocké en clair', async () => {
     const s = await registerStudent(t.app, classId);
@@ -58,7 +60,12 @@ describe('sécurité — entrées et réponses', () => {
     expect(change.statusCode).toBeLessThan(300);
     await send(t.app, 'GET', '/api/me', undefined, { ...cookieHeader(s.token), authorization: bearer });
     const all = logs.join('');
-    expect(all.length).toBeGreaterThan(0);
+    // Témoin : les requêtes sont bien journalisées, mais le sérialiseur n'écrit jamais d'en-têtes (ni cookie, ni autorisation).
+    const lines = logs.flatMap((chunk) => chunk.split('\n')).filter(Boolean).map((l) => JSON.parse(l) as { req?: Record<string, unknown> });
+    const meLine = lines.find((l) => l.req?.url === '/api/me');
+    expect(meLine).toBeDefined();
+    expect(Object.keys(meLine!.req!).sort()).toEqual(['id', 'ip', 'method', 'url']);
+    expect(all).not.toMatch(/"(cookie|authorization|set-cookie)"/i);
     for (const secret of [PASSWORD, newPassword, s.token, tokenValue2, 'secret-bearer-value-xyz']) expect(all).not.toContain(secret);
   });
   it('les DTO ne renvoient jamais le hachage, le statut interne ni l’IP', async () => {
@@ -79,6 +86,7 @@ describe('sécurité — entrées et réponses', () => {
 });
 
 describe('sécurité — limitation générale avant toute lecture en base', () => {
+  // Épingle l'ordre « garde de limitation avant garde de session » : le 429 passe avant le 401.
   it('un flot de cookies invalides depuis une IP finit en 429, pas en 401 indéfiniment', async () => {
     const local = await buildTestApp(db, { config: { limits: { loginPerIp: 100, throttlePerIp: 5, throttlePerSession: 10_000 } } });
     try {
@@ -90,6 +98,7 @@ describe('sécurité — limitation générale avant toute lecture en base', () 
       await local.close();
     }
   });
+  // Épingle l'ordre « garde de limitation avant garde de session » (ici sans cookie, route publique).
   it('un flot anonyme sur une route publique finit en 429 avec Retry-After', async () => {
     const local = await buildTestApp(db, { config: { limits: { loginPerIp: 100, throttlePerIp: 3, throttlePerSession: 10_000 } } });
     try {
