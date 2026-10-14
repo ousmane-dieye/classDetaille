@@ -4,3 +4,6 @@ dist/
 .secrets/
 apps/api/src/generated/
 apps/api/test-results/
+
+# Reconnaissance du VPS : détails d’infrastructure, gardés hors du dépôt (décision du responsable, 2026-10-14).
+docs/ops/T-10-reconnaissance-vps.md
