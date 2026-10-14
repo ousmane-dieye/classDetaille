@@ -151,6 +151,13 @@ describe('second_factor_failures, password_reset_tokens, seaux', () => {
     await app.query(`update app.password_reset_tokens set consumed_at = clock_timestamp() where user_id = $1`, [u]);
     await ins(randomBytes(32));
   });
+  it('un jeton consommé ne change plus (usage unique)', async () => {
+    const u = await insertUser('p2@example.com');
+    await app.query(`insert into app.password_reset_tokens (id, user_id, token_hash, expires_at) values ($1,$2,$3, clock_timestamp() + interval '30 minutes')`, [uuidv7(), u, randomBytes(32)]);
+    await app.query(`update app.password_reset_tokens set consumed_at = clock_timestamp() where user_id = $1`, [u]);
+    await expect(app.query(`update app.password_reset_tokens set consumed_at = null where user_id = $1`, [u])).rejects.toMatchObject({ code: '23514' });
+    await expect(app.query(`update app.password_reset_tokens set consumed_at = clock_timestamp() where user_id = $1`, [u])).rejects.toMatchObject({ code: '23514' });
+  });
   it.each(['otp-ip:203.0.113.7', 'otp-try-ip:2001:db8:1:2::', 'forgot-ip:203.0.113.7', `forgot-acct:${'a'.repeat(64)}`])('seau accepté %s', async (key) => {
     await app.query('insert into app.rate_limit_buckets (key, window_start) values ($1, clock_timestamp())', [key]);
   });

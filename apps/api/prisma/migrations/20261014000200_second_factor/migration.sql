@@ -161,6 +161,17 @@ GRANT SELECT ON app.password_reset_tokens TO cp_app;
 GRANT INSERT (id, user_id, token_hash, expires_at) ON app.password_reset_tokens TO cp_app;
 GRANT UPDATE (consumed_at) ON app.password_reset_tokens TO cp_app;
 
+CREATE FUNCTION app.password_reset_tokens_immutable() RETURNS trigger
+  LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF OLD.consumed_at IS NOT NULL THEN
+    RAISE EXCEPTION 'a consumed reset token no longer changes' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER password_reset_tokens_immutable BEFORE UPDATE ON app.password_reset_tokens
+  FOR EACH ROW EXECUTE FUNCTION app.password_reset_tokens_immutable();
+
 ALTER TABLE app.rate_limit_buckets DROP CONSTRAINT rate_limit_key_shape;
 ALTER TABLE app.rate_limit_buckets ADD CONSTRAINT rate_limit_key_shape CHECK (
   key ~ '^ip:[0-9a-f:.]{1,45}$'
