@@ -31,6 +31,11 @@ export class UsersService {
     return this.repo.findByEmail(email);
   }
 
+  /** R13 : primitive d'authentification (construit l'acteur), sans Actor ; seulement pour un compte ACTIVE. */
+  activeRoleOf(userId: string): Promise<'USER' | 'ADMIN' | null> {
+    return this.repo.activeRoleOf(userId);
+  }
+
   async credentialsOf(actor: UserActor): Promise<LoginUser> {
     this.authz.assert(actor, 'me.changePassword');
     const u = await this.repo.findLoginById(actor.userId);

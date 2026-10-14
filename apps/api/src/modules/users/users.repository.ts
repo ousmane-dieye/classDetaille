@@ -19,6 +19,11 @@ export class UsersRepository {
     return u?.email ? { ...u, email: u.email } : null;
   }
 
+  async activeRoleOf(id: string): Promise<'USER' | 'ADMIN' | null> {
+    const u = await this.prisma.client.user.findFirst({ where: { id, status: 'ACTIVE' }, select: { globalRole: true } });
+    return u?.globalRole ?? null;
+  }
+
   async findProfile(id: string): Promise<UserProfileDto | null> {
     const u = await this.prisma.client.user.findFirst({ where: { id, status: 'ACTIVE' }, select: PROFILE });
     if (!u?.email || !u.firstName || !u.lastName) return null;
