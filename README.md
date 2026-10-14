@@ -27,7 +27,7 @@ pnpm test:unit
 Mots de passe de développement de `cp_owner` (migrations) et `cp_app` (API), lus depuis des fichiers et passés à `psql` par l'entrée standard (jamais en argument) :
 
 ```bash
-for r in cp_owner cp_app; do
+for r in cp_owner cp_app cp_ops; do
   [ -f .secrets/dev/$r ] || openssl rand -hex 24 > .secrets/dev/$r
   printf "ALTER ROLE %s PASSWORD '%s';\n" "$r" "$(cat .secrets/dev/$r)" \
     | docker compose -f docker-compose.dev.yml exec -T -u postgres postgres psql -q -v ON_ERROR_STOP=1 -d classepulse
@@ -151,11 +151,11 @@ Gardes que le lot 2 appelle dans la transaction de l'action sensible : `StepUpSe
 Un administrateur qui n'a plus accès à sa boîte email obtient un code de récupération (12 caractères, valable 15 minutes). Depuis un terminal, sous `DB_USER=cp_ops` :
 
 ```
-# Depuis apps/api (variables DB_*, NODE_ENV, APP_ORIGIN comme ci-dessus ; le mot de passe de cp_ops est lu dans un fichier)
-OTP_PEPPER_FILE=../../.secrets/dev/otp_pepper DB_USER=cp_ops DB_PASSWORD_FILE=../../.secrets/dev/cp_ops pnpm ops admin-recovery-code --email <email> [--clear-block]
+# Depuis apps/api, dans un terminal neuf : toutes les variables nécessaires sont sur la ligne (adapter DB_PORT)
+NODE_ENV=development DB_HOST=127.0.0.1 DB_PORT=5432 DB_NAME=classepulse DB_AUTH_MODE=password DB_USER=cp_ops DB_PASSWORD_FILE=../../.secrets/dev/cp_ops OTP_PEPPER_FILE=../../.secrets/dev/otp_pepper pnpm ops admin-recovery-code --email <email> [--clear-block]
 ```
 
-La commande exige un vrai terminal (TTY). Sous Git Bash/mintty, préfixe-la de `winpty` ou lance-la depuis PowerShell ou Windows Terminal ; `cp_ops` doit avoir un mot de passe (même méthode que pour `cp_app`, fichier `.secrets/dev/cp_ops`). Le code s'affiche une seule fois, après validation en base ; appuie sur Entrée pour effacer l'écran. Transmets-le par un canal sûr : il ne sert qu'après le mot de passe (`POST /api/auth/verify-recovery`, avec le cookie de vérification). Seul son HMAC est stocké.
+La commande exige un vrai terminal (TTY). Sous Git Bash/mintty, place `winpty` juste avant `pnpm` (après les affectations de variables : `VAR=… winpty pnpm ops …`) ou lance-la depuis PowerShell ou Windows Terminal ; `cp_ops` doit avoir un mot de passe (même méthode que pour `cp_app`, fichier `.secrets/dev/cp_ops`). Le code s'affiche une seule fois, après validation en base ; appuie sur Entrée pour effacer l'écran. Transmets-le par un canal sûr : il ne sert qu'après le mot de passe (`POST /api/auth/verify-recovery`, avec le cookie de vérification). Seul son HMAC est stocké.
 
 Limites (§ 3.3) : la commande refuse de s'exécuter sans terminal, mais c'est un garde-fou, pas une garantie (historique du shell, enregistrement de session, `ulimit -c 0` et journaux Docker : lot 7). Un compte bloqué (10 échecs) n'obtient aucun code, sauf avec `--clear-block`, qui lève le blocage et est audité. Tous les administrateurs actifs reçoivent une alerte.
 

@@ -25,13 +25,16 @@ describe('PasswordHasher : préchauffage au démarrage', () => {
     const h = new PasswordHasher();
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     const spy = vi.spyOn(h, 'hash').mockRejectedValueOnce(new Error('boom'));
-    await expect(h.onApplicationBootstrap()).resolves.toBeUndefined();
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0]?.[0])).not.toContain('boom');
-    await expect(h.verifyDummy('x')).resolves.toBe(false);
-    expect(spy).toHaveBeenCalledTimes(2);
-    warn.mockRestore();
-    spy.mockRestore();
+    try {
+      await expect(h.onApplicationBootstrap()).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]?.[0])).not.toContain('boom');
+      await expect(h.verifyDummy('x')).resolves.toBe(false);
+      expect(spy).toHaveBeenCalledTimes(2);
+    } finally {
+      warn.mockRestore();
+      spy.mockRestore();
+    }
   });
 });
 
