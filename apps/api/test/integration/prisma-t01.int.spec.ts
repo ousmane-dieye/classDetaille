@@ -90,8 +90,16 @@ describe('T-01 — Prisma 7.10.0', () => {
     const su = await connectAs('postgres', db);
     let killed = false;
     // Sonde jusqu'à la fin du processus (le démarrage de la CLI Prisma prend plusieurs secondes).
+    // On n'interrompt qu'une fois l'index inscrit au catalogue (première transaction interne de
+    // CREATE INDEX CONCURRENTLY validée, visible d'ici) et encore invalide : interrompu plus tôt,
+    // l'index n'existe pas encore et aucun index invalide ne reste (cause de l'intermittence).
     for (let i = 0; i < 600 && !killed && !settled; i++) {
-      const r = await su.query(`select pg_terminate_backend(pid) as k from pg_stat_activity where query ilike '%CREATE INDEX CONCURRENTLY%' and pid <> pg_backend_pid() and datname = current_database()`);
+      const r = await su.query(
+        `select pg_terminate_backend(a.pid) as k
+           from pg_stat_activity a
+          where a.query ilike '%CREATE INDEX CONCURRENTLY%' and a.pid <> pg_backend_pid() and a.datname = current_database()
+            and exists (select 1 from pg_index i where i.indexrelid = to_regclass('app.big_v_idx') and not i.indisvalid)`,
+      );
       killed = r.rows.some((row) => row.k);
       await new Promise((res) => setTimeout(res, 100));
     }
