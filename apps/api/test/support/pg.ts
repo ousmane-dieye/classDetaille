@@ -44,3 +44,9 @@ export async function getPgContainer() {
   const client = await getContainerRuntimeClient();
   return client.container.getById(info().containerId);
 }
+
+/** Exécute une commande dans le conteneur PostgreSQL (utilisateur postgres), p. ex. psql sur un script de /bootstrap. */
+export async function execInPg(command: string[]) {
+  const client = await getContainerRuntimeClient();
+  return client.container.exec(client.container.getById(info().containerId), command, { user: 'postgres' });
+}

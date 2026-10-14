@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { randomBytes } from 'node:crypto';
+import { beforeAll, describe, expect, inject, it } from 'vitest';
 import { PG_IMAGE } from '../support/images.js';
-import { connectAs, createTestDatabase } from '../support/pg.js';
+import { connectAs, createTestDatabase, execInPg, runSql } from '../support/pg.js';
 
 let db: string;
 beforeAll(async () => { db = await createTestDatabase(); });
@@ -84,6 +85,47 @@ describe('initialisation de la base', () => {
       ]);
     } finally {
       await c.end();
+    }
+  });
+});
+
+/**
+ * ACL posée par db/db-bootstrap-database.sql, lue sur une base créée par le script lui-même
+ * (createTestDatabase réapplique l'ACL : la vérifier sur une base de test ne prouverait rien sur le script).
+ */
+async function aclOf(database: string) {
+  const c = await connectAs('postgres', 'postgres');
+  try {
+    const { rows } = await c.query(
+      `select d.datacl is not null as acl_set,
+              not exists (select 1 from unnest(d.datacl) a where a::text like '=%') as no_public_acl,
+              pg_get_userbyid(d.datdba) as owner,
+              has_database_privilege('cp_app', d.datname, 'CONNECT') as app_connect,
+              has_database_privilege('cp_app', d.datname, 'TEMPORARY') as app_temp,
+              has_database_privilege('cp_monitor', d.datname, 'TEMPORARY') as mon_temp
+         from pg_database d where d.datname = $1`,
+      [database],
+    );
+    return rows[0];
+  } finally { await c.end(); }
+}
+const EXPECTED_ACL = { acl_set: true, no_public_acl: true, owner: 'cp_owner', app_connect: true, app_temp: false, mon_temp: false };
+
+describe('script db-bootstrap-database.sql (ACL de la base)', () => {
+  it('la base modèle, créée par le script, ne donne rien à PUBLIC', async () => {
+    expect(await aclOf(inject('pg').templateDb)).toEqual(EXPECTED_ACL);
+  });
+
+  it('le script est rejouable : deux exécutions sur une base neuve réussissent, ACL correcte ensuite', async () => {
+    const name = `b_${randomBytes(6).toString('hex')}`;
+    try {
+      for (let run = 1; run <= 2; run++) {
+        const r = await execInPg(['psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'postgres', '-v', `dbname=${name}`, '-f', '/bootstrap/db-bootstrap-database.sql']);
+        expect(r.exitCode, `exécution ${run} : ${r.output}`).toBe(0);
+      }
+      expect(await aclOf(name)).toEqual(EXPECTED_ACL);
+    } finally {
+      await runSql('postgres', `DROP DATABASE IF EXISTS ${name}`);
     }
   });
 });
