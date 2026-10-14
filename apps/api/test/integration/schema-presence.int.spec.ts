@@ -38,10 +38,10 @@ describe('présence du schéma (§ 2.8)', () => {
 
   it('tables et triggers de l’identité', async () => {
     const c = await connectAs('cp_monitor', db);
-    const t = await c.query(`select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where nspname = 'app' and relkind = 'r' and relname in ('users','sessions','rate_limit_buckets','role_guard') order by 1`);
-    const tg = await c.query(`select tgname from pg_trigger where not tgisinternal and tgname = 'sessions_revocation_final'`);
+    const t = await c.query(`select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where nspname = 'app' and relkind = 'r' and relname in ('users','sessions','rate_limit_buckets','role_guard','classes','enrollment_requests','audit_log') order by 1`);
+    const tg = await c.query(`select tgname from pg_trigger where not tgisinternal and tgname in ('sessions_revocation_final','enrollment_request_valid','audit_log_guard')`);
     await c.end();
-    expect(t.rows.map((r) => r.relname)).toEqual(['rate_limit_buckets', 'role_guard', 'sessions', 'users']);
-    expect(tg.rowCount).toBe(1);
+    expect(t.rows.map((r) => r.relname)).toEqual(['audit_log', 'classes', 'enrollment_requests', 'rate_limit_buckets', 'role_guard', 'sessions', 'users']);
+    expect(tg.rowCount).toBe(3);
   });
 });

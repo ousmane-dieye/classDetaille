@@ -100,3 +100,89 @@ model Session {
   @@map("sessions")
   @@schema("app")
 }
+
+enum ClassStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("class_status")
+  @@schema("app")
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+
+  @@map("enrollment_status")
+  @@schema("app")
+}
+
+enum AuditSource {
+  APP
+  PRIVILEGED
+
+  @@map("audit_source")
+  @@schema("app")
+}
+
+enum AuditAction {
+  ADMIN_CREATED
+  CLASS_CREATED
+  ACCOUNT_REGISTERED
+  PASSWORD_CHANGED
+  SESSIONS_REVOKED
+  ACCOUNT_ANONYMIZED
+  NOTIFICATIONS_PURGED
+  CHAT_PURGED
+  ADMIN_RECOVERY_CODE_ISSUED
+  ADMIN_SECOND_FACTOR_BLOCK_CLEARED
+  DATABASE_RESTORED
+
+  @@map("audit_action")
+  @@schema("app")
+}
+
+model Class {
+  id           String      @id @db.Uuid
+  name         String
+  level        String
+  academicYear String      @map("academic_year")
+  status       ClassStatus @default(ACTIVE)
+  archivedAt   DateTime?   @map("archived_at") @db.Timestamptz
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([name, academicYear])
+  @@map("classes")
+  @@schema("app")
+}
+
+model EnrollmentRequest {
+  id           String           @id @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  classId      String           @map("class_id") @db.Uuid
+  status       EnrollmentStatus @default(PENDING)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  decidedAt    DateTime?        @map("decided_at") @db.Timestamptz
+  decidedBy    String?          @map("decided_by") @db.Uuid
+  decisionNote String?          @map("decision_note")
+
+  @@map("enrollment_requests")
+  @@schema("app")
+}
+
+model AuditLog {
+  id          BigInt      @id @default(autoincrement())
+  occurredAt  DateTime    @default(now()) @map("occurred_at") @db.Timestamptz
+  source      AuditSource @default(APP)
+  dbLoginRole String      @default(dbgenerated("SESSION_USER")) @map("db_login_role")
+  actorUserId String?     @map("actor_user_id") @db.Uuid
+  action      AuditAction
+  targetType  String?     @map("target_type")
+  targetId    String?     @map("target_id") @db.Uuid
+  metadata    Json        @default("{}")
+
+  @@map("audit_log")
+  @@schema("app")
+}

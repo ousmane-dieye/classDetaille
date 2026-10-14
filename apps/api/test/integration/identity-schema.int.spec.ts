@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from 'uuid';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connectAs, createTestDatabase } from '../support/pg.js';
+import { expectExactCpAppPrivileges, privKey } from '../support/privileges.js';
 
 let db: string;
 let app: pg.Client;
@@ -98,8 +99,11 @@ describe('rate_limit_buckets et role_guard', () => {
 describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
   const USERS = ['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', 'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'created_at', 'updated_at'];
   const SESSIONS = ['id', 'token_hash', 'user_id', 'created_at', 'last_seen_at', 'idle_expires_at', 'absolute_expires_at', 'reauth_at', 'ip', 'user_agent', 'revoked_at', 'revoke_reason'];
+  const CLASSES = ['id', 'name', 'level', 'academic_year', 'status', 'archived_at', 'created_at', 'updated_at'];
+  const ENROLLMENTS = ['id', 'user_id', 'class_id', 'status', 'created_at', 'decided_at', 'decided_by', 'decision_note'];
+  const AUDIT = ['id', 'occurred_at', 'source', 'db_login_role', 'actor_user_id', 'action', 'target_type', 'target_id', 'metadata'];
   const BUCKETS = ['key', 'window_start', 'attempts', 'failures', 'last_failure_at'];
-  const key = (t: string, p: string, c = '') => `${t}|${p}|${c}`;
+  const key = privKey;
 
   // Oracle écrit à la main : droits de table.
   const TABLE_GRANTS = [
@@ -107,6 +111,10 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     key('role_guard', 'SELECT'),
     key('sessions', 'INSERT'), key('sessions', 'SELECT'),
     key('users', 'SELECT'),
+    key('classes', 'SELECT'),
+    key('enrollment_requests', 'SELECT'),
+    // audit_log : SELECT en droit de table, INSERT par colonne seulement (aucun UPDATE ni DELETE).
+    key('audit_log', 'SELECT'),
   ];
   // Oracle écrit à la main : droits par colonne (information_schema.column_privileges inclut ceux issus d'un droit de table).
   const COLUMN_GRANTS = [
@@ -117,32 +125,68 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...USERS.map((c) => key('users', 'SELECT', c)),
     ...['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'created_at', 'updated_at'].map((c) => key('users', 'INSERT', c)),
     ...['first_name', 'last_name', 'password_hash', 'email_reminders', 'email_announcements', 'updated_at'].map((c) => key('users', 'UPDATE', c)),
+    ...CLASSES.map((c) => key('classes', 'SELECT', c)),
+    ...['id', 'name', 'level', 'academic_year', 'created_at', 'updated_at'].map((c) => key('classes', 'INSERT', c)),
+    key('classes', 'UPDATE', 'updated_at'),
+    ...ENROLLMENTS.map((c) => key('enrollment_requests', 'SELECT', c)),
+    ...['id', 'user_id', 'class_id', 'created_at'].map((c) => key('enrollment_requests', 'INSERT', c)),
+    ...AUDIT.map((c) => key('audit_log', 'SELECT', c)),
+    ...['actor_user_id', 'action', 'target_type', 'target_id', 'metadata'].map((c) => key('audit_log', 'INSERT', c)),
   ];
-  const TABLES = `('users','sessions','rate_limit_buckets','role_guard')`;
+  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log'];
 
-  it('droits de table : liste exacte, sans DELETE sur users ni sessions', async () => {
-    const owner = await connectAs('cp_owner', db);
-    try {
-      const r = await owner.query(
-        `select grantee, table_name, privilege_type, is_grantable from information_schema.role_table_grants
-          where table_schema = 'app' and table_name in ${TABLES} and grantee <> 'cp_owner'`,
-      );
-      expect(r.rows.every((x) => x.grantee === 'cp_app' && x.is_grantable === 'NO')).toBe(true);
-      expect(r.rows.map((x) => key(x.table_name, x.privilege_type)).sort()).toEqual([...TABLE_GRANTS].sort());
-      const del = r.rows.filter((x) => x.privilege_type === 'DELETE').map((x) => x.table_name);
-      expect(del).toEqual(['rate_limit_buckets']);
-    } finally { await owner.end(); }
+  it('droits de table et droits par colonne : listes exactes (jamais de DELETE sur users, sessions, classes, demandes ni audit)', async () => {
+    await expectExactCpAppPrivileges(db, TABLES, TABLE_GRANTS, COLUMN_GRANTS);
   });
+});
 
-  it('droits par colonne : liste exacte', async () => {
+describe('classes et enrollment_requests (§ 2.2, R8, R9)', () => {
+  async function insertClass(name: string, year = '2026-2027', status = 'ACTIVE') {
+    const id = uuidv7();
+    await app.query(`insert into app.classes (id, name, level, academic_year) values ($1, $2, 'L3', $3)`, [id, name, year]);
+    if (status === 'ARCHIVED') {
+      // cp_app ne peut pas archiver au lot 1 : on passe par le propriétaire pour préparer la donnée.
+      const owner = await connectAs('cp_owner', db);
+      await owner.query(`update app.classes set status = 'ARCHIVED', archived_at = now() where id = $1`, [id]);
+      await owner.end();
+    }
+    return id;
+  }
+  it('unicité (name, academic_year) et format de l’année', async () => {
+    await insertClass('L3 Info');
+    await expect(insertClass('L3 Info')).rejects.toMatchObject({ code: '23505' });
+    await expect(insertClass('L3 Réseaux', '2026-2028')).rejects.toMatchObject({ constraint: 'classes_text_lengths' });
+  });
+  it('une seule demande en attente par utilisateur', async () => {
+    const c1 = await insertClass('C1');
+    const c2 = await insertClass('C2');
+    const u = await insertUser('enr1@example.com');
+    await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c1]);
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c2])).rejects.toMatchObject({ code: '23505' });
+  });
+  it('refuse une demande pour une classe archivée', async () => {
+    const c = await insertClass('C3', '2025-2026', 'ARCHIVED');
+    const u = await insertUser('enr2@example.com');
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514' });
+  });
+  it('refuse une demande d’un administrateur', async () => {
+    const c = await insertClass('C4');
+    const u = await insertUser('enr3@example.com', { global_role: 'ADMIN' });
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514' });
+  });
+  it('refuse une nouvelle demande pour la même classe moins de 24 h après un refus, l’accepte après', async () => {
+    const c = await insertClass('C5');
+    const u = await insertUser('enr4@example.com');
     const owner = await connectAs('cp_owner', db);
-    try {
-      const r = await owner.query(
-        `select grantee, table_name, column_name, privilege_type, is_grantable from information_schema.column_privileges
-          where table_schema = 'app' and table_name in ${TABLES} and grantee <> 'cp_owner'`,
-      );
-      expect(r.rows.every((x) => x.grantee === 'cp_app' && x.is_grantable === 'NO')).toBe(true);
-      expect(r.rows.map((x) => key(x.table_name, x.privilege_type, x.column_name)).sort()).toEqual([...COLUMN_GRANTS].sort());
-    } finally { await owner.end(); }
+    const reqId = uuidv7();
+    await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [reqId, u, c]);
+    await owner.query(`update app.enrollment_requests set status = 'REFUSED', decided_at = now() - interval '23 hours', decided_by = $2 where id = $1`, [reqId, u]);
+    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514' });
+    await owner.query(`update app.enrollment_requests set decided_at = now() - interval '25 hours' where id = $1`, [reqId]);
+    await owner.end();
+    await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c]);
+  });
+  it('cp_app ne peut pas encore décider une demande (lot 2)', async () => {
+    await expect(app.query(`update app.enrollment_requests set status = 'ACCEPTED'`)).rejects.toMatchObject({ code: '42501' });
   });
 });
