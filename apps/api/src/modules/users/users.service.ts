@@ -47,6 +47,17 @@ export class UsersService {
     return u;
   }
 
+  async emailExists(actor: UserActor, email: string): Promise<boolean> {
+    this.authz.assert(actor, 'me.changeEmailStart');
+    return this.repo.emailExists(email);
+  }
+
+  /** Sous le verrou `users` de l'appelant ; retourne l'ancienne adresse (lue dans la transaction, D9). */
+  async changeEmailInTx(tx: TxClient, actor: UserActor, newEmail: string): Promise<string> {
+    this.authz.assert(actor, 'me.changeEmailVerifyNew');
+    return this.repo.changeEmailInTx(tx, actor.userId, newEmail);
+  }
+
   async createStudentInTx(tx: TxClient, actor: AnonymousActor, input: NewStudent): Promise<void> {
     this.authz.assert(actor, 'auth.register');
     await this.repo.createInTx(tx, { ...input, globalRole: 'USER' });

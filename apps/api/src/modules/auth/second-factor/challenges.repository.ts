@@ -42,6 +42,22 @@ export class ChallengesRepository {
     return { minute: x.m, hour: x.h, day: x.d, retryMinute: x.rm ?? 60, retryHour: x.rh ?? 3600, retryDay: x.rd ?? 86400 };
   }
 
+  /**
+   * Codes EMAIL_CHANGE_NEW émis pour ce compte (sous son verrou) : l'adresse est choisie par le demandeur, donc plafond
+   * propre (5 par heure, 10 par jour) en plus de la borne structurelle (un seul code par vérification de l'ancienne adresse).
+   */
+  async newAddressCountsInTx(tx: TxClient, userId: string): Promise<{ hour: number; day: number; retryHour: number; retryDay: number }> {
+    const r = await tx.$queryRaw<{ h: number; d: number; rh: number | null; rd: number | null }[]>`
+      select count(*) filter (where created_at > clock_timestamp() - interval '1 hour')::int as h,
+             count(*)::int as d,
+             ceil(extract(epoch from (min(created_at) filter (where created_at > clock_timestamp() - interval '1 hour') + interval '1 hour' - clock_timestamp())))::int as rh,
+             ceil(extract(epoch from (min(created_at) + interval '1 day' - clock_timestamp())))::int as rd
+        from app.auth_challenges
+       where user_id = ${userId}::uuid and purpose = 'EMAIL_CHANGE_NEW' and created_at > clock_timestamp() - interval '1 day'`;
+    const x = r[0]!;
+    return { hour: x.h, day: x.d, retryHour: x.rh ?? 3600, retryDay: x.rd ?? 86400 };
+  }
+
   async supersedeActiveInTx(tx: TxClient, userId: string, purpose: ChallengePurpose): Promise<void> {
     await tx.$executeRaw`
       update app.auth_challenges

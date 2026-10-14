@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
+import { ApiError } from '../../http/errors.js';
 import type { LoginUser, NewStudent, UserProfileDto } from './user.dto.js';
 
 const PROFILE = { id: true, email: true, firstName: true, lastName: true, globalRole: true, emailReminders: true, emailAnnouncements: true } as const;
@@ -52,6 +53,21 @@ export class UsersRepository {
 
   async updatePreferences(id: string, prefs: { emailReminders?: boolean; emailAnnouncements?: boolean }): Promise<void> {
     await this.prisma.client.user.update({ where: { id }, data: { ...prefs, updatedAt: new Date() }, select: { id: true } });
+  }
+
+  async emailExists(email: string): Promise<boolean> {
+    const r = await this.prisma.client.$queryRaw<{ n: number }[]>`select 1 as n from app.users where email = ${email}::ext.citext`;
+    return r.length > 0;
+  }
+
+  /** Colonne `email` accordée à cp_app seulement pour les administrateurs (déclencheur users_second_factor_guard, § 3.3). Retourne l'ancienne adresse (lue dans la même instruction, sous le verrou de l'appelant). */
+  async changeEmailInTx(tx: TxClient, id: string, email: string): Promise<string> {
+    const r = await tx.$queryRaw<{ old_email: string }[]>`
+      with old as (select email::text as e from app.users where id = ${id}::uuid)
+      update app.users set email = ${email}::ext.citext, updated_at = now() where id = ${id}::uuid
+      returning (select e from old) as old_email`;
+    if (!r[0]) throw new ApiError(401, 'UNAUTHENTICATED');
+    return r[0].old_email;
   }
 
   async setPasswordHashInTx(tx: TxClient, id: string, passwordHash: string): Promise<void> {

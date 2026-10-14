@@ -74,14 +74,22 @@ export class SecondFactorService {
     const u = await this.repo.lockUserInTx(tx, input.userId);
     if (!u || u.status !== 'ACTIVE' || u.role !== 'ADMIN') throw new ApiError(400, 'CHALLENGE_EXPIRED');
     if (u.blockedAt) throw new ApiError(403, 'SECOND_FACTOR_BLOCKED');
-    // R21 : EMAIL_CHANGE_NEW n'est ni comptée ni limitée.
-    if (input.purpose !== 'EMAIL_CHANGE_NEW') {
+    // R21 : EMAIL_CHANGE_NEW n'entre pas dans la limite des demandes (elle suit l'ancienne adresse), mais l'adresse est choisie
+    // par le demandeur : plafond propre pour qu'un tiers ne reçoive pas un flot de codes.
+    if (input.purpose === 'EMAIL_CHANGE_NEW') {
+      const n = await this.repo.newAddressCountsInTx(tx, u.id);
+      const wait = Math.max(n.hour >= LIMITS.hour ? n.retryHour : 0, n.day >= LIMITS.day ? n.retryDay : 0);
+      if (wait > 0) throw tooManyRequests('TOO_MANY_CODE_REQUESTS', wait);
+    } else {
       const n = await this.repo.requestCountsInTx(tx, u.id);
       const wait = Math.max(
         n.minute >= LIMITS.minute ? n.retryMinute : 0, n.hour >= LIMITS.hour ? n.retryHour : 0, n.day >= LIMITS.day ? n.retryDay : 0);
       if (wait > 0) throw tooManyRequests('TOO_MANY_CODE_REQUESTS', wait);
     }
     await this.repo.supersedeActiveInTx(tx, u.id, input.purpose);
+    // D10 : une nouvelle demande de changement annule le code en attente vers l'adresse précédemment choisie (son email,
+    // lié à cette vérification, n'est plus envoyé par le worker : challengeStillActive).
+    if (input.purpose === 'EMAIL_CHANGE_OLD') await this.repo.supersedeActiveInTx(tx, u.id, 'EMAIL_CHANGE_NEW');
     const id = uuidv7(); // généré avant le calcul du HMAC (§ 3.3)
     const code = newOtpCode();
     await this.repo.insertInTx(tx, {
@@ -134,6 +142,19 @@ export class SecondFactorService {
       return { ok: false, reason: 'BLOCKED' };
     }
     return attempts >= MAX_ATTEMPTS ? { ok: false, reason: 'LOCKED' } : { ok: false, reason: 'WRONG', attemptsLeft: MAX_ATTEMPTS - attempts };
+  }
+
+  /** Alerte les autres administrateurs actifs (§ 3.3, changement d'email) ; le compte concerné n'est pas destinataire. */
+  async notifyOtherAdminsInTx(tx: TxClient, actor: Actor, p: { accountId: string; accountEmail: string; dedupePart: string }): Promise<void> {
+    this.authz.assert(actor, 'me.changeEmailVerifyNew');
+    for (const admin of await this.repo.activeAdminsInTx(tx)) {
+      if (admin.id === p.accountId) continue;
+      await this.mail.enqueueInTx(tx, actor, {
+        kind: 'ADMIN_SECURITY_ALERT', recipientUserId: admin.id, toAddress: admin.email,
+        dedupeKey: `admin-email-alert:${p.dedupePart}:${admin.id}`,
+        payload: { event: 'EMAIL_CHANGED', accountEmail: p.accountEmail }, expiresInSeconds: 86_400,
+      });
+    }
   }
 
   async consumeInTx(tx: TxClient, actor: Actor, challenge: ChallengeRef, reason: ConsumeReason): Promise<void> {

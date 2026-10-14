@@ -10,6 +10,7 @@ import { UsersModule } from '../users/users.module.js';
 import { AccountController } from './account.controller.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { EmailChangeService } from './email-change.service.js';
 import { CredentialsChecker } from './credentials-checker.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
 import { ChallengesRepository } from './second-factor/challenges.repository.js';
@@ -35,7 +36,7 @@ export class AuthModule {
         { provide: APP_GUARD, useClass: SessionGuard },
         { provide: TurnstileVerifier, useValue: o.turnstile ?? new HttpTurnstileVerifier(config.turnstile.secret, config.turnstile.verifyUrl) },
         TurnstileGate, RateLimitRepository, LoginRateLimiter, SessionsRepository, SessionsService, AuthService,
-        ChallengesRepository, SecondFactorService, OtpLimiter, CredentialsChecker, StepUpService,
+        ChallengesRepository, SecondFactorService, OtpLimiter, CredentialsChecker, StepUpService, EmailChangeService,
       ],
       exports: [SessionsService, AuthService, SecondFactorService, StepUpService],
     };

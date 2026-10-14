@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
 
-export type RevokeReason = 'LOGOUT' | 'PASSWORD_CHANGED' | 'OTHER_DEVICES' | 'SUSPENDED' | 'ANONYMIZED';
+export type RevokeReason = 'LOGOUT' | 'PASSWORD_CHANGED' | 'OTHER_DEVICES' | 'EMAIL_CHANGED' | 'SUSPENDED' | 'ANONYMIZED';
 export type NewSessionRow = {
   id: string; tokenHash: Buffer; userId: string;
   idleSeconds: number; absoluteSeconds: number; ip: string | null; userAgent: string | null;
@@ -53,6 +53,15 @@ export class SessionsRepository {
     return tx.$executeRaw`
       update app.sessions set revoked_at = clock_timestamp(), revoke_reason = ${reason}::app.session_revoke_reason
        where user_id = ${userId}::uuid and id <> ${keepSessionId}::uuid and revoked_at is null`;
+  }
+
+  /** Verrou de la session (après les vérifications, ordre global) : vrai si elle est encore valide. */
+  async lockValidInTx(tx: TxClient, sessionId: string): Promise<boolean> {
+    const r = await tx.$queryRaw<{ n: number }[]>`
+      select 1 as n from app.sessions
+       where id = ${sessionId}::uuid and revoked_at is null and idle_expires_at > clock_timestamp() and absolute_expires_at > clock_timestamp()
+         for update`;
+    return r.length === 1;
   }
 
   async markReauthInTx(tx: TxClient, sessionId: string): Promise<void> {

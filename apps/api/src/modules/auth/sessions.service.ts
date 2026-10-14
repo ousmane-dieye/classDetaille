@@ -30,7 +30,7 @@ export class SessionsService {
     await this.challenges.consumeBySessionsInTx(tx, sessionIds);
   }
 
-  private async revokeOthersCoreInTx(tx: TxClient, actor: UserActor, reason: 'PASSWORD_CHANGED' | 'OTHER_DEVICES'): Promise<number> {
+  private async revokeOthersCoreInTx(tx: TxClient, actor: UserActor, reason: 'PASSWORD_CHANGED' | 'OTHER_DEVICES' | 'EMAIL_CHANGED'): Promise<number> {
     await this.challenges.lockUserInTx(tx, actor.userId);
     await this.challenges.consumeBySessionsInTx(tx, await this.repo.otherActiveIdsInTx(tx, actor.userId, actor.sessionId));
     return this.repo.revokeOthersInTx(tx, actor.userId, actor.sessionId, reason);
@@ -107,9 +107,15 @@ export class SessionsService {
     });
   }
 
-  async revokeOthersInTx(tx: TxClient, actor: UserActor, reason: 'PASSWORD_CHANGED'): Promise<number> {
-    this.authz.assert(actor, 'me.changePassword');
+  async revokeOthersInTx(tx: TxClient, actor: UserActor, reason: 'PASSWORD_CHANGED' | 'EMAIL_CHANGED'): Promise<number> {
+    this.authz.assert(actor, reason === 'PASSWORD_CHANGED' ? 'me.changePassword' : 'me.changeEmailVerifyNew');
     return this.revokeOthersCoreInTx(tx, actor, reason);
+  }
+
+  /** Verrou de la session de la requête, après la consommation des vérifications (users → vérifications → sessions) ; faux si elle n'est plus valide. */
+  lockCurrentValidInTx(tx: TxClient, actor: UserActor): Promise<boolean> {
+    this.authz.assert(actor, 'me.changeEmailVerifyNew');
+    return this.repo.lockValidInTx(tx, actor.sessionId);
   }
 
   async markReauthInTx(tx: TxClient, actor: UserActor): Promise<void> {
