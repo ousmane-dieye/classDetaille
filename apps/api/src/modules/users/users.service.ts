@@ -30,6 +30,22 @@ export class UsersService {
     return this.repo.findByEmail(email);
   }
 
+  /** Mot de passe oublié : lecture par email, sans révéler quoi que ce soit à l'appelant (R9). */
+  async findForPasswordReset(actor: AnonymousActor, email: string): Promise<LoginUser | null> {
+    this.authz.assert(actor, 'auth.forgotPassword');
+    return this.repo.findByEmail(email);
+  }
+
+  async findForPasswordResetById(actor: AnonymousActor, id: string): Promise<LoginUser | null> {
+    this.authz.assert(actor, 'auth.resetPassword');
+    return this.repo.findLoginById(id);
+  }
+
+  async resetPasswordInTx(tx: TxClient, actor: AnonymousActor, userId: string, passwordHash: string): Promise<void> {
+    this.authz.assert(actor, 'auth.resetPassword');
+    await this.repo.setPasswordHashInTx(tx, userId, passwordHash);
+  }
+
   /** R13 : primitive d'authentification (construit l'acteur), sans Actor ; seulement pour un compte ACTIVE. */
   activeRoleOf(userId: string): Promise<'USER' | 'ADMIN' | null> {
     return this.repo.activeRoleOf(userId);

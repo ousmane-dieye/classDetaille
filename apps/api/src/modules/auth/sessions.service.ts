@@ -112,6 +112,13 @@ export class SessionsService {
     return this.revokeOthersCoreInTx(tx, actor, reason);
   }
 
+  /** Réinitialisation du mot de passe : toutes les sessions du compte ; vérifications liées consommées (SESSION_ENDED) avant la révocation. L'appelant a verrouillé users. */
+  async revokeAllInTx(tx: TxClient, actor: AnonymousActor, userId: string, reason: 'PASSWORD_CHANGED'): Promise<number> {
+    this.authz.assert(actor, 'auth.resetPassword');
+    await this.challenges.consumeBySessionsInTx(tx, await this.repo.activeIdsInTx(tx, userId));
+    return this.repo.revokeAllInTx(tx, userId, reason);
+  }
+
   /** Verrou de la session de la requête, après la consommation des vérifications (users → vérifications → sessions) ; faux si elle n'est plus valide. */
   lockCurrentValidInTx(tx: TxClient, actor: UserActor): Promise<boolean> {
     this.authz.assert(actor, 'me.changeEmailVerifyNew');

@@ -162,6 +162,12 @@ export class SecondFactorService {
     await this.repo.consumeInTx(tx, challenge.id, reason);
   }
 
+  /** Réinitialisation du mot de passe : termine (SESSION_ENDED) toute vérification active du compte, sauf RECOVERY. Après le verrou users, avant les sessions. */
+  async endAllInTx(tx: TxClient, actor: AnonymousActor, userId: string): Promise<void> {
+    this.authz.assert(actor, 'auth.resetPassword');
+    await this.repo.consumeAllActiveInTx(tx, userId, 'SESSION_ENDED');
+  }
+
   async findLoginChallenge(actor: AnonymousActor, tokenHash: Buffer): Promise<{ challengeId: string; userId: string } | null> {
     this.authz.assert(actor, 'auth.verifyCode');
     const r = await this.repo.findLoginByTokenHash(tokenHash);

@@ -99,6 +99,17 @@ export class SessionsRepository {
     return r.map((x) => x.id);
   }
 
+  async activeIdsInTx(tx: TxClient, userId: string): Promise<string[]> {
+    const r = await tx.$queryRaw<{ id: string }[]>`select id from app.sessions where user_id = ${userId}::uuid and revoked_at is null order by id`;
+    return r.map((x) => x.id);
+  }
+
+  async revokeAllInTx(tx: TxClient, userId: string, reason: RevokeReason): Promise<number> {
+    return tx.$executeRaw`
+      update app.sessions set revoked_at = clock_timestamp(), revoke_reason = ${reason}::app.session_revoke_reason
+       where user_id = ${userId}::uuid and revoked_at is null`;
+  }
+
   async listActive(userId: string): Promise<{ id: string; createdAt: Date; lastSeenAt: Date; userAgent: string | null }[]> {
     const rows = await this.prisma.client.$queryRaw<{ id: string; created_at: Date; last_seen_at: Date; user_agent: string | null }[]>`
       select id, created_at, last_seen_at, user_agent from app.sessions

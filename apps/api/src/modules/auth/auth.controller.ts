@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Inject, Post, Req, Res } from '@nestjs/common';
-import { LoginBody, RegisterBody, VerifyCodeBody, VerifyRecoveryBody } from '@classepulse/shared';
+import { ForgotPasswordBody, LoginBody, RegisterBody, ResetPasswordBody, VerifyCodeBody, VerifyRecoveryBody } from '@classepulse/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
 import { Public } from '../../http/public.decorator.js';
@@ -10,6 +10,7 @@ import type { MeDto } from '../users/me.dto.js';
 import { MeService } from '../users/me.service.js';
 import { adminCodeRequiredDto, type AdminCodeRequiredDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
+import { PasswordResetService } from './password-reset.service.js';
 import { CHALLENGE_COOKIE } from '../../http/session-cookie-name.js';
 import { challengeClearCookie, challengeSetCookie } from './second-factor/otp.js';
 import { clientContextOf } from './client-context.js';
@@ -17,7 +18,11 @@ import { sessionClearCookie, sessionSetCookie } from './session-cookie.js';
 
 @Controller('auth')
 export class AuthController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService, @Inject(MeService) private readonly me: MeService) {}
+  constructor(
+    @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(MeService) private readonly me: MeService,
+    @Inject(PasswordResetService) private readonly reset: PasswordResetService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -66,6 +71,24 @@ export class AuthController {
     const sent = await this.auth.resendCode({ kind: 'anonymous', ip: req.ip }, req.cookies?.[CHALLENGE_COOKIE], clientContextOf(req));
     reply.header('set-cookie', challengeSetCookie(sent.cookieToken));
     return adminCodeRequiredDto(sent);
+  }
+
+  /** Réponse identique dans tous les cas (R9). */
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(202)
+  async forgotPassword(@Body(new ZodPipe(ForgotPasswordBody)) body: ForgotPasswordBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<{ status: 'RESET_REQUESTED' }> {
+    reply.header('referrer-policy', 'no-referrer');
+    await this.reset.request({ kind: 'anonymous', ip: req.ip }, body, clientContextOf(req));
+    return { status: 'RESET_REQUESTED' };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(204)
+  async resetPassword(@Body(new ZodPipe(ResetPasswordBody)) body: ResetPasswordBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<void> {
+    reply.header('referrer-policy', 'no-referrer');
+    await this.reset.reset({ kind: 'anonymous', ip: req.ip }, body);
   }
 
   @Post('logout')
