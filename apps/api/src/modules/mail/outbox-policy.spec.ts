@@ -61,13 +61,23 @@ describe('cohérence avec le SQL (D15), fail-closed', () => {
     ...[...sql.matchAll(/interval '(\d+) (second|minute|hour)s?'/g)].map((m) => Number(m[1]) * UNIT[m[2]!]!),
     ...[...sql.matchAll(/make_interval\(\s*secs\s*=>\s*(\d+)\s*\)/g)].map((m) => Number(m[1])),
   ];
-  it('le dépôt ne contient qu’un délai littéral, celui de la reprise ambiguë ; les autres viennent de la politique', () => {
+  const OCCURRENCES = /\binterval\b|make_interval/g;
+  /** Seules formes paramétrées autorisées : la valeur vient d’un paramètre (jamais d’un littéral). */
+  const PARAMETERIZED = /make_interval\(secs => \$\{(e\.expiresInSeconds|leaseSeconds|d\.delaySeconds|first\.delaySeconds)\}::double precision\)/g;
+  it('le dépôt : aucun délai littéral ; chaque occurrence d’intervalle est une des 4 formes paramétrées nommées (expiration, bail, reprise, balayage)', () => {
     const repo = read('./outbox.repository.ts');
-    expect(delays(repo)).toEqual([AMBIGUOUS_RETRY_DELAY_SECONDS]);
-    expect(/RETRY_DELAYS_SECONDS|delaySeconds/.test(repo)).toBe(true);
+    const all = repo.match(OCCURRENCES) ?? [];
+    const allowed = repo.match(PARAMETERIZED) ?? [];
+    expect(delays(repo)).toEqual([]);
+    expect(all.length).toBe(4);
+    expect(allowed.length).toBe(all.length);
+    expect(repo).toContain('nextState({ normalAttempts: 1, retryClaimed: false }, ' + "'AMBIGUOUS'" + ')');
   });
-  it('la migration de l’outbox ne contient aucun délai hors politique', () => {
+  it('la migration de l’outbox : toute occurrence d’intervalle est un délai analysé, de la politique', () => {
+    const sql = read('../../../prisma/migrations/20261014000300_email_outbox/migration.sql');
     const allowed = new Set<number>([...RETRY_DELAYS_SECONDS, AMBIGUOUS_RETRY_DELAY_SECONDS]);
-    for (const s of delays(read('../../../prisma/migrations/20261014000300_email_outbox/migration.sql'))) expect(allowed.has(s)).toBe(true);
+    const found = delays(sql);
+    expect((sql.match(OCCURRENCES) ?? []).length).toBe(found.length);
+    for (const s of found) expect(allowed.has(s)).toBe(true);
   });
 });

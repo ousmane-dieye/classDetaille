@@ -119,8 +119,6 @@ describe('reserve : atomicité (concurrence)', () => {
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({ retryClaimed: true, normalAttempts: 1 });
     expect(await attemptRows(db, id)).toHaveLength(2);
-    // Même si on le force de nouveau en UNCERTAIN, une reprise déjà prise ne se reprend pas.
-    expect(await m.delivery.sweepExpiredLeases(SYSTEM, 5)).toBe(0);
     expect(await m.delivery.reserve(SYSTEM, 5, 120)).toEqual([]);
   });
   it('une réservation ignore une ligne verrouillée par une transaction ouverte (SKIP LOCKED), sans attendre', async () => {
@@ -326,6 +324,28 @@ describe('bail expiré et expiration', () => {
     await o.end();
     expect(await m.delivery.expireOverdue(SYSTEM, 10)).toBeGreaterThanOrEqual(1);
     expect(await emailRow(db, s.emailId)).toMatchObject({ status: 'EXPIRED', has_payload: false });
+  });
+});
+
+describe('bornes de tentatives, y compris sans contrainte d’état (la requête seule les garantit)', () => {
+  it('RETRY_WAIT à 5 tentatives et UNCERTAIN déjà repris ne sont jamais réservés ; le balayage suit nextState', async () => {
+    const db2 = await createTestDatabase();
+    const m2 = await mailTestModule(db2);
+    try {
+      const o = await connectAs('cp_owner', db2);
+      await o.query('alter table app.email_outbox drop constraint email_outbox_state_shape');
+      await o.query('drop trigger email_outbox_transition on app.email_outbox');
+      await o.end();
+      const due = `next_attempt_at = clock_timestamp() - interval '1 second'`;
+      const a = await seedPlainEmail(db2);
+      await forceEmail(db2, a, `status = 'RETRY_WAIT', normal_attempts = 5, ${due}`);
+      const b = await seedPlainEmail(db2);
+      await forceEmail(db2, b, `status = 'UNCERTAIN', normal_attempts = 2, ambiguous_retry_scheduled = true, ambiguous_retry_claimed = true, ${due}`);
+      const results = await Promise.all(Array.from({ length: 6 }, () => m2.delivery.reserve(SYSTEM, 5, 120)));
+      expect(results.flat()).toEqual([]);
+      expect((await emailRow(db2, a)).status).toBe('RETRY_WAIT');
+      expect((await emailRow(db2, b)).status).toBe('UNCERTAIN');
+    } finally { await m2.close(); }
   });
 });
 

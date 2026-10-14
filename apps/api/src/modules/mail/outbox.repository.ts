@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
 import { SECURITY_KINDS, type EmailKind } from './email-kinds.js';
-import { MAX_NORMAL_ATTEMPTS, type Decision, type SendKind } from './outbox-policy.js';
+import { MAX_NORMAL_ATTEMPTS, nextState, type Decision, type SendKind } from './outbox-policy.js';
 
 export type SendResult = { kind: SendKind; smtpCode: number | null; response: string | null; errorCode: string | null };
 export type NewEmail = {
@@ -141,19 +141,26 @@ export class OutboxRepository {
 
   /** Bail expiré : tentative AMBIGUOUS/LEASE_EXPIRED, puis règle ambiguë (UNCERTAIN +15 min, ou FAILED si la reprise a déjà eu lieu). */
   async sweepExpiredLeases(limit: number): Promise<number> {
+    // La règle ambiguë vient de la politique (nextState), jamais réécrite en SQL : décision selon que la reprise a déjà eu lieu.
+    const first = nextState({ normalAttempts: 1, retryClaimed: false }, 'AMBIGUOUS');
+    const retried = nextState({ normalAttempts: 1, retryClaimed: true }, 'AMBIGUOUS');
     const rows = await this.prisma.client.$queryRaw<{ id: string }[]>`
       with exp as (
-        select id, claim_token, ambiguous_retry_claimed from app.email_outbox
+        select id, claim_token, ambiguous_retry_claimed,
+               (case when ambiguous_retry_claimed then ${retried.status} else ${first.status} end)::app.email_status as new_status
+          from app.email_outbox
          where status = 'SENDING' and locked_until < clock_timestamp()
          order by locked_until limit ${limit}::int for update skip locked),
       o as (
         update app.email_outbox o set
-               status = (case when exp.ambiguous_retry_claimed then 'FAILED' else 'UNCERTAIN' end)::app.email_status,
+               status = exp.new_status,
                claim_token = null, locked_until = null,
-               ambiguous_retry_scheduled = o.ambiguous_retry_scheduled or not exp.ambiguous_retry_claimed,
-               next_attempt_at = case when exp.ambiguous_retry_claimed then o.next_attempt_at else clock_timestamp() + interval '15 minutes' end,
-               payload_encrypted = case when exp.ambiguous_retry_claimed then null else o.payload_encrypted end
-          from exp where o.id = exp.id and o.status = 'SENDING' and o.claim_token = exp.claim_token and o.locked_until < clock_timestamp()
+               ambiguous_retry_scheduled = o.ambiguous_retry_scheduled or exp.new_status = 'UNCERTAIN',
+               next_attempt_at = case when exp.new_status = 'UNCERTAIN' then clock_timestamp() + make_interval(secs => ${first.delaySeconds}::double precision) else o.next_attempt_at end,
+               payload_encrypted = case when exp.new_status = 'FAILED' then null else o.payload_encrypted end
+          from exp
+         where o.id = exp.id and o.status = 'SENDING' and o.claim_token = exp.claim_token and o.locked_until < clock_timestamp()
+           and exists (select 1 from app.email_attempts x where x.email_id = exp.id and x.claim_token = exp.claim_token and x.outcome is null)
         returning o.id, exp.claim_token as old_claim)
       update app.email_attempts a set outcome = 'AMBIGUOUS', error_code = 'LEASE_EXPIRED', finished_at = clock_timestamp()
         from o where a.email_id = o.id and a.claim_token = o.old_claim and a.outcome is null
