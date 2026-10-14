@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { v7 as uuidv7 } from 'uuid';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { waitForLockWait } from '../support/lock-wait.js';
 import { connectAs, createTestDatabase } from '../support/pg.js';
 
 let db: string;
@@ -209,5 +210,63 @@ describe('NOTIFY et baux', () => {
     expect(r.rows.map((x) => x.name)).toEqual(['email.send', 'maintenance.purge']);
     await expect(app.query(`insert into app.job_leases (name) values ('autre')`)).rejects.toMatchObject({ code: '42501' });
     await expect(app.query(`update app.job_leases set name = 'x'`)).rejects.toMatchObject({ code: '42501' });
+  });
+});
+
+describe('verrou de la vérification par la garde (§ 3.3)', () => {
+  async function mk() {
+    const u = uuidv7();
+    await app.query(`insert into app.users (id, email, first_name, last_name, password_hash, global_role) values ($1,$2,'Awa','Diop','$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$aGFzaA','ADMIN')`, [u, `r${u}@example.com`]);
+    const id = uuidv7();
+    await app.query(`insert into app.auth_challenges (id, user_id, purpose, token_hash, code_hmac, expires_at) values ($1,$2,'LOGIN',$3,$4, clock_timestamp() + interval '10 minutes')`, [id, u, randomBytes(32), randomBytes(32)]);
+    return { id, u, email: `r${u}@example.com` };
+  }
+  const ins = (c: pg.Client, k: { id: string; u: string; email: string }, emailId: string) => c.query(
+    `insert into app.email_outbox (id, recipient_user_id, to_address, kind, dedupe_key, payload, payload_encrypted, message_id, expires_at, challenge_id)
+     values ($1,$2,$3,'ADMIN_OTP',$4,'{}'::jsonb,$5,$6, clock_timestamp() + interval '5 minutes', $7)`,
+    [emailId, k.u, k.email, `otp:${k.id}`, randomBytes(40), randomUUID(), k.id]);
+  const consume = (c: pg.Client, id: string) => c.query(`update app.auth_challenges set consumed_at = clock_timestamp(), consumed_reason = 'USED' where id = $1`, [id]);
+
+  it('insertion non validée puis consommation : la consommation attend et annule l’email', async () => {
+    const k = await mk();
+    const a = await connectAs('cp_app', db);
+    const b = await connectAs('cp_app', db);
+    const emailId = uuidv7();
+    try {
+      await a.query('begin');
+      await ins(a, k, emailId);
+      const pidA = (await a.query('select pg_backend_pid() as p')).rows[0].p;
+      const consuming = consume(b, k.id);
+      await waitForLockWait(db, pidA);
+      await a.query('commit');
+      await consuming;
+      const r = await app.query('select status, payload_encrypted from app.email_outbox where id = $1', [emailId]);
+      expect(r.rows[0]).toEqual({ status: 'CANCELLED', payload_encrypted: null });
+    } finally { await a.end(); await b.end(); }
+  });
+  it('consommation non validée puis insertion : l’insertion attend puis est refusée', async () => {
+    const k = await mk();
+    const a = await connectAs('cp_app', db);
+    const b = await connectAs('cp_app', db);
+    try {
+      await b.query('begin');
+      await consume(b, k.id);
+      const pidB = (await b.query('select pg_backend_pid() as p')).rows[0].p;
+      const inserting = ins(a, k, uuidv7());
+      const settled = expect(inserting).rejects.toMatchObject({ code: '23514' });
+      await waitForLockWait(db, pidB);
+      await b.query('commit');
+      await settled;
+    } finally { await a.end(); await b.end(); }
+  });
+});
+
+describe('email_attempts : résultat et fin ensemble', () => {
+  it('outcome et finished_at vont ensemble', async () => {
+    const id = await insertEmail();
+    await setState(id, SENDING);
+    await app.query(`insert into app.email_attempts (email_id, attempt_no, kind, claim_token) values ($1, 1, 'NORMAL', gen_random_uuid())`, [id]);
+    await expect(app.query(`update app.email_attempts set outcome = 'TEMP_FAIL' where email_id = $1`, [id])).rejects.toMatchObject({ constraint: 'email_attempts_finished_with_outcome' });
+    await expect(app.query(`update app.email_attempts set finished_at = clock_timestamp() where email_id = $1`, [id])).rejects.toMatchObject({ constraint: 'email_attempts_finished_with_outcome' });
   });
 });

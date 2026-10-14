@@ -87,7 +87,7 @@ DECLARE c record; expected_to text;
 BEGIN
   IF NEW.challenge_id IS NULL THEN RETURN NEW; END IF;
   SELECT ch.user_id, ch.purpose, ch.pending_email, ch.expires_at, ch.consumed_at, u.email AS user_email
-    INTO c FROM app.auth_challenges ch JOIN app.users u ON u.id = ch.user_id WHERE ch.id = NEW.challenge_id;
+    INTO c FROM app.auth_challenges ch JOIN app.users u ON u.id = ch.user_id WHERE ch.id = NEW.challenge_id FOR SHARE OF ch;
   IF NOT FOUND OR c.consumed_at IS NOT NULL THEN
     RAISE EXCEPTION 'the challenge is not active' USING ERRCODE = 'check_violation';
   END IF;
@@ -136,6 +136,7 @@ CREATE TABLE app.email_attempts (
     (kind = 'NORMAL' AND attempt_no BETWEEN 1 AND 5)
     OR (kind = 'AMBIGUOUS_RETRY' AND attempt_no BETWEEN 2 AND 6)
   ),
+  CONSTRAINT email_attempts_finished_with_outcome CHECK ((outcome IS NULL) = (finished_at IS NULL)),
   CONSTRAINT email_attempts_response_len CHECK (smtp_response IS NULL OR char_length(smtp_response) <= 500),
   CONSTRAINT email_attempts_late_only_cancelled CHECK (
     (late_outcome IS NULL AND late_smtp_code IS NULL)
