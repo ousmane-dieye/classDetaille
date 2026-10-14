@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { toPgPoolConfig, toPrismaCliUrl } from './database-connection.js';
 
@@ -8,6 +11,13 @@ describe('options de connexion', () => {
     const cfg = toPgPoolConfig({ ...db, auth: { mode: 'password', password: 'p@ss/w:rd' } });
     expect(cfg).toMatchObject({ host: 'db', port: 5432, database: 'classepulse', user: 'cp_owner', password: 'p@ss/w:rd' });
     expect(cfg.ssl).toBeUndefined();
+  });
+  it('délai de connexion de 2 s (une base injoignable ne bloque pas la sonde de disponibilité)', () => {
+    expect(toPgPoolConfig({ ...db, auth: { mode: 'password', password: 'x' } }).connectionTimeoutMillis).toBe(2_000);
+    const dir = mkdtempSync(join(tmpdir(), 'cp-conn-'));
+    const f = (name: string) => { const p = join(dir, name); writeFileSync(p, name); return p; };
+    const cert = toPgPoolConfig({ ...db, auth: { mode: 'cert', caFile: f('ca'), certFile: f('crt'), keyFile: f('key') } });
+    expect(cert.connectionTimeoutMillis).toBe(2_000);
   });
   it('mode mot de passe : URL Prisma avec le mot de passe encodé et le schéma app', () => {
     const url = toPrismaCliUrl({ ...db, auth: { mode: 'password', password: 'p@ss/w:rd' } });

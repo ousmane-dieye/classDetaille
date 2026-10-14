@@ -73,3 +73,33 @@ describe('ReadinessService sans ruée', () => {
     expect(calls).toBe(1);
   });
 });
+
+describe('ReadinessService : délai de la sonde', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('une sonde qui ne répond jamais donne « non prête » après 2 s', async () => {
+    vi.useFakeTimers();
+    class HangingProbe extends ReadinessProbe {
+      check() { return new Promise<boolean>(() => undefined); }
+    }
+    const svc = new ReadinessService(new HangingProbe());
+    let result: boolean | undefined;
+    const pending = svc.isReady().then((ok) => { result = ok; });
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(result).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(result).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('le minuteur est annulé quand la sonde répond à temps', async () => {
+    vi.useFakeTimers();
+    class FastProbe extends ReadinessProbe {
+      async check() { return true; }
+    }
+    const svc = new ReadinessService(new FastProbe());
+    await expect(svc.isReady()).resolves.toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});

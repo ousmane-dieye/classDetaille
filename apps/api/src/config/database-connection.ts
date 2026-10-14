@@ -3,7 +3,8 @@ import type { PoolConfig } from 'pg';
 import type { DbConfig } from './load-config.js';
 
 export function toPgPoolConfig(db: DbConfig): PoolConfig {
-  const base: PoolConfig = { host: db.host, port: db.port, database: db.database, user: db.user };
+  // connectionTimeoutMillis : une base injoignable ne bloque ni les requêtes ni la sonde de disponibilité.
+  const base: PoolConfig = { host: db.host, port: db.port, database: db.database, user: db.user, connectionTimeoutMillis: 2_000 };
   if (db.auth.mode === 'password') return { ...base, password: db.auth.password };
   return {
     ...base,
