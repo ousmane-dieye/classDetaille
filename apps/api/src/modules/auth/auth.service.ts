@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { normalizePassword, type LoginBody, type RegisterBody } from '@classepulse/shared';
+import { normalizePassword, type ChangePasswordBody, type LoginBody, type RegisterBody } from '@classepulse/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { isUniqueViolation } from '../../database/errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
@@ -95,5 +95,31 @@ export class AuthService {
   async logout(actor: UserActor): Promise<void> {
     this.authz.assert(actor, 'auth.logout');
     await this.sessions.logout(actor);
+  }
+
+  /** P10 : mot de passe actuel vérifié (R6 : un échec compte pour IP + compte, R15 : 400), autres sessions révoquées. */
+  async changePassword(actor: UserActor, body: ChangePasswordBody, ctx: ClientContext): Promise<void> {
+    this.authz.assert(actor, 'me.changePassword');
+    const pw = validateNewPassword(body.newPassword, actor.globalRole, this.common);
+    if (!pw.ok) throw new ApiError(400, pw.code);
+    const user = await this.users.credentialsOf(actor);
+    const keys = this.limiter.keys(ctx.ip, user.email);
+    const degraded = this.turnstile.isDegraded();
+    const gate = await this.limiter.check(keys, degraded);
+    if (gate.kind === 'limited') throw tooManyAttempts(gate.retryAfterSeconds);
+    const current = normalizePassword(body.currentPassword);
+    const ok = user.passwordHash ? await this.hasher.verify(user.passwordHash, current) : await this.hasher.verifyDummy(current);
+    if (!ok) {
+      await this.limiter.recordFailure(keys, degraded);
+      throw new ApiError(400, 'CURRENT_PASSWORD_INVALID');
+    }
+    await this.limiter.recordSuccess(keys);
+    const passwordHash = await this.hasher.hash(pw.normalized);
+    await this.prisma.withTx(async (tx) => {
+      await this.users.setPasswordHashInTx(tx, actor, passwordHash);
+      const revokedSessions = await this.sessions.revokeOthersInTx(tx, actor, 'PASSWORD_CHANGED');
+      await this.sessions.markReauthInTx(tx, actor);
+      await this.audit.recordInTx(tx, actor, { action: 'PASSWORD_CHANGED', targetType: 'USER', targetId: actor.userId, metadata: { revokedSessions } });
+    });
   }
 }

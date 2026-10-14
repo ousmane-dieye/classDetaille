@@ -6,6 +6,7 @@ import { AppThrottlerGuard } from '../../http/throttle.js';
 import { ClassesModule } from '../classes/classes.module.js';
 import { MembershipsModule } from '../memberships/memberships.module.js';
 import { UsersModule } from '../users/users.module.js';
+import { AccountController } from './account.controller.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
@@ -21,7 +22,7 @@ export class AuthModule {
     return {
       module: AuthModule,
       imports: [UsersModule, ClassesModule, MembershipsModule],
-      controllers: [AuthController],
+      controllers: [AuthController, AccountController],
       providers: [
         // Ordre des gardes globaux : limitation générale, PUIS session (aucune lecture en base avant la limitation).
         { provide: APP_GUARD, useClass: AppThrottlerGuard },
