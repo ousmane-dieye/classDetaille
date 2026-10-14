@@ -1,7 +1,7 @@
 const RETRYABLE_SQLSTATES = new Set(['40P01', '40001']);
 const RETRYABLE_PRISMA_CODES = new Set(['P2034']);
 
-function codeOf(v: unknown, key: string): string | undefined {
+export function codeOf(v: unknown, key: string): string | undefined {
   if (typeof v !== 'object' || v === null) return undefined;
   const value = (v as Record<string, unknown>)[key];
   return typeof value === 'string' ? value : undefined;
