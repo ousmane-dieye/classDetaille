@@ -9,6 +9,7 @@ import { ApiModule } from '../api.module.js';
 import type { AppConfig } from '../config/load-config.js';
 import { DatabaseModule, DatabaseReadinessProbe } from '../database/database.module.js';
 import type { ReadinessProbe } from '../health/readiness.service.js';
+import type { TurnstileVerifier } from '../modules/auth/turnstile.js';
 import type { Clock } from './clock.js';
 import { CoreModule } from './core.module.js';
 import { registerCsrf } from './csrf.js';
@@ -24,7 +25,8 @@ export { BODY_LIMIT_BYTES } from './json-body.js';
 
 export type AppOverrides = {
   probe?: Type<ReadinessProbe>;
-  // `turnstile?: TurnstileVerifier` est ajouté en tâche 8, quand le vérificateur existe.
+  /** Vérificateur Turnstile de remplacement (tests). Par défaut : HttpTurnstileVerifier (tâche 10). */
+  turnstile?: TurnstileVerifier;
   clock?: Clock;
   logStream?: NodeJS.WritableStream;
   features?: (config: AppConfig, o: AppOverrides) => DynamicModule['imports'];
