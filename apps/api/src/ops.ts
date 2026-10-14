@@ -10,8 +10,11 @@ const USAGE = 'usage : ops admin-recovery-code --email <email> [--clear-block]\n
 const terminalIo = (): RecoveryIo => ({
   isTty: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   write: (s) => { process.stdout.write(s); },
-  waitForEnter: () => new Promise<void>((done) => { const rl = readline.createInterface({ input: process.stdin }); rl.question('', () => { rl.close(); done(); }); }),
+  // Entrée ou fin de saisie (Ctrl-D) : dans les deux cas la promesse se résout et l'appelant efface l'écran.
+  waitForEnter: () => new Promise<void>((done) => { const rl = readline.createInterface({ input: process.stdin }); rl.once('close', done); rl.once('line', () => { rl.close(); }); }),
 });
+// Ctrl-C pendant l'affichage du code : l'écran est effacé avant de quitter.
+process.on('SIGINT', () => { process.stdout.write('\x1b[2J\x1b[3J\x1b[H'); process.exit(130); });
 
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
@@ -24,8 +27,8 @@ async function main(argv: string[]): Promise<number> {
   } catch { process.stderr.write(USAGE); return 2; }
   if (!parsed.email) { process.stderr.write(USAGE); return 2; }
   let config: ReturnType<typeof loadOpsConfig>;
-  try { config = loadOpsConfig(process.env); } catch (e) {
-    process.stderr.write(`erreur : INVALID_CONFIGURATION\n${e instanceof Error ? e.message : ''}\n`);
+  try { config = loadOpsConfig(process.env); } catch {
+    process.stderr.write('erreur : INVALID_CONFIGURATION\n');
     return 1;
   }
   const client = new pg.Client(toPgPoolConfig(config.db));

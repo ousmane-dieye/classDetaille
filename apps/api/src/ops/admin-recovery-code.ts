@@ -46,7 +46,6 @@ export async function runAdminRecoveryCode(
   }
   io.write(`Code de récupération (valable 15 minutes, à transmettre par un canal sûr) : ${grouped(code)}\n`);
   io.write('Appuie sur Entrée pour effacer l’écran.\n');
-  await io.waitForEnter();
-  io.write('\x1b[2J\x1b[3J\x1b[H');
+  try { await io.waitForEnter(); } finally { io.write('\x1b[2J\x1b[3J\x1b[H'); }
   return 0;
 }

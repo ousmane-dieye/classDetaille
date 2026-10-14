@@ -31,3 +31,23 @@ describe('droits de cp_app (§ 2.1, § 2.6)', () => {
     }
   });
 });
+
+describe('fonction priv.issue_admin_recovery_code et droits de cp_ops (§ 3.3)', () => {
+  it('propriétaire cp_privileged, SECURITY DEFINER, chemin de recherche figé, EXECUTE pour cp_ops seulement', async () => {
+    const c = await connectAs('cp_owner', db);
+    try {
+      const r = await c.query(
+        `select pg_get_userbyid(p.proowner) as owner, p.prosecdef, p.proconfig, p.proacl::text[] as acl
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'priv' and p.proname = 'issue_admin_recovery_code'`);
+      expect(r.rows[0].owner).toBe('cp_privileged');
+      expect(r.rows[0].prosecdef).toBe(true);
+      expect(r.rows[0].proconfig).toContain('search_path=pg_catalog, pg_temp');
+      // Liste exacte : le propriétaire et cp_ops ; rien pour PUBLIC (grantee vide) ni cp_app.
+      expect([...r.rows[0].acl].sort()).toEqual(['cp_ops=X/cp_privileged', 'cp_privileged=X/cp_privileged']);
+    } finally { await c.end(); }
+  });
+  it('cp_app ne peut pas appeler la fonction', () =>
+    expectDenied('cp_app', `select priv.issue_admin_recovery_code('a@example.com', gen_random_uuid(), decode(repeat('00', 32), 'hex'), false)`));
+  it.each(['users', 'sessions', 'auth_challenges', 'audit_log', 'email_outbox'])('cp_ops ne lit pas app.%s directement', (table) =>
+    expectDenied('cp_ops', `select 1 from app.${table} limit 1`));
+});
