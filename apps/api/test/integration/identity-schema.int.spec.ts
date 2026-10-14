@@ -39,7 +39,7 @@ describe('users (§ 2.2)', () => {
   it('users_lifecycle : un compte DELETED doit avoir tout effacé', async () => {
     await expect(insertUser('del@example.com', { status: 'DELETED' })).rejects.toMatchObject({ constraint: 'users_lifecycle' });
   });
-  it('cp_app ne peut ni supprimer un compte, ni changer son email, son rôle ou son statut', async () => {
+  it('cp_app ne peut ni supprimer un compte, ni changer l’email d’un étudiant, son rôle ou son statut', async () => {
     const id = await insertUser('rights@example.com');
     await expect(app.query('delete from app.users where id = $1', [id])).rejects.toMatchObject({ code: '42501' });
     await expect(app.query(`update app.users set email = 'z@example.com' where id = $1`, [id])).rejects.toMatchObject({ code: '42501' });
@@ -97,12 +97,15 @@ describe('rate_limit_buckets et role_guard', () => {
 });
 
 describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
-  const USERS = ['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', 'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'created_at', 'updated_at'];
-  const SESSIONS = ['id', 'token_hash', 'user_id', 'created_at', 'last_seen_at', 'idle_expires_at', 'absolute_expires_at', 'reauth_at', 'ip', 'user_agent', 'revoked_at', 'revoke_reason'];
+  const USERS = ['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', 'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'created_at', 'updated_at', 'second_factor_blocked_at'];
+  const SESSIONS = ['id', 'token_hash', 'user_id', 'created_at', 'last_seen_at', 'idle_expires_at', 'absolute_expires_at', 'reauth_at', 'ip', 'user_agent', 'revoked_at', 'revoke_reason', 'second_factor_at', 'second_factor_method', 'step_up_at'];
   const CLASSES = ['id', 'name', 'level', 'academic_year', 'status', 'archived_at', 'created_at', 'updated_at'];
   const ENROLLMENTS = ['id', 'user_id', 'class_id', 'status', 'created_at', 'decided_at', 'decided_by', 'decision_note'];
   const AUDIT = ['id', 'occurred_at', 'source', 'db_login_role', 'actor_user_id', 'action', 'target_type', 'target_id', 'metadata'];
   const BUCKETS = ['key', 'window_start', 'attempts', 'failures', 'last_failure_at'];
+  const CHALLENGES = ['id', 'user_id', 'purpose', 'session_id', 'token_hash', 'code_hmac', 'pending_email', 'ip', 'attempts', 'created_at', 'expires_at', 'consumed_at', 'consumed_reason'];
+  const FAILURES = ['id', 'user_id', 'challenge_id', 'purpose', 'occurred_at'];
+  const RESETS = ['id', 'user_id', 'token_hash', 'created_at', 'expires_at', 'consumed_at'];
   const key = privKey;
 
   // Oracle écrit à la main : droits de table.
@@ -115,16 +118,18 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     key('enrollment_requests', 'SELECT'),
     // audit_log : SELECT en droit de table, INSERT par colonne seulement (aucun UPDATE ni DELETE).
     key('audit_log', 'SELECT'),
+    // lot 1b : SELECT en droit de table, INSERT et UPDATE par colonne seulement (jamais de DELETE).
+    key('auth_challenges', 'SELECT'), key('second_factor_failures', 'SELECT'), key('password_reset_tokens', 'SELECT'),
   ];
   // Oracle écrit à la main : droits par colonne (information_schema.column_privileges inclut ceux issus d'un droit de table).
   const COLUMN_GRANTS = [
     ...BUCKETS.flatMap((c) => ['INSERT', 'SELECT', 'UPDATE'].map((p) => key('rate_limit_buckets', p, c))),
     key('role_guard', 'SELECT', 'id'), key('role_guard', 'UPDATE', 'id'),
     ...SESSIONS.flatMap((c) => ['INSERT', 'SELECT'].map((p) => key('sessions', p, c))),
-    ...['last_seen_at', 'idle_expires_at', 'reauth_at', 'revoked_at', 'revoke_reason'].map((c) => key('sessions', 'UPDATE', c)),
+    ...['last_seen_at', 'idle_expires_at', 'reauth_at', 'revoked_at', 'revoke_reason', 'step_up_at'].map((c) => key('sessions', 'UPDATE', c)),
     ...USERS.map((c) => key('users', 'SELECT', c)),
     ...['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'created_at', 'updated_at'].map((c) => key('users', 'INSERT', c)),
-    ...['first_name', 'last_name', 'password_hash', 'email_reminders', 'email_announcements', 'updated_at'].map((c) => key('users', 'UPDATE', c)),
+    ...['email', 'first_name', 'last_name', 'password_hash', 'email_reminders', 'email_announcements', 'second_factor_blocked_at', 'updated_at'].map((c) => key('users', 'UPDATE', c)),
     ...CLASSES.map((c) => key('classes', 'SELECT', c)),
     ...['id', 'name', 'level', 'academic_year', 'created_at', 'updated_at'].map((c) => key('classes', 'INSERT', c)),
     key('classes', 'UPDATE', 'updated_at'),
@@ -132,8 +137,16 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...['id', 'user_id', 'class_id', 'created_at'].map((c) => key('enrollment_requests', 'INSERT', c)),
     ...AUDIT.map((c) => key('audit_log', 'SELECT', c)),
     ...['actor_user_id', 'action', 'target_type', 'target_id', 'metadata'].map((c) => key('audit_log', 'INSERT', c)),
+    ...CHALLENGES.map((c) => key('auth_challenges', 'SELECT', c)),
+    ...['id', 'user_id', 'purpose', 'session_id', 'token_hash', 'code_hmac', 'pending_email', 'ip', 'expires_at'].map((c) => key('auth_challenges', 'INSERT', c)),
+    ...['attempts', 'consumed_at', 'consumed_reason'].map((c) => key('auth_challenges', 'UPDATE', c)),
+    ...FAILURES.map((c) => key('second_factor_failures', 'SELECT', c)),
+    ...['user_id', 'challenge_id', 'purpose'].map((c) => key('second_factor_failures', 'INSERT', c)),
+    ...RESETS.map((c) => key('password_reset_tokens', 'SELECT', c)),
+    ...['id', 'user_id', 'token_hash', 'expires_at'].map((c) => key('password_reset_tokens', 'INSERT', c)),
+    key('password_reset_tokens', 'UPDATE', 'consumed_at'),
   ];
-  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log'];
+  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens'];
 
   it('droits de table et droits par colonne : listes exactes (jamais de DELETE sur users, sessions, classes, demandes ni audit)', async () => {
     await expectExactCpAppPrivileges(db, TABLES, TABLE_GRANTS, COLUMN_GRANTS);

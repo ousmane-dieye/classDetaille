@@ -62,40 +62,48 @@ enum SessionRevokeReason {
 }
 
 model User {
-  id                   String     @id @db.Uuid
-  email                String?    @unique
-  firstName            String?    @map("first_name")
-  lastName             String?    @map("last_name")
-  passwordHash         String?    @map("password_hash")
-  globalRole           GlobalRole @default(USER) @map("global_role")
-  status               UserStatus @default(ACTIVE)
-  emailFlaggedAt       DateTime?  @map("email_flagged_at") @db.Timestamptz
-  emailReminders       Boolean    @default(true) @map("email_reminders")
-  emailAnnouncements   Boolean    @default(true) @map("email_announcements")
-  unsubscribeTokenHash Bytes?     @map("unsubscribe_token_hash")
-  deletedAt            DateTime?  @map("deleted_at") @db.Timestamptz
-  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime   @default(now()) @map("updated_at") @db.Timestamptz
-  sessions             Session[]
+  id                    String                @id @db.Uuid
+  email                 String?               @unique
+  firstName             String?               @map("first_name")
+  lastName              String?               @map("last_name")
+  passwordHash          String?               @map("password_hash")
+  globalRole            GlobalRole            @default(USER) @map("global_role")
+  status                UserStatus            @default(ACTIVE)
+  emailFlaggedAt        DateTime?             @map("email_flagged_at") @db.Timestamptz
+  emailReminders        Boolean               @default(true) @map("email_reminders")
+  emailAnnouncements    Boolean               @default(true) @map("email_announcements")
+  unsubscribeTokenHash  Bytes?                @map("unsubscribe_token_hash")
+  deletedAt             DateTime?             @map("deleted_at") @db.Timestamptz
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime              @default(now()) @map("updated_at") @db.Timestamptz
+  sessions              Session[]
+  secondFactorBlockedAt DateTime?             @map("second_factor_blocked_at") @db.Timestamptz
+  authChallenges        AuthChallenge[]
+  secondFactorFailures  SecondFactorFailure[]
+  passwordResetTokens   PasswordResetToken[]
 
   @@map("users")
   @@schema("app")
 }
 
 model Session {
-  id                String               @id @db.Uuid
-  tokenHash         Bytes                @unique @map("token_hash")
-  userId            String               @map("user_id") @db.Uuid
-  user              User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
-  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  lastSeenAt        DateTime             @default(now()) @map("last_seen_at") @db.Timestamptz
-  idleExpiresAt     DateTime             @map("idle_expires_at") @db.Timestamptz
-  absoluteExpiresAt DateTime             @map("absolute_expires_at") @db.Timestamptz
-  reauthAt          DateTime?            @map("reauth_at") @db.Timestamptz
-  ip                String?              @db.Inet
-  userAgent         String?              @map("user_agent")
-  revokedAt         DateTime?            @map("revoked_at") @db.Timestamptz
-  revokeReason      SessionRevokeReason? @map("revoke_reason")
+  id                 String               @id @db.Uuid
+  tokenHash          Bytes                @unique @map("token_hash")
+  userId             String               @map("user_id") @db.Uuid
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  lastSeenAt         DateTime             @default(now()) @map("last_seen_at") @db.Timestamptz
+  idleExpiresAt      DateTime             @map("idle_expires_at") @db.Timestamptz
+  absoluteExpiresAt  DateTime             @map("absolute_expires_at") @db.Timestamptz
+  reauthAt           DateTime?            @map("reauth_at") @db.Timestamptz
+  ip                 String?              @db.Inet
+  userAgent          String?              @map("user_agent")
+  revokedAt          DateTime?            @map("revoked_at") @db.Timestamptz
+  revokeReason       SessionRevokeReason? @map("revoke_reason")
+  secondFactorAt     DateTime?            @map("second_factor_at") @db.Timestamptz
+  secondFactorMethod String?              @map("second_factor_method")
+  stepUpAt           DateTime?            @map("step_up_at") @db.Timestamptz
+  authChallenges     AuthChallenge[]
 
   @@map("sessions")
   @@schema("app")
@@ -138,6 +146,10 @@ enum AuditAction {
   ADMIN_RECOVERY_CODE_ISSUED
   ADMIN_SECOND_FACTOR_BLOCK_CLEARED
   DATABASE_RESTORED
+  ADMIN_LOGIN
+  ADMIN_EMAIL_CHANGED
+  PASSWORD_RESET_COMPLETED
+  ADMIN_SECOND_FACTOR_BLOCKED
 
   @@map("audit_action")
   @@schema("app")
@@ -184,5 +196,75 @@ model AuditLog {
   metadata    Json        @default("{}")
 
   @@map("audit_log")
+  @@schema("app")
+}
+
+enum ChallengePurpose {
+  LOGIN
+  RECOVERY
+  STEP_UP
+  EMAIL_CHANGE_OLD
+  EMAIL_CHANGE_NEW
+
+  @@map("challenge_purpose")
+  @@schema("app")
+}
+
+enum ChallengeConsumedReason {
+  USED
+  EXPIRED
+  SUPERSEDED
+  LOCKED
+  SESSION_ENDED
+
+  @@map("challenge_consumed_reason")
+  @@schema("app")
+}
+
+model AuthChallenge {
+  id             String                   @id @db.Uuid
+  userId         String                   @map("user_id") @db.Uuid
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  purpose        ChallengePurpose
+  sessionId      String?                  @map("session_id") @db.Uuid
+  session        Session?                 @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  tokenHash      Bytes?                   @map("token_hash")
+  codeHmac       Bytes                    @map("code_hmac")
+  pendingEmail   String?                  @map("pending_email")
+  ip             String?                  @db.Inet
+  attempts       Int                      @default(0) @db.SmallInt
+  createdAt      DateTime                 @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz
+  expiresAt      DateTime                 @map("expires_at") @db.Timestamptz
+  consumedAt     DateTime?                @map("consumed_at") @db.Timestamptz
+  consumedReason ChallengeConsumedReason? @map("consumed_reason")
+
+  @@index([userId, createdAt], map: "auth_challenges_user_created_idx")
+  @@map("auth_challenges")
+  @@schema("app")
+}
+
+model SecondFactorFailure {
+  id          BigInt           @id @default(autoincrement())
+  userId      String           @map("user_id") @db.Uuid
+  user        User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  challengeId String?          @map("challenge_id") @db.Uuid
+  purpose     ChallengePurpose
+  occurredAt  DateTime         @default(dbgenerated("clock_timestamp()")) @map("occurred_at") @db.Timestamptz
+
+  @@index([userId, occurredAt], map: "second_factor_failures_user_idx")
+  @@map("second_factor_failures")
+  @@schema("app")
+}
+
+model PasswordResetToken {
+  id         String    @id @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tokenHash  Bytes     @unique(map: "password_reset_token_hash_key") @map("token_hash")
+  createdAt  DateTime  @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz
+
+  @@map("password_reset_tokens")
   @@schema("app")
 }
