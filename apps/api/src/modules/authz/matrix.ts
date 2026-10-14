@@ -7,7 +7,7 @@ export const ACTIONS = [
   'auth.verifyCode', 'auth.resendCode', 'auth.verifyRecovery', 'auth.forgotPassword', 'auth.resetPassword',
   'me.reauth', 'me.stepUp', 'me.stepUpVerify', 'stepUp.assertFresh', 'reauth.assertRecent',
   'me.changeEmailStart', 'me.changeEmailVerifyOld', 'me.changeEmailVerifyNew',
-  'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge',
+  'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 export type ActorClass = 'anonymous' | 'user' | 'admin' | 'cli' | 'system';
@@ -44,6 +44,7 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],
   'maintenance.purge': ['system'],
+  'jobs.lease': ['system'],
 };
 
 export function actorClass(a: Actor): ActorClass {

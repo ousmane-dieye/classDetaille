@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { v7 as uuidv7 } from 'uuid';
-import type { AppConfig } from '../../src/config/load-config.js';
+import type { AppConfig, WorkerConfig } from '../../src/config/load-config.js';
 import { buildApiApp } from '../../src/http/app.js';
 import type { RouteInfo } from '../../src/http/routes.js';
 import { TurnstileVerifier, type VerifierResult } from '../../src/modules/auth/turnstile.js';
@@ -130,4 +130,11 @@ export async function runCli(db: string, args: string[], stdin = '', envOverride
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+export function workerConfigFor(db: string): WorkerConfig {
+  return {
+    nodeEnv: 'test', db: dbConfigFor('cp_app', db), logLevel: 'silent', appOrigin: ORIGIN, outboxPayloadKey: TEST_OUTBOX_KEY,
+    mail: { from: 'no-reply@app.test', smtp: { host: '127.0.0.1', port: 1, security: 'none', auth: null, timeoutMs: 1000 } },
+  };
 }

@@ -118,6 +118,8 @@ SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_SECURITY=none MAIL_FROM=no-reply@classep
 
 Variables du worker : `APP_ORIGIN`, `MAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY` (`none`, `starttls` ou `tls` ; `none` est refusé en production), `OUTBOX_PAYLOAD_KEY_FILE` (obligatoires) ; `SMTP_USER` et `SMTP_PASSWORD_FILE` (ensemble ou aucun), `SMTP_TIMEOUT_MS` (`30000`), `LOG_LEVEL` (`info`) facultatives. La commande `ops` ne lit que la base et `OTP_PEPPER_FILE`.
 
+Arrêt : `SIGTERM` ou `Ctrl+C` cesse de réserver, laisse l'envoi en cours se terminer (30 s au plus), puis ferme la connexion `LISTEN` et les connexions à la base. Le worker se réveille sur `NOTIFY` (sondage de secours toutes les 15 s) et purge chaque heure les seaux de limitation de plus de 2 h. Mailpit : http://127.0.0.1:8025.
+
 Les secrets ne passent jamais par une variable directe : `DB_PASSWORD`, `DATABASE_URL`, `PGPASSWORD` et `PGPASSFILE` sont refusés au démarrage. `prisma migrate deploy` ne lit que les variables `DB_*`.
 
 Une requête qui modifie (`POST`, `PUT`, `PATCH`, `DELETE`) doit porter `Content-Type: application/json` et un en-tête `Origin` égal à `APP_ORIGIN` (ou, sans `Origin`, `Sec-Fetch-Site: same-origin`) ; sinon `403 CSRF_REJECTED` ou `415`.

@@ -44,6 +44,7 @@ const EXPECTED: Record<Action, readonly Name[]> = {
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],
   'maintenance.purge': ['system'],
+  'jobs.lease': ['system'],
 };
 
 describe('matrice d’autorisation (§ 5.4 : 100 %)', () => {
@@ -59,9 +60,9 @@ describe('matrice d’autorisation (§ 5.4 : 100 %)', () => {
       });
     }
   }
-  it('la classe system n’a que les quatre actions du worker', () => {
+  it('la classe system n’a que les cinq actions du worker', () => {
     const sys = ACTIONS.filter((a) => MATRIX[a].includes('system')).sort();
-    expect(sys).toEqual(['mail.deliver', 'mail.enqueue', 'mail.sweep', 'maintenance.purge']);
+    expect(sys).toEqual(['jobs.lease', 'mail.deliver', 'mail.enqueue', 'mail.sweep', 'maintenance.purge']);
   });
   it('actorClass distingue l’administrateur de l’étudiant', () => {
     expect(actorClass(ACTORS.admin)).toBe('admin');
