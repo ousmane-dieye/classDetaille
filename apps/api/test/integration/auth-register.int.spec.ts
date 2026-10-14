@@ -98,6 +98,7 @@ describe('POST /api/auth/register (P1, § 0.3)', () => {
   it.each([
     [{ password: 'a'.repeat(14) }, 'PASSWORD_TOO_SHORT'],
     [{ password: 'a'.repeat(129) }, 'PASSWORD_TOO_LONG'],
+    [{ password: 'a'.repeat(1025) }, 'PASSWORD_TOO_LONG'],
   ])('mot de passe refusé %#', async (over, code) => {
     const res = await send(t.app, 'POST', '/api/auth/register', registration(classId, over));
     expect(res.statusCode).toBe(400);

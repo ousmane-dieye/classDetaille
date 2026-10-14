@@ -47,7 +47,9 @@ describe('schémas d’identité', () => {
   it('LoginBody : turnstileToken facultatif, mot de passe limité à 1024 caractères bruts', () => {
     expect(LoginBody.safeParse({ email: 'a@example.com', password: 'x' }).success).toBe(true);
     expect(LoginBody.safeParse({ email: 'a@example.com', password: 'x', turnstileToken: 't' }).success).toBe(true);
-    expect(LoginBody.safeParse({ email: 'a@example.com', password: 'x'.repeat(1025) }).success).toBe(false);
+    const tooLong = LoginBody.safeParse({ email: 'a@example.com', password: 'x'.repeat(1025) });
+    expect(tooLong.success).toBe(false);
+    expect(!tooLong.success && tooLong.error.issues.map((i) => i.message)).toEqual(['PASSWORD_TOO_LONG']);
   });
   it('UpdatePreferencesBody exige au moins un champ', () => {
     expect(UpdatePreferencesBody.safeParse({}).success).toBe(false);

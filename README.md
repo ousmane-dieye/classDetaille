@@ -59,9 +59,9 @@ Elles s'exécutent sous le rôle `cp_app` (jamais `cp_owner` ni `postgres`), ave
 # Premier administrateur : le mot de passe (16 caractères au moins) est lu sur l'entrée standard, jamais en argument.
 # Sur un terminal, la saisie est masquée et confirmée ; sinon, la première ligne de l'entrée standard est utilisée.
 [ -f ../../.secrets/dev/admin_password ] || openssl rand -base64 24 > ../../.secrets/dev/admin_password
-DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api cli create-admin   --email admin@example.com --first-name Moussa --last-name Faye < ../../.secrets/dev/admin_password
-# Classe active
-DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api cli create-class   --name "L3 Informatique" --level L3 --year 2026-2027
+DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api cli create-admin --email admin@example.com --first-name Moussa --last-name Faye < ../../.secrets/dev/admin_password
+# Une autre classe active (la première, « L3 Informatique », est créée dans le bloc de démarrage ci-dessus)
+DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm --filter @classepulse/api cli create-class --name "M1 Génie logiciel" --level M1 --year 2026-2027
 ```
 
 Codes de sortie : `0` succès ; `1` erreur (une ligne `erreur : <CODE>` sur la sortie d'erreur, par exemple `ADMIN_ALREADY_EXISTS`, `EMAIL_TAKEN`, `PASSWORD_TOO_SHORT`, `CLASS_ALREADY_EXISTS`, `INVALID_ACADEMIC_YEAR`, `INVALID_ARGUMENTS`) ; `2` usage. Aucun mot de passe n'est affiché.
@@ -72,10 +72,12 @@ Avec l'API démarrée et une classe créée (`CLASS_ID` : identifiant renvoyé p
 
 ```bash
 O='Origin: http://localhost:5173'; J='Content-Type: application/json'
-curl -s -i -c cookies.txt -X POST http://127.0.0.1:3000/api/auth/register -H "$O" -H "$J"   -d '{"firstName":"Awa","lastName":"Diop","email":"awa@example.com","password":"une phrase de passe assez longue","classId":"<CLASS_ID>","turnstileToken":"x"}'   # → 201, cookie de session
+curl -s -i -c cookies.txt -X POST http://127.0.0.1:3000/api/auth/register -H "$O" -H "$J" -d '{"firstName":"Awa","lastName":"Diop","email":"awa@example.com","password":"une phrase de passe assez longue","classId":"<CLASS_ID>","turnstileToken":"x"}'   # → 201, cookie de session
 curl -s -b cookies.txt http://127.0.0.1:3000/api/me                                   # → profil de l'étudiante
 curl -s -i -b cookies.txt -X POST http://127.0.0.1:3000/api/auth/logout -H "$O" -H "$J" -d '{}'   # → 204, cookie effacé
 curl -s -i -b cookies.txt http://127.0.0.1:3000/api/me                                # → 401 UNAUTHENTICATED
+curl -s http://127.0.0.1:3000/api/classes/active                                      # → 200, liste des classes actives (public)
+curl -s -i -X POST http://127.0.0.1:3000/api/auth/login -H "$O" -H "$J" -d '{"email":"awa@example.com","password":"mauvais mot de passe long"}'   # → 401 INVALID_CREDENTIALS
 ```
 
 Variables de l'API :
@@ -86,7 +88,7 @@ Variables de l'API :
 | `RATE_LIMIT_HMAC_KEY_FILE` | oui | Fichier de la clé HMAC des seaux de limitation (32 caractères au moins) |
 | `TURNSTILE_SECRET_FILE` | oui | Fichier du secret Turnstile |
 | `TURNSTILE_VERIFY_URL` | non | Point de vérification Turnstile (`https://challenges.cloudflare.com/turnstile/v0/siteverify`) |
-| `TRUST_PROXY` | non | Nombre de mandataires inverses de confiance pour l'IP du client, de 0 à 3 (`0`) |
+| `TRUST_PROXY` | non | Nombre de mandataires inverses de confiance pour l'IP du client, de 0 à 3 (`0`). N'utiliser une valeur > 0 que si l'API n'est joignable qu'à travers ces proxys : sinon un client choisit lui-même sa clé de limitation |
 | `LOG_LEVEL` | non | `fatal`, `error`, `warn`, `info`, `debug` ou `silent` (`info`) |
 | `LOGIN_LIMIT_PER_IP` | non | Tentatives de connexion par IP sur 15 min (`100`) |
 | `THROTTLE_PER_IP` / `THROTTLE_PER_SESSION` | non | Limitation générale par minute (`600` / `300`) |

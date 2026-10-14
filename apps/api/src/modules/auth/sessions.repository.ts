@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
 
-export type RevokeReason = 'LOGOUT' | 'PASSWORD_CHANGED' | 'OTHER_DEVICES';
+export type RevokeReason = 'LOGOUT' | 'PASSWORD_CHANGED' | 'OTHER_DEVICES' | 'SUSPENDED' | 'ANONYMIZED';
 export type NewSessionRow = {
   id: string; tokenHash: Buffer; userId: string;
   idleSeconds: number; absoluteSeconds: number; ip: string | null; userAgent: string | null;

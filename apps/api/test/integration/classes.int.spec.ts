@@ -37,6 +37,9 @@ describe('ClassesService.create (sous cp_app)', () => {
     expect(list.map((c) => c.name)).toContain('L2 Maths');
     await expect(svc.create(cli, { name: 'L2 Maths', level: 'L2', academicYear: '2026-2027' })).rejects.toMatchObject({ code: 'CLASS_ALREADY_EXISTS' });
     await expect(svc.create(cli, { name: 'L2 Maths', level: 'L2', academicYear: '2026-2028' })).rejects.toMatchObject({ code: 'INVALID_ACADEMIC_YEAR' });
+    // NUL : erreur de validation propre, pas une erreur Postgres 22021.
+    await expect(svc.create(cli, { name: 'L2\u0000Maths', level: 'L2', academicYear: '2026-2027' })).rejects.toMatchObject({ code: 'INVALID_CLASS_NAME' });
+    await expect(svc.create(cli, { name: 'L2 Maths 2', level: 'L\u00002', academicYear: '2026-2027' })).rejects.toMatchObject({ code: 'INVALID_CLASS_LEVEL' });
   });
 });
 

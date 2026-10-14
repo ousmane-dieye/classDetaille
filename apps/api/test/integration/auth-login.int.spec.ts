@@ -93,6 +93,24 @@ describe('POST /api/auth/login (P2, § 3.2)', () => {
     expect(r.statusCode).toBe(429);
     expect(r.headers['retry-after']).toBe('1');
   });
+  it('Turnstile exigé et service en erreur isolée (hors mode dégradé) → TURNSTILE_REQUIRED, pas de session', async () => {
+    const local = await buildTestApp(db);
+    try {
+      const s = await registerStudent(local.app, classId);
+      const ip = '203.0.113.44';
+      for (let i = 0; i < 3; i++) {
+        await send(local.app, 'POST', '/api/auth/login', { email: s.email, password: 'mauvais mot de passe long' }, {}, ip);
+        await ageFailures();
+      }
+      local.turnstile.next = 'error';
+      const r = await send(local.app, 'POST', '/api/auth/login', { email: s.email, password: PASSWORD, turnstileToken: 'tok' }, {}, ip);
+      expect(r.statusCode).toBe(401);
+      expect(r.json().error.code).toBe('TURNSTILE_REQUIRED');
+      expect(sessionCookieOf(r)).toBeUndefined();
+    } finally {
+      await local.close();
+    }
+  });
   it('mode dégradé de Turnstile : 2 échecs par couple IP + compte suffisent à limiter', async () => {
     const local = await buildTestApp(db);
     try {

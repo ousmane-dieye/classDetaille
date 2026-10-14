@@ -32,7 +32,15 @@ function required(values: Record<string, string | boolean | undefined>, names: s
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   if (command !== 'create-admin' && command !== 'create-class') { process.stderr.write(USAGE); return 2; }
-  const ctx = await NestFactory.createApplicationContext(CliModule.forRoot(loadConfig(process.env)), { logger: false });
+  let config: ReturnType<typeof loadConfig>;
+  try {
+    config = loadConfig(process.env);
+  } catch (e) {
+    // Les messages du chargeur ne contiennent que des noms de variables (ou de fichiers), jamais de valeurs ni de secrets.
+    process.stderr.write(`erreur : INVALID_CONFIGURATION\n${e instanceof Error ? e.message : ''}\n`);
+    return 1;
+  }
+  const ctx = await NestFactory.createApplicationContext(CliModule.forRoot(config), { logger: false });
   try {
     if (command === 'create-admin') {
       const { values } = parseArgs({ args: rest, strict: true, options: { email: { type: 'string' }, 'first-name': { type: 'string' }, 'last-name': { type: 'string' } } });

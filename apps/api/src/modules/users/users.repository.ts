@@ -24,6 +24,14 @@ export class UsersRepository {
     return u?.globalRole ?? null;
   }
 
+  /** État d'authentification : rôle si ACTIVE, sinon motif de révocation (SUSPENDED → SUSPENDED, DELETED → ANONYMIZED). */
+  async authStateOf(id: string): Promise<{ role: 'USER' | 'ADMIN' } | { revokeReason: 'SUSPENDED' | 'ANONYMIZED' } | null> {
+    const u = await this.prisma.client.user.findFirst({ where: { id }, select: { globalRole: true, status: true } });
+    if (!u) return null;
+    if (u.status === 'ACTIVE') return { role: u.globalRole };
+    return { revokeReason: u.status === 'SUSPENDED' ? 'SUSPENDED' : 'ANONYMIZED' };
+  }
+
   async findProfile(id: string): Promise<UserProfileDto | null> {
     const u = await this.prisma.client.user.findFirst({ where: { id, status: 'ACTIVE' }, select: PROFILE });
     if (!u?.email || !u.firstName || !u.lastName) return null;

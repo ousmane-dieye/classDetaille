@@ -101,6 +101,16 @@ describe('LoginRateLimiter (§ 3.2)', () => {
     expect(warn.mock.calls.flat().join(' ')).toMatch(/login failures above 50/);
     warn.mockRestore();
   });
+  it('les seaux échus ne comptent pas dans le plafond de 50 000 lignes', async () => {
+    await sql(`insert into app.rate_limit_buckets (key, window_start) select 'ip:10.' || (g / 65536) || '.' || ((g / 256) % 256) || '.' || (g % 256), clock_timestamp() - interval '1 hour' from generate_series(1, $1::int) g`, [BUCKET_ROW_CAP + 1]);
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const k = limiter.keys('203.0.113.8', 'h@example.com');
+    await limiter.check(k, false);
+    await limiter.recordFailure(k, false);
+    expect((await sql('select count(*)::int as n from app.rate_limit_buckets where key = $1', [k.accountKey])).rows[0].n).toBe(1);
+    expect(warn.mock.calls.flat().join(' ')).not.toMatch(/above 50000 rows/);
+    warn.mockRestore();
+  });
   it('au-delà de 50 000 lignes, seule la limite par IP s’applique, avec alerte', async () => {
     await sql(`insert into app.rate_limit_buckets (key, window_start) select 'ip:10.' || (g / 65536) || '.' || ((g / 256) % 256) || '.' || (g % 256), clock_timestamp() from generate_series(1, $1::int) g`, [BUCKET_ROW_CAP + 1]);
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);

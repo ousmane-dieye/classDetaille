@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { isAcceptedEmail, normalizeEmail } from './email.js';
-import { normalizeName } from './names.js';
+import { isValidName, normalizeName } from './names.js';
 
 // Le mot de passe brut est borné à 1024 caractères avant toute normalisation (défense contre les corps énormes) ;
 // la règle métier (15/16 à 128 après NFKC) est appliquée par le serveur, avec un code d'erreur précis.
-const RawPassword = z.string().min(1).max(1024);
+const RawPassword = z.string().min(1).max(1024, { message: 'PASSWORD_TOO_LONG' });
 const Email = z.string().max(320).transform(normalizeEmail).refine(isAcceptedEmail, { message: 'INVALID_EMAIL' });
 // Longueur en points de code (et non en unités UTF-16) : un emoji seul compte pour 1.
 const Name = z
@@ -14,11 +14,8 @@ const Name = z
   .pipe(
     z
       .string()
-      .refine((s) => {
-        const n = [...s].length;
-        return n >= 2 && n <= 80;
-      }, { message: 'INVALID_NAME_LENGTH' })
-      .regex(/^[^\p{Cc}\p{Cf}]+$/u),
+      .refine((s) => [...s].length >= 2 && [...s].length <= 80, { message: 'INVALID_NAME_LENGTH' })
+      .refine(isValidName, { message: 'INVALID_NAME' }),
   );
 
 export const RegisterBody = z.strictObject({

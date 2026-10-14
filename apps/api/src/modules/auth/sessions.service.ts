@@ -49,8 +49,14 @@ export class SessionsService {
     if (!hash) return null;
     const s = await this.repo.findValid(hash);
     if (!s) return null;
-    const role = await this.users.activeRoleOf(s.userId);
-    if (!role) return null;
+    const state = await this.users.authStateOf(s.userId);
+    if (!state) return null;
+    if ('revokeReason' in state) {
+      // Le cookie d'un compte non ACTIVE ne redevient jamais valide, même si le compte est réactivé ensuite.
+      await this.repo.revoke(s.sessionId, state.revokeReason);
+      return null;
+    }
+    const role = state.role;
     if (s.stale) await this.repo.touch(s.sessionId, STUDENT_SESSION_SECONDS);
     return { kind: 'user', userId: s.userId, globalRole: role, sessionId: s.sessionId };
   }

@@ -42,6 +42,7 @@ describe('create-admin (§ 3.2)', () => {
   it('mot de passe administrateur de 15 caractères → PASSWORD_TOO_SHORT ; argument manquant → INVALID_ARGUMENTS ; commande inconnue → 2', async () => {
     const fresh = await createTestDatabase();
     expect((await runCli(fresh, ['create-admin', '--email', 'a@example.com', '--first-name', 'Awa', '--last-name', 'Sow'], `${'a'.repeat(15)}\n`)).stderr).toBe('erreur : PASSWORD_TOO_SHORT\n');
+    expect((await runCli(fresh, ['create-admin', '--email', 'a@example.com', '--first-name', 'Aw\u200Ba', '--last-name', 'Sow'], `${ADMIN_PASSWORD}\n`)).stderr).toBe('erreur : INVALID_NAME\n');
     expect((await runCli(fresh, ['create-admin', '--email', 'a@example.com'], `${ADMIN_PASSWORD}\n`)).stderr).toBe('erreur : INVALID_ARGUMENTS\n');
     expect((await runCli(fresh, ['drop-everything'])).code).toBe(2);
   });
@@ -105,6 +106,16 @@ describe('create-admin : concurrence sérialisée par role_guard (§ 5.4)', () =
   });
 });
 
+describe('configuration invalide', () => {
+  it('erreur : INVALID_CONFIGURATION + noms des variables seulement, jamais les valeurs, code 1', async () => {
+    const r = await runCli(await createTestDatabase(), ['create-class', '--name', 'M1', '--level', 'M1', '--year', '2026-2027'], '', { HTTP_PORT: 'valeur-secrete-xyz' });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toMatch(/^erreur : INVALID_CONFIGURATION\n/);
+    expect(r.stderr).toContain('HTTP_PORT');
+    expect(r.stdout + r.stderr).not.toContain('valeur-secrete-xyz');
+  });
+});
+
 describe('create-class (R8)', () => {
   let db: string;
   beforeAll(async () => { db = await createTestDatabase(); });
@@ -117,5 +128,7 @@ describe('create-class (R8)', () => {
     expect((await query(db, `select count(*)::int as n from app.audit_log where action = 'CLASS_CREATED'`)).rows[0].n).toBe(1);
     expect((await runCli(db, ['create-class', '--name', 'L3 Informatique', '--level', 'L3', '--year', '2026-2027'])).stderr).toBe('erreur : CLASS_ALREADY_EXISTS\n');
     expect((await runCli(db, ['create-class', '--name', 'M1', '--level', 'M1', '--year', '2026-2028'])).stderr).toBe('erreur : INVALID_ACADEMIC_YEAR\n');
+    expect((await runCli(db, ['create-class', '--name', 'M1\u200Bx', '--level', 'M1', '--year', '2026-2027'])).stderr).toBe('erreur : INVALID_CLASS_NAME\n');
+    expect((await runCli(db, ['create-class', '--name', 'M2', '--level', 'M\u200B2', '--year', '2026-2027'])).stderr).toBe('erreur : INVALID_CLASS_LEVEL\n');
   });
 });

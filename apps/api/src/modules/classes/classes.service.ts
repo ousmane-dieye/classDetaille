@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { normalizeName } from '@classepulse/shared';
+import { hasForbiddenNameChars, isValidName, normalizeName } from '@classepulse/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
 import { isUniqueViolation } from '../../database/errors.js';
@@ -43,8 +43,8 @@ export class ClassesService {
     const name = normalizeName(input.name);
     const level = normalizeName(input.level);
     const m = YEAR.exec(input.academicYear.trim());
-    if ([...name].length < 2 || [...name].length > 80) throw new ApiError(400, 'INVALID_CLASS_NAME');
-    if ([...level].length < 1 || [...level].length > 40) throw new ApiError(400, 'INVALID_CLASS_LEVEL');
+    if (!isValidName(name)) throw new ApiError(400, 'INVALID_CLASS_NAME');
+    if ([...level].length < 1 || [...level].length > 40 || hasForbiddenNameChars(level)) throw new ApiError(400, 'INVALID_CLASS_LEVEL');
     if (!m || Number(m[2]) !== Number(m[1]) + 1) throw new ApiError(400, 'INVALID_ACADEMIC_YEAR');
     const id = uuidv7();
     try {

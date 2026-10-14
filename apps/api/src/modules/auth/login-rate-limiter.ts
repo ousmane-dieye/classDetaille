@@ -48,7 +48,7 @@ export class LoginRateLimiter {
     const accountLimit = degraded ? DEGRADED_LIMITS.account : ACCOUNT_LIMIT;
     const ip = await this.repo.hit(keys.ipKey, WINDOW_SECONDS);
     if (ip.attempts > ipLimit) return { kind: 'limited', retryAfterSeconds: Math.max(1, ip.resetIn) };
-    if ((await this.repo.rowCountUpTo(BUCKET_ROW_CAP + 1)) > BUCKET_ROW_CAP) {
+    if ((await this.repo.rowCountUpTo(BUCKET_ROW_CAP + 1, WINDOW_SECONDS)) > BUCKET_ROW_CAP) {
       // Au-delà de 50 000 lignes, seule la limite par IP s'applique (§ 2.2).
       if (!this.capWarned) this.logger.warn(`alert: rate_limit_buckets above ${BUCKET_ROW_CAP} rows, per-account limit suspended`);
       this.capWarned = true;

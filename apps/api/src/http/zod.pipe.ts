@@ -9,6 +9,8 @@ export class ZodPipe<T extends z.ZodType> implements PipeTransform<unknown, z.in
   transform(value: unknown): z.infer<T> {
     const r = this.schema.safeParse(value);
     if (r.success) return r.data;
+    // Mot de passe brut trop long (> 1024) : même code que 129+ caractères, jamais VALIDATION_FAILED.
+    if (r.error.issues.some((i) => i.message === 'PASSWORD_TOO_LONG')) throw new ApiError(400, 'PASSWORD_TOO_LONG');
     const fields = [...new Set(r.error.issues.map((i) => (i.path.length ? i.path.map(String).join('.') : '(body)')))];
     throw new ApiError(400, 'VALIDATION_FAILED', { fields });
   }

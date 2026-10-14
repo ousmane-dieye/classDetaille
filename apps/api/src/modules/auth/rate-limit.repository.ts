@@ -61,9 +61,13 @@ export class RateLimitRepository {
     await this.prisma.client.$executeRaw`delete from app.rate_limit_buckets where key = ${key}`;
   }
 
-  /** Compte borné : ne lit jamais plus de `cap` lignes. */
-  async rowCountUpTo(cap: number): Promise<number> {
-    const r = await this.prisma.client.$queryRaw<{ n: number }[]>`select count(*)::int as n from (select 1 from app.rate_limit_buckets limit ${cap}::int) s`;
+  /** Compte borné : ne lit jamais plus de `cap` lignes ; les seaux dont la fenêtre est échue ne comptent pas (R14). */
+  async rowCountUpTo(cap: number, windowSeconds: number): Promise<number> {
+    const r = await this.prisma.client.$queryRaw<{ n: number }[]>`
+      select count(*)::int as n from (
+        select 1 from app.rate_limit_buckets
+         where window_start > clock_timestamp() - make_interval(secs => ${windowSeconds}::double precision)
+         limit ${cap}::int) s`;
     return r[0]!.n;
   }
 }

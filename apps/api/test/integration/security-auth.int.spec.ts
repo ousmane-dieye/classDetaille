@@ -22,7 +22,7 @@ describe('sécurité — sessions (§ 3.4)', () => {
     ['inactivité dépassée', (id: string) => query(db, `update app.sessions set idle_expires_at = clock_timestamp() - interval '1 second' where user_id = $1`, [id], 'cp_owner')],
     ['échéance absolue dépassée', (id: string) => query(db, `update app.sessions set idle_expires_at = clock_timestamp() - interval '2 seconds', absolute_expires_at = clock_timestamp() - interval '1 second' where user_id = $1`, [id], 'cp_owner')],
     ['compte suspendu', (id: string) => query(db, `update app.users set status = 'SUSPENDED' where id = $1`, [id], 'cp_owner')],
-  ])('session %s → 401 et effacement du cookie, en GET comme en POST, sans jamais redevenir valide', async (_name, spoil) => {
+  ])('session %s → 401 et effacement du cookie, en GET comme en POST, et reste invalide', async (_name, spoil) => {
     const s = await registerStudent(t.app, classId);
     await spoil(s.userId);
     for (const res of [
@@ -33,6 +33,21 @@ describe('sécurité — sessions (§ 3.4)', () => {
       expect(res.statusCode).toBe(401);
       expect(res.headers['set-cookie']).toBe(CLEAR);
     }
+  });
+  it.each([['SUSPENDED', 'SUSPENDED'], ['DELETED', 'ANONYMIZED']])('compte %s (puis ACTIVE si réactivable) : l’ancien cookie reste 401, session révoquée (%s)', async (status, reason) => {
+    const s = await registerStudent(t.app, classId);
+    // DELETED exige la ligne anonymisée complète (CHECK users_lifecycle) ; l'ancien cookie doit rester mort malgré le retour à ACTIVE.
+    if (status === 'DELETED') await query(db, `update app.users set status = 'DELETED', email = null, first_name = null, last_name = null, password_hash = null, email_reminders = false, email_announcements = false, deleted_at = now() where id = $1`, [s.userId], 'cp_owner');
+    else await query(db, `update app.users set status = $2::app.user_status where id = $1`, [s.userId, status], 'cp_owner');
+    const first = await send(t.app, 'GET', '/api/me', undefined, cookieHeader(s.token));
+    expect(first.statusCode).toBe(401);
+    expect(first.headers['set-cookie']).toBe(CLEAR);
+    // Une ligne anonymisée ne peut pas redevenir ACTIVE (users_lifecycle) : seul le cas SUSPENDED se réactive.
+    if (status === 'SUSPENDED') await query(db, `update app.users set status = 'ACTIVE' where id = $1`, [s.userId], 'cp_owner');
+    const again = await send(t.app, 'GET', '/api/me', undefined, cookieHeader(s.token));
+    expect(again.statusCode).toBe(401);
+    expect(again.headers['set-cookie']).toBe(CLEAR);
+    expect((await query(db, `select revoke_reason::text as r from app.sessions where user_id = $1`, [s.userId])).rows).toEqual([{ r: reason }]);
   });
   it.each(['', 'not-a-token', 'a'.repeat(43), '<script>'])('cookie mal formé %j → 401', async (value) => {
     const res = await send(t.app, 'GET', '/api/me', undefined, { cookie: `__Host-cp_session=${value}` });

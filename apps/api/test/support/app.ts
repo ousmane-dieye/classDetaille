@@ -98,7 +98,7 @@ export async function query(db: string, sql: string, params: unknown[] = [], rol
 }
 
 /** Lance la CLI avec une configuration lue depuis des fichiers secrets temporaires (jamais en variables). */
-export async function runCli(db: string, args: string[], stdin = ''): Promise<{ code: number; stdout: string; stderr: string }> {
+export async function runCli(db: string, args: string[], stdin = '', envOverride: Record<string, string> = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   const cfg = testConfig(db);
   const dir = mkdtempSync(join(tmpdir(), 'cp-cli-'));
   const file = (name: string, value: string) => { const p = join(dir, name); writeFileSync(p, `${value}\n`); return p; };
@@ -110,6 +110,7 @@ export async function runCli(db: string, args: string[], stdin = ''): Promise<{ 
     DB_PASSWORD_FILE: file('db', auth.password),
     RATE_LIMIT_HMAC_KEY_FILE: file('hmac', cfg.security.rateLimitHmacKey),
     TURNSTILE_SECRET_FILE: file('turnstile', cfg.turnstile.secret),
+    ...envOverride,
   };
   try {
     return await new Promise((done, fail) => {

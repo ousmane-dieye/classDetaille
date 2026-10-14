@@ -77,7 +77,9 @@ export class AuthService {
     if (gate.turnstileRequired) {
       const t = await this.turnstile.check(body.turnstileToken, actor.ip);
       if (t === 'invalid') throw new ApiError(401, 'TURNSTILE_REQUIRED', { turnstileRequired: true });
-      // 'unavailable' : Turnstile vient de passer en mode dégradé ; les limites réduites s'appliquent aux tentatives suivantes.
+      // Erreur isolée, mode dégradé pas encore atteint : on refuse plutôt que de laisser passer sans CAPTCHA.
+      if (t === 'unavailable' && !this.turnstile.isDegraded()) throw new ApiError(401, 'TURNSTILE_REQUIRED', { turnstileRequired: true });
+      // 'unavailable' avec mode dégradé : les limites réduites s'appliquent aux tentatives suivantes.
     }
     const password = normalizePassword(body.password);
     const user = await this.users.findForLogin(actor, body.email);
