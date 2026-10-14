@@ -102,6 +102,50 @@ Variables de l'API :
 | `LOGIN_LIMIT_PER_IP` | non | Tentatives de connexion par IP sur 15 min (`100`) |
 | `THROTTLE_PER_IP` / `THROTTLE_PER_SESSION` | non | Limitation générale par minute (`600` / `300`) |
 
+### Parcours administrateur en développement
+
+Prérequis : Mailpit, l'API et le worker démarrés (sections ci-dessus), un administrateur créé (`pnpm cli create-admin`, voir plus haut).
+
+```bash
+O='Origin: http://localhost:5173'; J='Content-Type: application/json'
+# 1. Connexion : 202 ADMIN_CODE_REQUIRED + cookie __Host-cp_challenge (aucune session à ce stade)
+curl -s -i -c admin.txt -X POST http://127.0.0.1:3000/api/auth/login -H "$O" -H "$J" -d '{"email":"admin@example.com","password":"<mot de passe>"}'
+# 2. Le code à 6 chiffres arrive dans Mailpit (http://127.0.0.1:8025) une fois le worker passé
+# 3. Vérification : 200 profil + cookie __Host-cp_session
+curl -s -i -b admin.txt -c admin.txt -X POST http://127.0.0.1:3000/api/auth/verify-code -H "$O" -H "$J" -d '{"code":"123456"}'
+```
+
+Les cookies `__Host-` portent l'attribut `Secure` : en HTTP local, `curl` ne les renvoie pas toujours (selon sa version) et un navigateur les refuse. Variantes qui fonctionnent : un proxy TLS local avec `curl --insecure`, passer le cookie à la main (`-H 'Cookie: __Host-cp_challenge=<valeur>'`), ou les tests d'intégration, qui rejouent ce parcours avec `inject()` (`apps/api/test/integration/auth-admin-login.int.spec.ts`, `security-admin.int.spec.ts`).
+
+Variables d'environnement par service :
+
+| Service | Variables du lot 1b |
+| --- | --- |
+| API | `OTP_PEPPER_FILE`, `OUTBOX_PAYLOAD_KEY_FILE` |
+| Worker | `OUTBOX_PAYLOAD_KEY_FILE`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER` et `SMTP_PASSWORD_FILE` (facultatives), `MAIL_FROM`, `APP_ORIGIN` |
+| `ops` | `OTP_PEPPER_FILE`, `DB_USER=cp_ops` |
+
+Limite documentée (§ 3.3) : le second facteur des administrateurs repose sur la sécurité de leur boîte email. Utilise une adresse dédiée, protégée par une double authentification.
+
+Codes d'erreur du lot 1b (stables, traduits par le web au lot 1c) : `CHALLENGE_EXPIRED`, `CODE_INVALID` (`attemptsLeft`), `CODE_LOCKED`, `SECOND_FACTOR_BLOCKED`, `TOO_MANY_CODE_REQUESTS` et `TOO_MANY_ATTEMPTS` (429, `Retry-After`), `TURNSTILE_REQUIRED`, `TURNSTILE_FAILED`, `SIGNUP_UNAVAILABLE` et `RESET_UNAVAILABLE` (503, `Retry-After`), `RESET_TOKEN_INVALID`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `STEP_UP_REQUIRED` (`missing`: `PASSWORD` ou `CODE`), `EMAIL_UNCHANGED`, `EMAIL_TAKEN`, ainsi que `INVALID_CREDENTIALS`, `ACCOUNT_SUSPENDED` et `UNAUTHENTICATED` déjà présents au lot 1a. Une requête dont le corps JSON est vide s'envoie avec `{}` (jamais sans corps).
+
+Contrat pour le lot 1c (routes du lot 1b ; un corps vide s'envoie `{}`) :
+
+| Route | Corps | Succès | Erreurs notables |
+| --- | --- | --- | --- |
+| `POST /api/auth/register` | inscription, `turnstileToken` | `201` profil + session | `400 TURNSTILE_FAILED`, `503 SIGNUP_UNAVAILABLE` (`Retry-After`), `429` |
+| `POST /api/auth/login` (administrateur) | `{ email, password, turnstileToken? }` | `202` `{ status: 'ADMIN_CODE_REQUIRED', expiresInSeconds, resendAfterSeconds }` + cookie `__Host-cp_challenge` | `401 INVALID_CREDENTIALS` (`turnstileRequired`), `401 TURNSTILE_REQUIRED`, `403 ACCOUNT_SUSPENDED`, `403 SECOND_FACTOR_BLOCKED`, `429 TOO_MANY_ATTEMPTS`, `429 TOO_MANY_CODE_REQUESTS` |
+| `POST /api/auth/verify-code` | `{ code }` | `200` profil + session | `400 CODE_INVALID` (`attemptsLeft`), `400 CODE_LOCKED`, `400 CHALLENGE_EXPIRED`, `403 SECOND_FACTOR_BLOCKED`, `429` |
+| `POST /api/auth/resend-code` | `{}` | `202` | `400 CHALLENGE_EXPIRED`, `429 TOO_MANY_CODE_REQUESTS` (`Retry-After`) |
+| `POST /api/auth/verify-recovery` | `{ recoveryCode }` | `200` profil + session | comme `verify-code` |
+| `POST /api/auth/forgot-password` | `{ email, turnstileToken }` | `202` `{ status: 'RESET_REQUESTED' }` (toujours) | `400 TURNSTILE_FAILED`, `503 RESET_UNAVAILABLE` (`Retry-After`), `429` |
+| `POST /api/auth/reset-password` | `{ token, newPassword }` | `204` | `400 RESET_TOKEN_INVALID`, codes de politique de mot de passe |
+| `POST /api/me/reauth` | `{ password }` | `204` | `400 CURRENT_PASSWORD_INVALID`, `429` |
+| `POST /api/me/step-up` ; `/api/me/step-up/verify` | `{ password }` ; `{ code }` | `202` `{ expiresInSeconds }` ; `204` | `403 FORBIDDEN` (étudiant), `400 CODE_INVALID`, `400 CHALLENGE_EXPIRED` |
+| `POST /api/me/email-change` ; `/verify-old` ; `/verify-new` | `{ password, newEmail }` ; `{ code }` ; `{ code }` | `202` ; `202` ; `200` profil | `400 EMAIL_UNCHANGED`, `409 EMAIL_TAKEN`, `400 CHALLENGE_EXPIRED` |
+
+Gardes que le lot 2 appelle dans la transaction de l'action sensible : `StepUpService.assertStepUpFreshInTx` (`403 STEP_UP_REQUIRED`, `missing: 'PASSWORD' | 'CODE'`) et `assertRecentPasswordInTx` (`403 REAUTH_REQUIRED`).
+
 ### Récupération d'un administrateur
 
 Un administrateur qui n'a plus accès à sa boîte email obtient un code de récupération (12 caractères, valable 15 minutes). Depuis un terminal, sous `DB_USER=cp_ops` :

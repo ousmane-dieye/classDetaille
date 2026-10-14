@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
 import { PasswordHasher, Semaphore } from './password-hasher.js';
 
 describe('PasswordHasher (§ 3.2 : Argon2id 19 Mio, t=2, p=1)', () => {
@@ -16,6 +17,21 @@ describe('PasswordHasher (§ 3.2 : Argon2id 19 Mio, t=2, p=1)', () => {
   });
   it('verifyDummy renvoie toujours faux', async () => {
     await expect(h.verifyDummy('nimporte quoi du tout')).resolves.toBe(false);
+  });
+});
+
+describe('PasswordHasher : préchauffage au démarrage', () => {
+  it('un échec du hachage factice n’empêche pas le démarrage : avertissement, puis recalcul à la première utilisation', async () => {
+    const h = new PasswordHasher();
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const spy = vi.spyOn(h, 'hash').mockRejectedValueOnce(new Error('boom'));
+    await expect(h.onApplicationBootstrap()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).not.toContain('boom-secret');
+    await expect(h.verifyDummy('x')).resolves.toBe(false);
+    expect(spy).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+    spy.mockRestore();
   });
 });
 

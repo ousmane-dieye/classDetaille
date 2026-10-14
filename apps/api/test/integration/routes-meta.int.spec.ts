@@ -99,4 +99,9 @@ describe('méta-test des routes (§ 5.4, R11)', () => {
     expect(res.json().error.code).toBe('VALIDATION_FAILED');
     expect(res.json().requestId).toBeTruthy();
   });
+  it.each(['/api/auth/verify-code', '/api/auth/verify-recovery', '/api/auth/resend-code'])('%s sans cookie de vérification : 400 CHALLENGE_EXPIRED', async (url) => {
+    const body = url.endsWith('resend-code') ? {} : url.endsWith('verify-code') ? { code: '123456' } : { recoveryCode: 'ABCD-EFGH-JKMN' };
+    const res = await send(t.app, 'POST', url, body);
+    expect([res.statusCode, res.json().error.code]).toEqual([400, 'CHALLENGE_EXPIRED']);
+  });
 });

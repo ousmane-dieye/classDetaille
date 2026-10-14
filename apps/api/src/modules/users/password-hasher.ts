@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
 
 /** Paramètres OWASP (§ 3.2). `algorithm: 2` = Argon2id (l'énumération du paquet est un « const enum », absente à l'exécution). */
@@ -31,6 +31,7 @@ export class Semaphore {
 @Injectable()
 export class PasswordHasher implements OnApplicationBootstrap {
   private readonly slots = new Semaphore(MAX_CONCURRENT_HASHES);
+  private readonly logger = new Logger(PasswordHasher.name);
   private dummyHash: Promise<string> | undefined;
 
   /** Le mot de passe reçu est déjà normalisé (NFKC). */
@@ -46,7 +47,12 @@ export class PasswordHasher implements OnApplicationBootstrap {
 
   /** Report du lot 1a : le hachage factice est prêt avant la première requête (aucun écart de durée à la première connexion inconnue). */
   async onApplicationBootstrap(): Promise<void> {
-    await this.verifyDummy('warm-up');
+    try {
+      await this.verifyDummy('warm-up');
+    } catch {
+      // Le démarrage ne dépend pas du préchauffage : le hachage factice sera recalculé à la première utilisation.
+      this.logger.warn('Préchauffage du hachage factice impossible ; il sera recalculé à la première utilisation');
+    }
   }
 
   /** Même coût qu'une vérification réelle, quand l'email est inconnu (§ 3.2). */
