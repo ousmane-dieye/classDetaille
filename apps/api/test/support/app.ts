@@ -73,3 +73,22 @@ export async function insertClass(db: string, name: string, opts: { year?: strin
   }
   return id;
 }
+
+export const PASSWORD = 'une phrase de passe assez longue';
+
+export function registration(classId: string, over: Record<string, unknown> = {}) {
+  const n = Math.random().toString(36).slice(2, 10);
+  return { firstName: 'Awa', lastName: 'Diop', email: `awa.${n}@example.com`, password: PASSWORD, classId, turnstileToken: 'tok', ...over };
+}
+
+export async function registerStudent(app: NestFastifyApplication, classId: string, over: Record<string, unknown> = {}) {
+  const body = registration(classId, over);
+  const res = await send(app, 'POST', '/api/auth/register', body);
+  if (res.statusCode !== 201) throw new Error(`register failed: ${res.statusCode} ${res.body}`);
+  return { token: sessionCookieOf(res)!, email: String(body.email), password: String(body.password), userId: (res.json() as { id: string }).id };
+}
+
+export async function query(db: string, sql: string, params: unknown[] = [], role: 'cp_app' | 'cp_owner' = 'cp_app') {
+  const c = await connectAs(role, db);
+  try { return await c.query(sql, params); } finally { await c.end(); }
+}

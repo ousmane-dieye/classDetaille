@@ -31,7 +31,11 @@ export class UsersRepository {
   }
 
   async createInTx(tx: TxClient, row: NewStudent & { globalRole: 'USER' | 'ADMIN' }): Promise<void> {
-    await tx.user.create({ data: row, select: { id: true } });
+    // SQL paramétré sur les colonnes accordées à cp_app : `create` de Prisma envoie aussi des valeurs par défaut (42501).
+    await tx.$executeRaw`
+      insert into app.users (id, email, first_name, last_name, password_hash, global_role, status, created_at, updated_at)
+      values (${row.id}::uuid, ${row.email}::ext.citext, ${row.firstName}, ${row.lastName}, ${row.passwordHash},
+              ${row.globalRole}::app.global_role, 'ACTIVE'::app.user_status, now(), now())`;
   }
 
   async updateProfile(id: string, firstName: string, lastName: string): Promise<void> {
