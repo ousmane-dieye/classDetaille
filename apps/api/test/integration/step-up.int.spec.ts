@@ -197,3 +197,27 @@ describe('D2 : fin de session = vérifications liées consommées (SESSION_ENDED
     expect(await reasonOf(a.admin.id)).toBe('SESSION_ENDED');
   });
 });
+
+describe('ordre des verrous de startStepUp (users avant sessions)', () => {
+  it('en attente du verrou users, la demande ne tient pas la ligne de session', async () => {
+    const { admin, headers } = await loginAdmin(t.app, db);
+    await ageChallenges(db, admin.id, 2);
+    const holder = await connectAs('cp_app', db);
+    await holder.query('begin');
+    const pid = (await holder.query('select pg_backend_pid() as pid')).rows[0].pid as number;
+    await holder.query('select id from app.users where id = $1 for no key update', [admin.id]);
+    const pending = send(t.app, 'POST', '/api/me/step-up', { password: admin.password }, headers);
+    await waitForLockWait(db, pid);
+    const third = await connectAs('cp_app', db);
+    try {
+      await third.query('begin');
+      await third.query(`set local lock_timeout = '1s'`);
+      // une écriture concurrente sur la session (comme une déconnexion) ne doit pas attendre
+      await third.query(`update app.sessions set last_seen_at = clock_timestamp() where user_id = $1`, [admin.id]);
+      await third.query('commit');
+    } finally { await third.end(); }
+    await holder.query('commit');
+    await holder.end();
+    expect((await pending).statusCode).toBe(202);
+  });
+});

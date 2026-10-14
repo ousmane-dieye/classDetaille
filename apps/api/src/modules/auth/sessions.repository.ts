@@ -56,7 +56,7 @@ export class SessionsRepository {
   }
 
   async markReauthInTx(tx: TxClient, sessionId: string): Promise<void> {
-    await tx.$executeRaw`update app.sessions set reauth_at = clock_timestamp() where id = ${sessionId}::uuid`;
+    await tx.$executeRaw`update app.sessions set reauth_at = clock_timestamp() where id = ${sessionId}::uuid and revoked_at is null`;
   }
 
   /** Fraîcheur (moins de 5 min) du mot de passe et du code, sous `FOR SHARE` : la session ne peut pas être révoquée pendant l'action. `null` : session invalide. */

@@ -33,8 +33,9 @@ export class StepUpService {
     await this.credentials.verifyOrThrow(actor, password, ctx);
     await this.otpLimiter.hitRequest(ctx.ip);
     await this.prisma.withTx(async (tx) => {
-      await this.sessions.markReauthInTx(tx, actor.sessionId);
+      // Ordre des verrous (§ 3.4) : users (dans issueInTx), vérifications, puis sessions.
       await this.sf.issueInTx(tx, actor, { userId: actor.userId, purpose: 'STEP_UP', sessionId: actor.sessionId, pendingEmail: null, tokenHash: null, ip: ctx.ip });
+      await this.sessions.markReauthInTx(tx, actor.sessionId);
     });
     return { expiresInSeconds: 600 };
   }
