@@ -9,9 +9,10 @@ import { BUCKET_ROW_CAP } from '../../src/modules/auth/login-rate-limiter.js';
 import { OtpLimiter } from '../../src/modules/auth/second-factor/otp-limiter.js';
 import { otpHmac } from '../../src/modules/auth/second-factor/otp.js';
 import { SecondFactorService, outcomeToError, type CheckOutcome } from '../../src/modules/auth/second-factor/second-factor.service.js';
-import { buildTestApp, type TestApp } from '../support/app.js';
+import { TEST_OTP_PEPPER, buildTestApp, type TestApp } from '../support/app.js';
 import { waitForLockWait } from '../support/lock-wait.js';
 import { ageChallenges, createAdmin, createAdminSession, latestCode, seedHistory } from '../support/second-factor.js';
+import { runAdminRecoveryCode } from '../../src/ops/admin-recovery-code.js';
 import { connectAs, createTestDatabase } from '../support/pg.js';
 
 let db: string;
@@ -210,6 +211,31 @@ describe('checkInTx', () => {
       await p.query(`update app.second_factor_failures set occurred_at = occurred_at - interval '3 hours' where user_id = $1`, [a.id]);
     } finally { await p.end(); }
     await expect(issueLogin(a.id)).rejects.toMatchObject({ code: 'SECOND_FACTOR_BLOCKED' });
+  });
+  it('--clear-block repart de zéro : les anciens échecs de la fenêtre ne re-bloquent pas ; 10 nouveaux échecs bloquent à nouveau (F1)', async () => {
+    const a = await createAdmin(db);
+    const issued = await issueLogin(a.id);
+    const code = await latestCode(db, a.email);
+    await seedFailures(a.id, 9);
+    expect(await check(a.id, wrong(code), issued.challengeId)).toEqual({ ok: false, reason: 'BLOCKED' });
+    const ops = await connectAs('cp_ops', db);
+    try {
+      const io = { isTty: true, write: () => undefined, waitForEnter: async () => undefined };
+      expect(await runAdminRecoveryCode({ client: ops, pepper: TEST_OTP_PEPPER, io }, { email: a.email, clearBlock: true })).toBe(0);
+    } finally { await ops.end(); }
+    const [u] = await rows(`select second_factor_blocked_at is null as open, second_factor_cleared_at is not null as cleared from app.users where id = $1`, [a.id]);
+    expect(u).toEqual({ open: true, cleared: true });
+    await ageChallenges(db, a.id, 2);
+    const next = await issueLogin(a.id);
+    const code2 = await latestCode(db, a.email);
+    expect(await check(a.id, wrong(code2), next.challengeId)).toMatchObject({ ok: false, reason: 'WRONG' });
+    expect((await rows(`select second_factor_blocked_at is null as open from app.users where id = $1`, [a.id]))[0].open).toBe(true);
+    await seedFailures(a.id, 7);
+    expect(await check(a.id, wrong(code2), next.challengeId)).toMatchObject({ ok: false });
+    expect((await rows(`select second_factor_blocked_at is not null as b from app.users where id = $1`, [a.id]))[0].b).toBe(false);
+    await seedFailures(a.id, 1);
+    expect(await check(a.id, wrong(code2), next.challengeId)).toMatchObject({ ok: false, reason: expect.stringMatching(/BLOCKED|LOCKED/) });
+    expect((await rows(`select second_factor_blocked_at is not null as b from app.users where id = $1`, [a.id]))[0].b).toBe(true);
   });
   it('compte bloqué : le bon code est refusé sans comparaison (aucun essai ni échec enregistré)', async () => {
     const a = await createAdmin(db);

@@ -32,6 +32,13 @@ async function main(argv: string[]): Promise<number> {
     return 1;
   }
   const client = new pg.Client(toPgPoolConfig(config.db));
+  // Coupure de la connexion en cours de route : sans écouteur, l'événement `error` ferait planter le processus avec une trace
+  // (qui peut contenir l'hôte). On efface l'écran (un code peut y être affiché), on affiche une catégorie fixe et on sort.
+  client.on('error', () => {
+    process.stdout.write('\x1b[2J\x1b[3J\x1b[H');
+    process.stderr.write('erreur : DATABASE_CONNECTION_LOST\n');
+    process.exit(1);
+  });
   try {
     await client.connect();
     return await runAdminRecoveryCode({ client, pepper: config.otpPepper, io }, { email: parsed.email, clearBlock: parsed['clear-block'] === true });

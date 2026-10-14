@@ -71,6 +71,9 @@ export class EmailChangeService {
   /**
    * Étape 3 : code de la nouvelle adresse. Ordre des verrous : users (checkInTx), vérifications (la nôtre, puis celles des
    * autres sessions, consommées SESSION_ENDED), puis sessions (révocation des autres, puis verrou de la session courante).
+   * Exception admise à l'ordre global : `changeEmailInTx` met à jour `users.email`, colonne d'un index unique, ce qui prend un
+   * verrou de ligne `FOR UPDATE` sur `users` (jamais pris explicitement) ; un croisement avec une autre transaction qui tient
+   * `users` en `FOR NO KEY UPDATE` est sérialisé par le verrou `users` déjà détenu ici, et un éventuel `40P01` est rejoué par `runWithRetry`.
    * L'ancienne adresse est lue sous le verrou users (D9). Session courante invalide : transaction annulée, CHALLENGE_EXPIRED.
    */
   async verifyNew(actor: UserActor, code: string, ctx: ClientContext): Promise<void> {

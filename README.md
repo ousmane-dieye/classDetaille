@@ -135,14 +135,14 @@ Contrat pour le lot 1c (routes du lot 1b ; un corps vide s'envoie `{}`) :
 | --- | --- | --- | --- |
 | `POST /api/auth/register` | inscription, `turnstileToken` | `201` profil + session | `400 TURNSTILE_FAILED`, `503 SIGNUP_UNAVAILABLE` (`Retry-After`), `429` |
 | `POST /api/auth/login` (administrateur) | `{ email, password, turnstileToken? }` | `202` `{ status: 'ADMIN_CODE_REQUIRED', expiresInSeconds, resendAfterSeconds }` + cookie `__Host-cp_challenge` | `401 INVALID_CREDENTIALS` (`turnstileRequired`), `401 TURNSTILE_REQUIRED`, `403 ACCOUNT_SUSPENDED`, `403 SECOND_FACTOR_BLOCKED`, `429 TOO_MANY_ATTEMPTS`, `429 TOO_MANY_CODE_REQUESTS` |
-| `POST /api/auth/verify-code` | `{ code }` | `200` profil + session | `400 CODE_INVALID` (`attemptsLeft`), `400 CODE_LOCKED`, `400 CHALLENGE_EXPIRED`, `403 SECOND_FACTOR_BLOCKED`, `429` |
-| `POST /api/auth/resend-code` | `{}` | `202` | `400 CHALLENGE_EXPIRED`, `429 TOO_MANY_CODE_REQUESTS` (`Retry-After`) |
+| `POST /api/auth/verify-code` | `{ code }` | `200` profil + session | `400 CODE_INVALID` (`attemptsLeft`), `400 CODE_LOCKED`, `400 CHALLENGE_EXPIRED`, `403 SECOND_FACTOR_BLOCKED`, `429 TOO_MANY_ATTEMPTS` (`Retry-After`) |
+| `POST /api/auth/resend-code` | `{}` | `202` | `400 CHALLENGE_EXPIRED`, `403 SECOND_FACTOR_BLOCKED`, `429 TOO_MANY_CODE_REQUESTS` (`Retry-After`) |
 | `POST /api/auth/verify-recovery` | `{ recoveryCode }` | `200` profil + session | comme `verify-code` |
 | `POST /api/auth/forgot-password` | `{ email, turnstileToken }` | `202` `{ status: 'RESET_REQUESTED' }` (toujours) | `400 TURNSTILE_FAILED`, `503 RESET_UNAVAILABLE` (`Retry-After`), `429` |
 | `POST /api/auth/reset-password` | `{ token, newPassword }` | `204` | `400 RESET_TOKEN_INVALID`, codes de politique de mot de passe |
-| `POST /api/me/reauth` | `{ password }` | `204` | `400 CURRENT_PASSWORD_INVALID`, `429` |
-| `POST /api/me/step-up` ; `/api/me/step-up/verify` | `{ password }` ; `{ code }` | `202` `{ expiresInSeconds }` ; `204` | `403 FORBIDDEN` (étudiant), `400 CODE_INVALID`, `400 CHALLENGE_EXPIRED` |
-| `POST /api/me/email-change` ; `/verify-old` ; `/verify-new` | `{ password, newEmail }` ; `{ code }` ; `{ code }` | `202` ; `202` ; `200` profil | `400 EMAIL_UNCHANGED`, `409 EMAIL_TAKEN`, `400 CHALLENGE_EXPIRED` |
+| `POST /api/me/reauth` | `{ password }` | `204` | `400 CURRENT_PASSWORD_INVALID`, `429 TOO_MANY_ATTEMPTS` (`Retry-After`), `401 UNAUTHENTICATED` |
+| `POST /api/me/step-up` ; `/api/me/step-up/verify` | `{ password }` ; `{ code }` | `202` `{ expiresInSeconds }` ; `204` | `403 FORBIDDEN` (étudiant : réservé aux administrateurs), `400 CURRENT_PASSWORD_INVALID`, `400 CODE_INVALID` (`attemptsLeft`), `400 CODE_LOCKED`, `400 CHALLENGE_EXPIRED`, `403 SECOND_FACTOR_BLOCKED`, `429 TOO_MANY_ATTEMPTS`, `429 TOO_MANY_CODE_REQUESTS` (`Retry-After`), `401 UNAUTHENTICATED` |
+| `POST /api/me/email-change` ; `/verify-old` ; `/verify-new` | `{ password, newEmail }` ; `{ code }` ; `{ code }` | `202` ; `202` ; `200` profil | `403 FORBIDDEN` (étudiant), `400 CURRENT_PASSWORD_INVALID`, `400 EMAIL_UNCHANGED`, `409 EMAIL_TAKEN`, `400 CODE_INVALID` (`attemptsLeft`), `400 CODE_LOCKED`, `400 CHALLENGE_EXPIRED` (aussi si la session a pris fin entre les étapes), `403 SECOND_FACTOR_BLOCKED`, `429 TOO_MANY_ATTEMPTS`, `429 TOO_MANY_CODE_REQUESTS` (`Retry-After`), `401 UNAUTHENTICATED` |
 
 Gardes que le lot 2 appelle dans la transaction de l'action sensible : `StepUpService.assertStepUpFreshInTx` (`403 STEP_UP_REQUIRED`, `missing: 'PASSWORD' | 'CODE'`) et `assertRecentPasswordInTx` (`403 REAUTH_REQUIRED`).
 

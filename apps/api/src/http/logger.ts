@@ -21,6 +21,8 @@ const REDACTED_PATHS = [
   'turnstileToken', '*.turnstileToken',
   'verificationCode', '*.verificationCode',
   'recoveryCode', '*.recoveryCode',
+  // Code à usage unique (OTP) : seulement dans un corps de requête. Jamais un `code` nu, qui masquerait les codes d'erreur (`error.code`).
+  'req.body.code', 'body.code', '*.body.code',
 ];
 
 /** pino JSON (§ 3.5) : ni en-têtes, ni corps, ni chaîne de requête ; cookies, autorisations et secrets masqués. */

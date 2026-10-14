@@ -145,6 +145,12 @@ describe('contrat avec le lot 1c : codes d’erreur stables (R4)', () => {
       'REAUTH_REQUIRED', 'RESET_TOKEN_INVALID', 'RESET_UNAVAILABLE', 'SECOND_FACTOR_BLOCKED', 'SIGNUP_UNAVAILABLE', 'STEP_UP_REQUIRED',
       'TOO_MANY_ATTEMPTS', 'TOO_MANY_CODE_REQUESTS', 'TURNSTILE_FAILED', 'TURNSTILE_REQUIRED', 'UNAUTHENTICATED', 'ACCOUNT_SUSPENDED',
     ].sort());
+    // F3 : chaque code émis figure dans le tableau « Contrat pour le lot 1c » du README (et 403 FORBIDDEN, levé par l'autorisation).
+    const readme = readFileSync(resolve(import.meta.dirname, '../../../../README.md'), 'utf8');
+    const start = readme.indexOf('Contrat pour le lot 1c');
+    const section = readme.slice(start, readme.indexOf('### Récupération', start));
+    expect(start).toBeGreaterThan(0);
+    for (const code of [...found, 'FORBIDDEN']) expect(section, code).toContain(code);
   });
 });
 

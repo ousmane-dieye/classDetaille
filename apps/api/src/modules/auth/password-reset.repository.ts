@@ -15,6 +15,12 @@ export class PasswordResetRepository {
 
   async supersedeActiveInTx(tx: TxClient, userId: string): Promise<void> {
     await tx.$executeRaw`update app.password_reset_tokens set consumed_at = clock_timestamp() where user_id = ${userId}::uuid and consumed_at is null`;
+    // Le lien d'un jeton annulé est mort : l'email non parti (ni réservé ni en vol) est annulé, son contenu effacé.
+    // Un email déjà réservé (SENDING) est laissé : le worker revérifie avant l'envoi. email_outbox suit les jetons dans l'ordre des verrous.
+    await tx.$executeRaw`
+      update app.email_outbox set status = 'CANCELLED', claim_token = null, locked_until = null, payload_encrypted = null
+       where recipient_user_id = ${userId}::uuid and kind = 'PASSWORD_RESET'::app.email_kind
+         and status in ('PENDING', 'RETRY_WAIT') and claim_token is null and locked_until is null`;
   }
 
   async insertInTx(tx: TxClient, t: { id: string; userId: string; tokenHash: Buffer; ttlSeconds: number }): Promise<void> {

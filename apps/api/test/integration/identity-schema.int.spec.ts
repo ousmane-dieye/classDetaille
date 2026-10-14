@@ -97,7 +97,7 @@ describe('rate_limit_buckets et role_guard', () => {
 });
 
 describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
-  const USERS = ['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', 'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'created_at', 'updated_at', 'second_factor_blocked_at'];
+  const USERS = ['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', 'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'created_at', 'updated_at', 'second_factor_blocked_at', 'second_factor_cleared_at'];
   const SESSIONS = ['id', 'token_hash', 'user_id', 'created_at', 'last_seen_at', 'idle_expires_at', 'absolute_expires_at', 'reauth_at', 'ip', 'user_agent', 'revoked_at', 'revoke_reason', 'second_factor_at', 'second_factor_method', 'step_up_at'];
   const CLASSES = ['id', 'name', 'level', 'academic_year', 'status', 'archived_at', 'created_at', 'updated_at'];
   const ENROLLMENTS = ['id', 'user_id', 'class_id', 'status', 'created_at', 'decided_at', 'decided_by', 'decision_note'];
@@ -161,7 +161,7 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
   // cp_privileged (fonction priv.issue_admin_recovery_code, lot 1b tâche 11) : liste exacte écrite à la main.
   const PRIVILEGED_TABLE_GRANTS = [key('users', 'SELECT'), key('auth_challenges', 'SELECT'), key('email_outbox', 'SELECT'), key('email_attempts', 'SELECT')];
   const PRIVILEGED_COLUMN_GRANTS = [
-    ...USERS.map((c) => key('users', 'SELECT', c)), key('users', 'UPDATE', 'second_factor_blocked_at'),
+    ...USERS.map((c) => key('users', 'SELECT', c)), key('users', 'UPDATE', 'second_factor_blocked_at'), key('users', 'UPDATE', 'second_factor_cleared_at'),
     ...CHALLENGES.map((c) => key('auth_challenges', 'SELECT', c)),
     ...['id', 'user_id', 'purpose', 'code_hmac', 'expires_at'].map((c) => key('auth_challenges', 'INSERT', c)),
     ...['consumed_at', 'consumed_reason'].map((c) => key('auth_challenges', 'UPDATE', c)),

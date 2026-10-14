@@ -79,6 +79,7 @@ model User {
   sessions              Session[]
   emails                EmailOutbox[]
   secondFactorBlockedAt DateTime?             @map("second_factor_blocked_at") @db.Timestamptz
+  secondFactorClearedAt DateTime?             @map("second_factor_cleared_at") @db.Timestamptz
   authChallenges        AuthChallenge[]
   secondFactorFailures  SecondFactorFailure[]
   passwordResetTokens   PasswordResetToken[]

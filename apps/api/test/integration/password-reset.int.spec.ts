@@ -71,6 +71,13 @@ describe('POST /api/auth/forgot-password', () => {
     expect([fourth.statusCode, fourth.json()]).toEqual([202, { status: 'RESET_REQUESTED' }]);
     expect(await rows(`select 1 from app.email_outbox where kind = 'PASSWORD_RESET' and to_address = $1`, [s.email])).toHaveLength(3);
   });
+  it('une nouvelle demande annule aussi l’email non parti de la précédente : un lien mort n’est jamais envoyé (F5)', async () => {
+    const s = await registerStudent(t.app, classId);
+    await forgot(s.email);
+    await forgot(s.email);
+    const r = await rows(`select status::text as status, payload_encrypted is null as erased from app.email_outbox where kind = 'PASSWORD_RESET' and to_address = $1 order by created_at, id`, [s.email]);
+    expect(r).toEqual([{ status: 'CANCELLED', erased: true }, { status: 'PENDING', erased: false }]);
+  });
   it('D13 : au-delà du plafond de lignes, la limite par IP reste appliquée, celle par compte est suspendue', async () => {
     await rows(`insert into app.rate_limit_buckets (key, window_start) select 'ip:10.' || (g / 65536) || '.' || ((g / 256) % 256) || '.' || (g % 256), clock_timestamp() from generate_series(1, $1::int) g`, [BUCKET_ROW_CAP + 1]);
     try {

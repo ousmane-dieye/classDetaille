@@ -135,9 +135,12 @@ export class ChallengesRepository {
     await tx.$executeRaw`insert into app.second_factor_failures (user_id, challenge_id, purpose) values (${userId}::uuid, ${challengeId}::uuid, ${purpose}::app.challenge_purpose)`;
   }
 
+  /** Échecs des 60 dernières minutes, à partir de la dernière levée du blocage (--clear-block). */
   async countFailuresInTx(tx: TxClient, userId: string): Promise<number> {
     const r = await tx.$queryRaw<{ n: number }[]>`
-      select count(*)::int as n from app.second_factor_failures where user_id = ${userId}::uuid and occurred_at > clock_timestamp() - interval '60 minutes'`;
+      select count(*)::int as n from app.second_factor_failures f join app.users u on u.id = f.user_id
+       where f.user_id = ${userId}::uuid
+         and f.occurred_at > greatest(clock_timestamp() - interval '60 minutes', coalesce(u.second_factor_cleared_at, '-infinity'::timestamptz))`;
     return r[0]!.n;
   }
 
