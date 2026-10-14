@@ -10,3 +10,9 @@ L'étape `pnpm audit --audit-level high` de la CI doit rester verte. Les excepti
 
 - `deepmerge-ts: 8.0.2` (dépendance de `@prisma/config`), correctif des versions inférieures à 8.0.0.
 - `mysql2: 3.24.6` (dépendance de `prisma`), correctif des versions inférieures à 3.22.0.
+
+## Exclusions du délai minimal de publication (`minimumReleaseAgeExclude` dans `pnpm-workspace.yaml`)
+
+| Version | Pourquoi c'est accepté | Décidé par | Retirer au plus tard |
+|---|---|---|---|
+| `mysql2@3.24.6` | Version corrigée forcée ci-dessus (`overrides`), publiée le 2026-10-13 : plus récente que le délai minimal de publication de pnpm, elle serait refusée à l'installation. Le risque d'une version trop fraîche (retrait, publication malveillante) est limité : `mysql2` n'est qu'une dépendance transitive de `prisma` (CLI), jamais chargée par l'API (PostgreSQL seulement), et la version exacte est figée par le lockfile. | Responsable du projet, 2026-10-13 | **2027-01-13** (le délai sera écoulé depuis longtemps : retirer l'exclusion, vérifier `pnpm install --frozen-lockfile`) |

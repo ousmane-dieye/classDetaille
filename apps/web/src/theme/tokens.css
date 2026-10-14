@@ -20,7 +20,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-  --cp-bg: #1A1411;
+    --cp-bg: #1A1411;
     --cp-side: #1F1814;
     --cp-surface: #241C18;
     --cp-ink: #F6EDE6;

@@ -20,7 +20,8 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().addHook('onClose', async () => { await ready.close(); });
   await app.listen({ port: config.httpPort, host: '0.0.0.0' });
   try {
-    await ready.listen({ port: config.readyPort, host: '0.0.0.0' });
+    // Serveur interne : interrogé seulement par le contrôle de santé Docker, depuis le conteneur.
+    await ready.listen({ port: config.readyPort, host: config.readyHost });
   } catch (e) {
     await app.close();
     throw e;

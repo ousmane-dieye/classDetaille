@@ -10,6 +10,10 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Ryuk (nettoyage des conteneurs de test) fixé par empreinte. testcontainers 12.2.0 lit RYUK_CONTAINER_IMAGE (build/reaper/reaper.js)
+      # (la variable TESTCONTAINERS_RYUK_CONTAINER_IMAGE n'est pas lue par cette bibliothèque).
+      RYUK_CONTAINER_IMAGE: testcontainers/ryuk:0.14.0@sha256:7c1a8a9a47c780ed0f983770a662f80deb115d95cce3e2daa3d12115b8cd28f0
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0

@@ -11,10 +11,13 @@ export type AppConfig = {
   nodeEnv: 'development' | 'test' | 'production';
   httpPort: number;
   readyPort: number;
+  /** Adresse d'écoute du serveur interne de disponibilité (127.0.0.1 par défaut : seul le contrôle de santé Docker, dans le conteneur, l'interroge). */
+  readyHost: string;
   db: DbConfig;
 };
 
-const FORBIDDEN_DIRECT_SECRETS = ['DB_PASSWORD', 'DATABASE_URL'] as const;
+// PGPASSWORD / PGPASSFILE : lus implicitement par la bibliothèque pg, ils contourneraient les fichiers *_FILE.
+const FORBIDDEN_DIRECT_SECRETS = ['DB_PASSWORD', 'DATABASE_URL', 'PGPASSWORD', 'PGPASSFILE'] as const;
 
 export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
   for (const key of FORBIDDEN_DIRECT_SECRETS) {
@@ -43,6 +46,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     nodeEnv: e.NODE_ENV,
     httpPort: e.HTTP_PORT,
     readyPort: e.READY_PORT,
+    readyHost: e.READY_HOST,
     db: { host: e.DB_HOST, port: e.DB_PORT, database: e.DB_NAME, user: e.DB_USER, auth },
   };
 }

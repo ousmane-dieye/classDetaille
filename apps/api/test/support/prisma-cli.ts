@@ -19,6 +19,8 @@ export function envForDb(db: DbConfig): { env: NodeJS.ProcessEnv; dir: string } 
     // Windows : variables système nécessaires à Node et aux moteurs Prisma.
     ...(process.platform === 'win32' ? { SystemRoot: process.env.SystemRoot, ComSpec: process.env.ComSpec, PATHEXT: process.env.PATHEXT, APPDATA: process.env.APPDATA, USERPROFILE: process.env.USERPROFILE, LOCALAPPDATA: process.env.LOCALAPPDATA, TEMP: process.env.TEMP } : {}),
     NODE_ENV: 'test',
+    // Pas de télémétrie Prisma (Checkpoint) depuis les tests et la CI.
+    CHECKPOINT_DISABLE: '1',
     HTTP_PORT: '3000',
     READY_PORT: '3001',
     DB_HOST: db.host,

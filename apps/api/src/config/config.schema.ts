@@ -7,6 +7,7 @@ export const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']),
     HTTP_PORT: port,
     READY_PORT: port,
+    READY_HOST: z.string().min(1).default('127.0.0.1'),
     DB_HOST: z.string().min(1),
     DB_PORT: port,
     DB_NAME: z.string().min(1),

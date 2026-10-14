@@ -67,7 +67,7 @@ describe('T-05 — secrets et traces PostgreSQL', () => {
     expect(stmts.rows.map((r) => r.query as string).some((q) => q.includes('pg_sleep')), 'pg_stat_statements doit contenir la requête pg_sleep').toBe(true);
     expect(stmts.rows.map((r) => r.query).join('\n')).not.toContain(s);
     // Dans ce mode, le secret apparaît attendu dans les lignes « parameters: » : preuve des paramètres liés.
-    expect(logs).toMatch(/parameters:.*S3CRET_/);
+    expect(logs.split('\n').some((l) => /parameters:/.test(l) && l.includes(s)), 'le secret exact doit figurer dans une ligne parameters:').toBe(true);
   });
 
   it('(c) configuration de production + journalisation forcée : aucun secret dans les journaux', async () => {

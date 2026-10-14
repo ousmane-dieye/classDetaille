@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -8,6 +9,8 @@ import { makeScratchPrismaProject, runPrisma } from '../support/prisma-cli.js';
 
 let c: StartedPostgreSqlContainer;
 let pki: ReturnType<typeof makeTestPki>;
+// Mot de passe PKCS#12 aléatoire : sa valeur ne doit apparaître dans aucune sortie de la CLI.
+const P12_PASSWORD = `p12_${randomBytes(12).toString('hex')}`;
 
 beforeAll(async () => {
   pki = makeTestPki('localhost');
@@ -44,7 +47,7 @@ beforeAll(async () => {
 afterAll(async () => { await c?.stop(); });
 
 function ownerDb(caFile: string) {
-  const id = pki.clientFor('cp_owner');
+  const id = pki.clientFor('cp_owner', P12_PASSWORD);
   return { host: c.getHost(), port: c.getPort(), database: 'classepulse', user: 'cp_owner',
     auth: { mode: 'cert' as const, caFile, certFile: id.crt, keyFile: id.key, p12File: id.p12, p12Password: id.password } };
 }
@@ -59,6 +62,7 @@ describe('T-01 partie C — certificat client avec Prisma 7.10.0', () => {
     const cfg = makeScratchPrismaProject({ '20990101000000_c': '-- classification: expand\nBEGIN;\nCREATE SCHEMA IF NOT EXISTS app;\nCREATE TABLE app.c_ok (id int);\nCOMMIT;\n' });
     const r = await runPrisma(['migrate', 'deploy'], ownerDb(pki.caCrt), { configPath: cfg });
     expect(r.stderr + r.stdout).not.toMatch(/sslaccept|sslpassword/i);
+    expect(r.stderr + r.stdout).not.toContain(P12_PASSWORD);
     expect(r.code).toBe(0);
     const e = await c.exec(['psql', '-U', 'postgres', '-d', 'classepulse', '-tAc', "select to_regclass('app.c_ok') is not null"], { user: 'postgres' });
     expect(e.output.trim()).toBe('t');
@@ -71,5 +75,6 @@ describe('T-01 partie C — certificat client avec Prisma 7.10.0', () => {
     const out = r.stdout + r.stderr;
     expect(out).toMatch(/P1011|certificate|TLS|self.signed|unknown ca|certificat/i);
     expect(out).not.toMatch(/invalid configuration/i);
+    expect(out).not.toContain(P12_PASSWORD);
   });
 });

@@ -14,7 +14,7 @@ export function renderTokensCss(t: typeof tokens): string {
   return [
     '/* Généré par scripts/gen-tokens.ts — ne pas modifier à la main. */',
     `:root {\n${vars(t.light)}\n  color-scheme: light;\n}`,
-    `@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n${vars(t.dark).replaceAll('\n', '\n  ')}\n    color-scheme: dark;\n  }\n}`,
+    `@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n${vars(t.dark).split('\n').map((l) => `  ${l}`).join('\n')}\n    color-scheme: dark;\n  }\n}`,
     `:root[data-theme="dark"] {\n${vars(t.dark)}\n  color-scheme: dark;\n}`,
     'body { margin: 0; background: var(--cp-bg); color: var(--cp-ink); font-family: Figtree, system-ui, sans-serif; font-size: 16px; }',
     '',
