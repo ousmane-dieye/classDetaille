@@ -24,6 +24,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:unit
+      - run: pnpm test:cov
       - run: pnpm depcruise
       - run: pnpm audit --audit-level high
       # image gitleaks v8.30.1

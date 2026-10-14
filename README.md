@@ -39,7 +39,7 @@ Puis, depuis `apps/api` (adapter `DB_PORT` si PostgreSQL est publié sur un autr
 ```bash
 export NODE_ENV=development HTTP_PORT=3000 READY_PORT=3001 DB_HOST=127.0.0.1 DB_PORT=5432 DB_NAME=classepulse DB_AUTH_MODE=password
 DB_USER=cp_owner DB_PASSWORD_FILE=../../.secrets/dev/cp_owner pnpm exec prisma migrate deploy
-DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm exec tsx src/main.ts
+DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm exec tsx --conditions=source src/main.ts
 ```
 
 Vérification : `curl http://127.0.0.1:3000/api/health` → `{"status":"ok"}` ; `curl http://127.0.0.1:3001/api/health/ready` → `{"ready":true}` (serveur interne, `404` sur le port 3000).
