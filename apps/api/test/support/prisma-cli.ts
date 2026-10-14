@@ -81,12 +81,12 @@ export function makeScratchPrismaProject(migrations: Record<string, string>): st
   writeFileSync(
     cfg,
     `import { defineConfig } from '${PRISMA_CONFIG_MODULE}';
-import { loadConfig } from '${api}/src/config/load-config.ts';
+import { loadDbConfig } from '${api}/src/config/load-config.ts';
 import { toPrismaCliUrl } from '${api}/src/config/database-connection.ts';
 export default defineConfig({
   schema: '${scratch}/schema.prisma',
   migrations: { path: '${scratch}/migrations' },
-  datasource: { url: toPrismaCliUrl(loadConfig(process.env).db) },
+  datasource: { url: toPrismaCliUrl(loadDbConfig(process.env)) },
 });
 `,
   );

@@ -2,11 +2,15 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from './load-config.js';
+import { loadConfig, loadDbConfig } from './load-config.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'cp-cfg-'));
 const pw = join(dir, 'pw');
 writeFileSync(pw, 'dev-password\n');
+const hmac = join(dir, 'hmac');
+writeFileSync(hmac, `${'a1'.repeat(32)}\n`);
+const turnstile = join(dir, 'turnstile');
+writeFileSync(turnstile, '1x0000000000000000000000000000000AA\n');
 
 const base = {
   NODE_ENV: 'development',
@@ -18,6 +22,9 @@ const base = {
   DB_USER: 'cp_app',
   DB_AUTH_MODE: 'password',
   DB_PASSWORD_FILE: pw,
+  APP_ORIGIN: 'http://localhost:5173',
+  RATE_LIMIT_HMAC_KEY_FILE: hmac,
+  TURNSTILE_SECRET_FILE: turnstile,
 };
 
 describe('loadConfig', () => {
@@ -59,6 +66,10 @@ describe('loadConfig', () => {
       { ...base, DB_AUTH_MODE: 'cert', DB_PASSWORD_FILE: undefined, DB_SSL_CA_FILE: '/x/ca', DB_SSL_CERT_FILE: '/x/c', DB_SSL_P12_PASSWORD_FILE: secretFile },
       // Secret passé aussi directement : refusé sans recopier la valeur.
       { ...base, DB_PASSWORD_FILE: secretFile, PGPASSWORD: value },
+      // Clé HMAC lue depuis le fichier de secret, autre variable invalide.
+      { ...base, RATE_LIMIT_HMAC_KEY_FILE: secretFile, APP_ORIGIN: 'pas une url' },
+      // Clé HMAC trop courte : refusée sans recopier sa valeur.
+      { ...base, RATE_LIMIT_HMAC_KEY_FILE: secretFile },
     ];
     for (const env of cases) {
       let message = '';
@@ -68,6 +79,25 @@ describe('loadConfig', () => {
     }
     // Contre-épreuve : la lecture fonctionne bien quand la configuration est valide.
     expect(loadConfig({ ...base, DB_PASSWORD_FILE: secretFile }).db.auth).toEqual({ mode: 'password', password: value });
+  });
+  it('lit l’origine, les secrets de sécurité et les seuils par défaut', () => {
+    const cfg = loadConfig(base);
+    expect(cfg.http).toEqual({ origin: 'http://localhost:5173', trustProxy: 0, logLevel: 'info' });
+    expect(cfg.security.rateLimitHmacKey).toBe('a1'.repeat(32));
+    expect(cfg.turnstile).toEqual({ secret: '1x0000000000000000000000000000000AA', verifyUrl: 'https://challenges.cloudflare.com/turnstile/v0/siteverify' });
+    expect(cfg.limits).toEqual({ loginPerIp: 100, throttlePerIp: 600, throttlePerSession: 300 });
+  });
+  it('normalise APP_ORIGIN et refuse un chemin', () => {
+    expect(loadConfig({ ...base, APP_ORIGIN: 'https://classepulse.example/' }).http.origin).toBe('https://classepulse.example');
+    expect(() => loadConfig({ ...base, APP_ORIGIN: 'https://classepulse.example/app' })).toThrow(/APP_ORIGIN/);
+  });
+  it('refuse une clé HMAC de moins de 32 caractères', () => {
+    writeFileSync(join(dir, 'short'), 'abc\n');
+    expect(() => loadConfig({ ...base, RATE_LIMIT_HMAC_KEY_FILE: join(dir, 'short') })).toThrow(/RATE_LIMIT_HMAC_KEY/);
+  });
+  it('loadDbConfig ne demande que les variables de la base', () => {
+    const dbOnly = Object.fromEntries(Object.entries(base).filter(([k]) => k === 'NODE_ENV' || k.startsWith('DB_')));
+    expect(loadDbConfig(dbOnly).user).toBe('cp_app');
   });
   it('lit les chemins des certificats en mode cert', () => {
     const cfg = loadConfig({

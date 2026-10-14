@@ -34,12 +34,37 @@ for r in cp_owner cp_app; do
 done
 ```
 
+Secrets de sécurité de développement : clé HMAC des seaux de limitation (32 caractères au moins) et secret Turnstile (ici la clé de test publique de Cloudflare, qui accepte toujours ; jamais en production) :
+
+```bash
+[ -f .secrets/dev/rate_limit_hmac_key ] || openssl rand -hex 32 > .secrets/dev/rate_limit_hmac_key
+[ -f .secrets/dev/turnstile_secret ] || echo 1x0000000000000000000000000000000AA > .secrets/dev/turnstile_secret
+```
+
 Puis, depuis `apps/api` (adapter `DB_PORT` si PostgreSQL est publié sur un autre port) :
 
 ```bash
 export NODE_ENV=development HTTP_PORT=3000 READY_PORT=3001 DB_HOST=127.0.0.1 DB_PORT=5432 DB_NAME=classepulse DB_AUTH_MODE=password
+export APP_ORIGIN=http://localhost:5173 RATE_LIMIT_HMAC_KEY_FILE=../../.secrets/dev/rate_limit_hmac_key TURNSTILE_SECRET_FILE=../../.secrets/dev/turnstile_secret
 DB_USER=cp_owner DB_PASSWORD_FILE=../../.secrets/dev/cp_owner pnpm exec prisma migrate deploy
 DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm exec tsx --conditions=source src/main.ts
 ```
+
+Variables de l'API :
+
+| Variable | Obligatoire | Rôle (valeur par défaut) |
+| --- | --- | --- |
+| `APP_ORIGIN` | oui | Origine exacte de l'application web (schéma, hôte, port ; sans chemin), comparée à `Origin` pour le CSRF |
+| `RATE_LIMIT_HMAC_KEY_FILE` | oui | Fichier de la clé HMAC des seaux de limitation (32 caractères au moins) |
+| `TURNSTILE_SECRET_FILE` | oui | Fichier du secret Turnstile |
+| `TURNSTILE_VERIFY_URL` | non | Point de vérification Turnstile (`https://challenges.cloudflare.com/turnstile/v0/siteverify`) |
+| `TRUST_PROXY` | non | Nombre de mandataires inverses de confiance pour l'IP du client, de 0 à 3 (`0`) |
+| `LOG_LEVEL` | non | `fatal`, `error`, `warn`, `info`, `debug` ou `silent` (`info`) |
+| `LOGIN_LIMIT_PER_IP` | non | Tentatives de connexion par IP sur 15 min (`100`) |
+| `THROTTLE_PER_IP` / `THROTTLE_PER_SESSION` | non | Limitation générale par minute (`600` / `300`) |
+
+Les secrets ne passent jamais par une variable directe : `DB_PASSWORD`, `DATABASE_URL`, `PGPASSWORD` et `PGPASSFILE` sont refusés au démarrage. `prisma migrate deploy` ne lit que les variables `DB_*`.
+
+Une requête qui modifie (`POST`, `PUT`, `PATCH`, `DELETE`) doit porter `Content-Type: application/json` et un en-tête `Origin` égal à `APP_ORIGIN` (ou, sans `Origin`, `Sec-Fetch-Site: same-origin`) ; sinon `403 CSRF_REJECTED` ou `415`.
 
 Vérification : `curl http://127.0.0.1:3000/api/health` → `{"status":"ok"}` ; `curl http://127.0.0.1:3001/api/health/ready` → `{"ready":true}` (serveur interne, `404` sur le port 3000).

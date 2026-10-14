@@ -1,20 +1,12 @@
 import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import { ApiModule } from './api.module.js';
 import { loadConfig } from './config/load-config.js';
-import { DatabaseModule, DatabaseReadinessProbe } from './database/database.module.js';
 import { ReadinessService } from './health/readiness.service.js';
 import { buildReadyServer } from './health/ready-server.js';
+import { buildApiApp } from './http/app.js';
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig(process.env);
-  const app = await NestFactory.create<NestFastifyApplication>(
-    ApiModule.forRoot(config, DatabaseReadinessProbe, [DatabaseModule]),
-    new FastifyAdapter(),
-  );
-  app.setGlobalPrefix('api');
-  app.enableShutdownHooks();
+  const { app } = await buildApiApp(config);
   const ready = buildReadyServer(app.get(ReadinessService));
   // L'arrêt de l'application publique ferme aussi le serveur interne.
   app.getHttpAdapter().getInstance().addHook('onClose', async () => { await ready.close(); });
