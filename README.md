@@ -102,6 +102,18 @@ Variables de l'API :
 | `LOGIN_LIMIT_PER_IP` | non | Tentatives de connexion par IP sur 15 min (`100`) |
 | `THROTTLE_PER_IP` / `THROTTLE_PER_SESSION` | non | Limitation générale par minute (`600` / `300`) |
 
+### Récupération d'un administrateur
+
+Un administrateur qui n'a plus accès à sa boîte email obtient un code de récupération (12 caractères, valable 15 minutes). Depuis un terminal, sous `DB_USER=cp_ops` :
+
+```
+pnpm --filter @classepulse/api ops admin-recovery-code --email <email> [--clear-block]
+```
+
+Le code s'affiche une seule fois, après validation en base ; appuie sur Entrée pour effacer l'écran. Transmets-le par un canal sûr : il ne sert qu'après le mot de passe (`POST /api/auth/verify-recovery`, avec le cookie de vérification). Seul son HMAC est stocké.
+
+Limites (§ 3.3) : la commande refuse de s'exécuter sans terminal, mais c'est un garde-fou, pas une garantie (historique du shell, enregistrement de session, `ulimit -c 0` et journaux Docker : lot 7). Un compte bloqué (10 échecs) n'obtient aucun code, sauf avec `--clear-block`, qui lève le blocage et est audité. Tous les administrateurs actifs reçoivent une alerte.
+
 ### Emails en développement
 
 Les emails partent par SMTP. En développement, Mailpit les reçoit sans les expédier (interface sur http://127.0.0.1:8025) :

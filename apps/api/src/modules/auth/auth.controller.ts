@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Inject, Post, Req, Res } from '@nestjs/common';
-import { LoginBody, RegisterBody, VerifyCodeBody } from '@classepulse/shared';
+import { LoginBody, RegisterBody, VerifyCodeBody, VerifyRecoveryBody } from '@classepulse/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
 import { Public } from '../../http/public.decorator.js';
@@ -46,6 +46,15 @@ export class AuthController {
   @HttpCode(200)
   async verifyCode(@Body(new ZodPipe(VerifyCodeBody)) body: VerifyCodeBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<MeDto> {
     const opened = await this.auth.verifyCode({ kind: 'anonymous', ip: req.ip }, body, req.cookies?.[CHALLENGE_COOKIE], clientContextOf(req));
+    reply.header('set-cookie', [sessionSetCookie(opened.token, opened.maxAgeSeconds), challengeClearCookie()]);
+    return this.me.me(opened.actor);
+  }
+
+  @Public()
+  @Post('verify-recovery')
+  @HttpCode(200)
+  async verifyRecovery(@Body(new ZodPipe(VerifyRecoveryBody)) body: VerifyRecoveryBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<MeDto> {
+    const opened = await this.auth.verifyRecovery({ kind: 'anonymous', ip: req.ip }, body, req.cookies?.[CHALLENGE_COOKIE], clientContextOf(req));
     reply.header('set-cookie', [sessionSetCookie(opened.token, opened.maxAgeSeconds), challengeClearCookie()]);
     return this.me.me(opened.actor);
   }

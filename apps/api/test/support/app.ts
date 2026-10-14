@@ -147,6 +147,30 @@ export async function runCli(db: string, args: string[], stdin = '', envOverride
   }
 }
 
+/** Lance la commande ops (processus séparé, sans terminal : le garde-fou doit la refuser). */
+export async function runOps(db: string, args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+  const cfg = testConfig(db);
+  const dir = mkdtempSync(join(tmpdir(), 'cp-ops-'));
+  const file = (name: string, value: string) => { const p = join(dir, name); writeFileSync(p, `${value}\n`); return p; };
+  const auth = cfg.db.auth as { password: string };
+  const env: NodeJS.ProcessEnv = {
+    PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, APPDATA: process.env.APPDATA, USERPROFILE: process.env.USERPROFILE,
+    NODE_ENV: 'test', DB_HOST: cfg.db.host, DB_PORT: String(cfg.db.port), DB_NAME: cfg.db.database, DB_USER: 'cp_ops', DB_AUTH_MODE: 'password',
+    DB_PASSWORD_FILE: file('db', auth.password), OTP_PEPPER_FILE: file('pepper', TEST_OTP_PEPPER),
+  };
+  try {
+    return await new Promise((done, fail) => {
+      const p = spawn(process.execPath, ['--conditions=source', '--import', 'tsx', 'src/ops.ts', ...args], { cwd: resolve(import.meta.dirname, '../..'), env });
+      let stdout = ''; let stderr = '';
+      p.stdout.on('data', (d) => { stdout += String(d); });
+      p.stderr.on('data', (d) => { stderr += String(d); });
+      p.on('error', fail);
+      p.on('close', (code) => done({ code: code ?? -1, stdout, stderr }));
+      p.stdin.end('');
+    });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
 export function workerConfigFor(db: string): WorkerConfig {
   return {
     nodeEnv: 'test', db: dbConfigFor('cp_app', db), logLevel: 'silent', appOrigin: ORIGIN, outboxPayloadKey: TEST_OUTBOX_KEY,

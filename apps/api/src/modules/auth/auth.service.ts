@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { normalizePassword, type ChangePasswordBody, type LoginBody, type RegisterBody, type VerifyCodeBody } from '@classepulse/shared';
+import { normalizePassword, type ChangePasswordBody, type LoginBody, type RegisterBody, type VerifyCodeBody, type VerifyRecoveryBody } from '@classepulse/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { isUniqueViolation } from '../../database/errors.js';
 import { PrismaService } from '../../database/prisma.service.js';
@@ -128,6 +128,24 @@ export class AuthService {
       const opened = await this.sessions.openAdminInTx(tx, actor, { id: ref.userId }, 'EMAIL_CODE', ctx);
       await this.audit.recordInTx(tx, actor, { action: 'ADMIN_LOGIN', targetType: 'USER', targetId: ref.userId, metadata: { method: 'EMAIL_CODE' } });
       return { ok: true as const, opened };
+    });
+    if (!outcome.ok) throw outcomeToError(outcome, { clearChallengeCookie: outcome.reason !== 'WRONG' });
+    return outcome.opened;
+  }
+
+  /** Seulement avec un cookie LOGIN valide, donc après le mot de passe. LOGIN puis RECOVERY, consommés atomiquement (§ 3.3). */
+  async verifyRecovery(actor: AnonymousActor, body: VerifyRecoveryBody, cookieToken: string | undefined, ctx: ClientContext): Promise<OpenedSession> {
+    this.authz.assert(actor, 'auth.verifyRecovery');
+    await this.otpLimiter.hitTry(ctx.ip);
+    const ref = await this.loginChallengeOf(actor, cookieToken);
+    const outcome = await this.prisma.withTx(async (tx) => {
+      const r = await this.secondFactor.checkInTx(tx, actor, { userId: ref.userId, purpose: 'RECOVERY', code: body.recoveryCode, challengeId: ref.challengeId });
+      if (!r.ok) return r;
+      await this.secondFactor.consumeInTx(tx, actor, r.companion!, 'USED'); // LOGIN d'abord
+      await this.secondFactor.consumeInTx(tx, actor, r.challenge, 'USED');
+      const opened = await this.sessions.openAdminInTx(tx, actor, { id: ref.userId }, 'RECOVERY_CODE', ctx);
+      await this.audit.recordInTx(tx, actor, { action: 'ADMIN_LOGIN', targetType: 'USER', targetId: ref.userId, metadata: { method: 'RECOVERY_CODE' } });
+      return { ok: true, opened } as const;
     });
     if (!outcome.ok) throw outcomeToError(outcome, { clearChallengeCookie: outcome.reason !== 'WRONG' });
     return outcome.opened;

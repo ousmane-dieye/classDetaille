@@ -158,10 +158,24 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...LEASES.map((c) => key('job_leases', 'SELECT', c)),
     ...['holder', 'lease_until', 'fencing_token'].map((c) => key('job_leases', 'UPDATE', c)),
   ];
+  // cp_privileged (fonction priv.issue_admin_recovery_code, lot 1b tâche 11) : liste exacte écrite à la main.
+  const PRIVILEGED_TABLE_GRANTS = [key('users', 'SELECT'), key('auth_challenges', 'SELECT'), key('email_outbox', 'SELECT'), key('email_attempts', 'SELECT')];
+  const PRIVILEGED_COLUMN_GRANTS = [
+    ...USERS.map((c) => key('users', 'SELECT', c)), key('users', 'UPDATE', 'second_factor_blocked_at'),
+    ...CHALLENGES.map((c) => key('auth_challenges', 'SELECT', c)),
+    ...['id', 'user_id', 'purpose', 'code_hmac', 'expires_at'].map((c) => key('auth_challenges', 'INSERT', c)),
+    ...['consumed_at', 'consumed_reason'].map((c) => key('auth_challenges', 'UPDATE', c)),
+    ...OUTBOX.map((c) => key('email_outbox', 'SELECT', c)),
+    ...['id', 'recipient_user_id', 'to_address', 'kind', 'dedupe_key', 'payload', 'message_id', 'expires_at'].map((c) => key('email_outbox', 'INSERT', c)),
+    ...['status', 'claim_token', 'locked_until', 'payload_encrypted'].map((c) => key('email_outbox', 'UPDATE', c)),
+    ...ATTEMPTS.map((c) => key('email_attempts', 'SELECT', c)),
+    ...['outcome', 'finished_at'].map((c) => key('email_attempts', 'UPDATE', c)),
+    ...['actor_user_id', 'action', 'target_type', 'target_id', 'metadata'].map((c) => key('audit_log', 'INSERT', c)),
+  ];
   const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens', 'email_outbox', 'email_attempts', 'job_leases'];
 
   it('droits de table et droits par colonne : listes exactes (jamais de DELETE sur users, sessions, classes, demandes ni audit)', async () => {
-    await expectExactCpAppPrivileges(db, TABLES, TABLE_GRANTS, COLUMN_GRANTS);
+    await expectExactCpAppPrivileges(db, TABLES, TABLE_GRANTS, COLUMN_GRANTS, { tableGrants: PRIVILEGED_TABLE_GRANTS, columnGrants: PRIVILEGED_COLUMN_GRANTS });
   });
 });
 
