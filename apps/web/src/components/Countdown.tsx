@@ -17,8 +17,14 @@ const format = (totalSeconds: number): string => {
 /** Compte à rebours lisible (« 08:42 »), annoncé poliment, borné à zéro. */
 export function Countdown({ seconds, onDone }: CountdownProps): ReactElement | null {
   const [remaining, setRemaining] = useState<number | null>(seconds);
+  const [source, setSource] = useState<number | null>(seconds);
 
-  useEffect(() => setRemaining(seconds), [seconds]);
+  // Le serveur peut repousser un délai (renvoi de code, Retry-After) : on reprend sa valeur
+  // pendant le rendu, sans attendre un effet — sinon un décompte périmé reste affiché un instant.
+  if (seconds !== source) {
+    setSource(seconds);
+    setRemaining(seconds);
+  }
 
   useEffect(() => {
     if (remaining === null || remaining <= 0) return;

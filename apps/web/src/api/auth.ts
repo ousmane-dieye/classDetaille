@@ -30,9 +30,20 @@ export async function login(body: LoginInput): Promise<LoginResult> {
   return { kind: 'ok', me: data as Me };
 }
 
-/** `POST /api/classes/active` : classes à choisir à l'inscription (publique). */
+/** `GET /api/classes/active` : classes à choisir à l'inscription (publique). */
 export function listActiveClasses(): Promise<ClassSummary[]> {
   return apiFetch<ClassSummary[]>('/api/classes/active');
+}
+
+/** `POST /api/auth/verify-code` : le code valide ouvre la session et renvoie le profil (§ 3.3). */
+export function verifyCode(body: { code: string }): Promise<Me> {
+  return apiFetch<Me>('/api/auth/verify-code', { method: 'POST', body });
+}
+
+/** `POST /api/auth/resend-code` : 202 avec les nouveaux délais (600 s / 60 s). */
+export async function resendCode(): Promise<{ expiresInSeconds: number; resendAfterSeconds: number }> {
+  const data = await apiFetch<AdminCodeRequired>('/api/auth/resend-code', { method: 'POST' });
+  return { expiresInSeconds: data.expiresInSeconds, resendAfterSeconds: data.resendAfterSeconds };
 }
 
 /** `GET /api/me` : le serveur fait foi (R4), appelé au démarrage de chaque écran protégé. */

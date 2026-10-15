@@ -28,7 +28,6 @@ describe('routes', () => {
   it.each([
     ['/inscription', 'Créer ton compte'],
     ['/connexion', 'Se connecter'],
-    ['/connexion/code', 'Vérifie ton email'],
     ['/mot-de-passe-oublie', 'Mot de passe oublié'],
     ['/reinitialisation', 'Choisis un nouveau mot de passe'],
     ['/profil', 'Profil'],

@@ -54,6 +54,62 @@
   font-size: 13px;
 }
 
+/* Code à 6 chiffres (M8) */
+.cp-otp {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+
+.cp-otp__cell {
+  width: 44px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: var(--cp-bg);
+  color: var(--cp-ink);
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cp-otp__cell:focus-visible {
+  outline: 3px solid var(--cp-brand);
+  outline-offset: 1px;
+}
+
+.cp-otp--bad .cp-otp__cell {
+  border-color: var(--cp-red);
+}
+
+.cp-otp__timer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--cp-muted);
+}
+
+.cp-otp__resend {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cp-otp__resend:disabled,
+.cp-otp__resend-wait {
+  color: var(--cp-muted);
+}
+
+.cp-otp__note {
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
 .cp-two {
   display: flex;
   flex-direction: column;

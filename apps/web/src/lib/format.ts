@@ -19,3 +19,13 @@ export function formatLongDate(iso: string): string {
   if (!date) return '';
   return DATE.format(date);
 }
+
+/**
+ * Masquage M8 : « a•••••@esp.sn ». Le domaine reste lisible pour reconnaître son école,
+ * le reste de l'adresse disparaît (ne pas afficher l'email complet d'un administrateur).
+ */
+export function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at < 1) return '';
+  return `${email[0]}•••••${email.slice(at)}`;
+}
