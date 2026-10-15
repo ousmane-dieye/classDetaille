@@ -13,11 +13,13 @@ export type TextFieldProps = {
   autoComplete?: string;
   inputMode?: 'text' | 'numeric' | 'email';
   required?: boolean;
+  /** Lecture seule (email : le changement d'adresse n'est pas encore un parcours). */
+  readOnly?: boolean;
   onBlur?: FocusEventHandler<HTMLInputElement>;
 };
 
 /** UX § 3.1 « Saisie » : libellé visible, aide, erreur sous le champ. */
-export function TextField({ id, label, value, onChange, type = 'text', hint, error, autoComplete, inputMode, required, onBlur }: TextFieldProps): ReactElement {
+export function TextField({ id, label, value, onChange, type = 'text', hint, error, autoComplete, inputMode, required, readOnly, onBlur }: TextFieldProps): ReactElement {
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
@@ -36,6 +38,7 @@ export function TextField({ id, label, value, onChange, type = 'text', hint, err
         autoComplete={autoComplete}
         inputMode={inputMode}
         required={required}
+        readOnly={readOnly}
         onBlur={onBlur}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}

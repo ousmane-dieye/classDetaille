@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
+import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
+import { applyStoredTheme } from './lib/theme';
 import { AdminCodeScreen } from './screens/login/AdminCodeScreen';
 import { LoginScreen } from './screens/login/LoginScreen';
 import { ForgotPasswordScreen } from './screens/forgot/ForgotPasswordScreen';
@@ -17,6 +19,9 @@ import { PrivacyScreen } from './screens/states/PrivacyScreen';
  * vérifient qu'aucun écran n'est orphelin et qu'une adresse inconnue est refusée.
  */
 export function AppRoutes(): ReactElement {
+  // Thème choisi dans le profil, appliqué dès le premier rendu (P10).
+  useEffect(() => applyStoredTheme(), []);
+
   return (
     <main id="contenu" tabIndex={-1}>
       <Routes>
