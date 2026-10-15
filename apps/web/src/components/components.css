@@ -1,0 +1,186 @@
+/* Composants (UX § 3.1, § 4.3, § 4.5) : bordures fines, rayons 12 px, grille de 4 px,
+   jetons uniquement — aucune couleur en dur. */
+
+/* Boutons */
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cp-btn--primary {
+  background: var(--cp-brand);
+  color: var(--cp-onbrand);
+}
+
+.cp-btn--secondary {
+  background: var(--cp-surface);
+  color: var(--cp-ink);
+  border-color: var(--cp-line2);
+}
+
+.cp-btn--link {
+  width: auto;
+  min-height: 44px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--cp-brandtx);
+  text-decoration: underline;
+}
+
+.cp-btn--danger {
+  background: var(--cp-red);
+  color: var(--cp-onbrand);
+}
+
+.cp-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cp-btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 999px;
+  animation: cp-spin 0.8s linear infinite;
+}
+
+@keyframes cp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-btn__spinner {
+    animation: none;
+  }
+}
+
+/* Champs */
+.cp-field {
+  margin: 0 0 16px;
+}
+
+.cp-field__labelrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cp-field__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cp-ink);
+}
+
+.cp-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-line2);
+  border-radius: 12px;
+  background: var(--cp-surface);
+  color: var(--cp-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.cp-input--error {
+  border-color: var(--cp-red);
+}
+
+.cp-field__hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--cp-muted);
+}
+
+.cp-field__hint--short {
+  color: var(--cp-amb);
+}
+
+.cp-field__hint b {
+  color: var(--cp-ink);
+}
+
+.cp-field__error {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--cp-red);
+}
+
+/* Lien-bouton (« Afficher ») : cible de 44 px */
+.cp-linkbtn {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cp-brandtx);
+  cursor: pointer;
+}
+
+.cp-link {
+  color: var(--cp-brandtx);
+  font-weight: 600;
+}
+
+/* Alertes et rappels */
+.cp-alert {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-line2);
+  border-radius: 12px;
+  background: var(--cp-surface);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.cp-alert--error {
+  border-color: var(--cp-red);
+  color: var(--cp-red);
+}
+
+.cp-alert--info {
+  color: var(--cp-ink);
+}
+
+.cp-alert__icon {
+  flex: none;
+}
+
+/* Squelette de chargement */
+.cp-skeleton {
+  background: var(--cp-line);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.cp-countdown {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cp-muted);
+}

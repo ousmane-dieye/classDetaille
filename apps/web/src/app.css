@@ -1,3 +1,5 @@
+@import './components/components.css';
+
 /* Règles globales : focus visible, lien d'évitement, mise en page de base. */
 :focus-visible {
   outline: 2px solid var(--cp-brand);
