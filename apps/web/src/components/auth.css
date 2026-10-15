@@ -1,0 +1,126 @@
+/* Écrans d'accès (M7, M8) : un seul colonne sur mobile, panneau de marque à gauche dès 1024 px.
+   Bordures fines, une seule ombre légère sur le bloc d'accès (UX § 4.3). */
+
+.cp-auth {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--cp-bg);
+}
+
+.cp-auth__brand {
+  display: none;
+}
+
+.cp-auth__panel {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.cp-auth__wm {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--cp-ink);
+}
+
+.cp-auth__wm span {
+  color: var(--cp-brandtx);
+}
+
+.cp-auth__wm--mobile {
+  display: block;
+}
+
+.cp-auth__lead {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--cp-muted);
+}
+
+.cp-auth__alt {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--cp-muted);
+}
+
+.cp-two {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (min-width: 640px) {
+  .cp-two {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .cp-two > * {
+    flex: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cp-auth {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    padding: 32px;
+  }
+
+  .cp-auth__brand {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    width: 330px;
+    padding: 32px 28px;
+    border-radius: 16px 0 0 16px;
+    background: var(--cp-brand);
+    color: var(--cp-onbrand);
+  }
+
+  .cp-auth__brand .cp-auth__wm {
+    color: var(--cp-onbrand);
+    opacity: 0.95;
+  }
+
+  .cp-auth__brand .cp-auth__wm span {
+    color: var(--cp-onbrand);
+    opacity: 0.75;
+  }
+
+  .cp-auth__claim {
+    margin: auto 0 8px;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .cp-auth__sub {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+
+  .cp-auth__panel {
+    width: 460px;
+    max-width: none;
+    padding: 40px 44px;
+    border: 1px solid var(--cp-line);
+    border-left: 0;
+    border-radius: 0 16px 16px 0;
+    background: var(--cp-surface);
+  }
+
+  .cp-auth__wm--mobile {
+    display: none;
+  }
+}

@@ -1,14 +1,20 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SessionProvider } from './session/session-context';
 import { AppRoutes } from './routes';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function at(path: string): void {
   render(
     <MemoryRouter initialEntries={[path]}>
-      <AppRoutes />
+      <SessionProvider loadMe={async () => Promise.reject(new Error('hors session'))}>
+        <AppRoutes />
+      </SessionProvider>
     </MemoryRouter>,
   );
 }

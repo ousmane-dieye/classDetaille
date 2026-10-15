@@ -12,10 +12,11 @@ export type PasswordFieldProps = {
   hint?: string;
   error?: string;
   required?: boolean;
+  onBlur?: () => void;
 };
 
 /** UX § 3.1 et P1 : champ de mot de passe masqué par défaut, bouton « Afficher », longueur indiquée. */
-export function PasswordField({ id, label, value, onChange, autoComplete, minimum, hint, error, required }: PasswordFieldProps): ReactElement {
+export function PasswordField({ id, label, value, onChange, autoComplete, minimum, hint, error, required, onBlur }: PasswordFieldProps): ReactElement {
   const [visible, setVisible] = useState(false);
   const hintId = hint ? `${id}-hint` : undefined;
   const lengthId = minimum !== undefined ? `${id}-length` : undefined;
@@ -42,6 +43,7 @@ export function PasswordField({ id, label, value, onChange, autoComplete, minimu
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         required={required}
+        onBlur={onBlur}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
       />
