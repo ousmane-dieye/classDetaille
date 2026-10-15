@@ -78,4 +78,18 @@ describe('client HTTP', () => {
     expect(e.status).toBe(0);
     expect(e.code).toBe('NETWORK');
   });
+
+  it('hors connexion, renvoie NETWORK sans appeler le réseau', async () => {
+    const spy = fetchSpy(async () => jsonResponse(200, {}));
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    try {
+      const e = (await apiFetch('/api/me').catch((x: unknown) => x)) as ApiProblem;
+      expect(e).toBeInstanceOf(ApiProblem);
+      expect(e.status).toBe(0);
+      expect(e.code).toBe('NETWORK');
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(navigator, 'onLine');
+    }
+  });
 });

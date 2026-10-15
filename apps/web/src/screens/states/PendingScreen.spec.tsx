@@ -65,7 +65,9 @@ const rejected = async (): Promise<Me> => {
 };
 
 const unavailable = async (): Promise<Me> => {
-  throw new ApiProblem({ status: 503, code: 'UNAVAILABLE', extra: {}, requestId: 'r', retryAfterSeconds: null });
+  // 503 = mise à jour (écran « ClassePulse revient très vite », testé dans require-session.spec) :
+  // ici c'est l'erreur ordinaire du serveur, avec « Réessayer ».
+  throw new ApiProblem({ status: 500, code: 'INTERNAL', extra: {}, requestId: 'r', retryAfterSeconds: null });
 };
 
 afterEach(() => {

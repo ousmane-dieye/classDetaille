@@ -13,7 +13,7 @@ import { homePathFor } from '../../lib/home';
 import { useSession } from '../../session/session-context';
 
 /** État posé par la connexion : le défi est dans le cookie, pas dans l'URL (jamais dans l'historique). */
-type ChallengeState = { email?: string; expiresInSeconds?: number; resendAfterSeconds?: number };
+type ChallengeState = { email?: string; from?: string | null; expiresInSeconds?: number; resendAfterSeconds?: number };
 
 /** Codes après lesquels il faut repartir de la connexion (§ 3.3). */
 const RELOGIN_CODES = ['CHALLENGE_EXPIRED', 'CODE_LOCKED', 'UNAUTHENTICATED'];
@@ -42,6 +42,8 @@ export function AdminCodeScreen(): ReactElement {
   if (!challenge?.email) return <Navigate to="/connexion" replace />;
 
   const email = challenge.email;
+  // Tracé par la connexion : après le code, on revient à l'écran qui avait demandé une session.
+  const from = challenge.from ?? null;
   const ready = code.length === 6;
   const expired = expiresIn <= 0;
   const waiting = resendIn > 0;
@@ -54,7 +56,7 @@ export function AdminCodeScreen(): ReactElement {
     try {
       const me = await verifyCode({ code });
       setMe(me);
-      navigate(homePathFor(me));
+      navigate(from ?? homePathFor(me));
     } catch (e) {
       setProblem(
         e instanceof ApiProblem

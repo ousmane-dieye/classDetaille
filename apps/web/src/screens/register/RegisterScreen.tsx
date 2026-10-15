@@ -15,6 +15,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { TextField } from '../../components/TextField';
 import { TurnstileField } from '../../components/TurnstileField';
 import { useSession } from '../../session/session-context';
+import { useOnline } from '../../lib/online';
 
 const PASSWORD_MINIMUM = 15;
 const EMAIL_HINT = 'Tes rappels et la récupération de ton compte arriveront à cette adresse : vérifie-la bien.';
@@ -27,6 +28,7 @@ const classLabel = (c: ClassSummary): string => `${c.name} · ${c.academicYear}`
 export function RegisterScreen(): ReactElement {
   const navigate = useNavigate();
   const { setMe } = useSession();
+  const online = useOnline();
 
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
@@ -170,7 +172,10 @@ export function RegisterScreen(): ReactElement {
           </p>
         ) : null}
 
-        <Button type="submit" busy={busy} disabled={waiting}>
+        {/* M14 : hors connexion l'écriture est impossible — la raison est dite, pas seulement le bouton gris. */}
+        {!online ? <p className="cp-field__hint">Hors connexion, tu peux consulter mais pas modifier. Tout reprend dès le retour du réseau.</p> : null}
+
+        <Button type="submit" busy={busy} disabled={waiting || !online}>
           Envoyer ma demande
         </Button>
       </form>

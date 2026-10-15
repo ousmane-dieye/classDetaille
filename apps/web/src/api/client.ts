@@ -54,6 +54,11 @@ function parseErrorBody(data: unknown): { code: string; extra: Record<string, un
 }
 
 export async function apiFetch<T>(path: string, init: ApiRequest = {}): Promise<T> {
+  // Hors connexion, la requête ne partirait pas : on le dit tout de suite, sans faux essai (M14).
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new ApiProblem({ status: 0, code: 'NETWORK', extra: {}, requestId: '', retryAfterSeconds: null });
+  }
+
   const method = init.method ?? 'GET';
   const headers: Record<string, string> = init.body === undefined ? {} : { 'Content-Type': 'application/json' };
   // `exactOptionalPropertyTypes` : le corps n'est présent que s'il existe (un corps vide s'envoie `{}`).

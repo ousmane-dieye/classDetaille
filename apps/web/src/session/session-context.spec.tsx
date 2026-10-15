@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { ReactElement } from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProblem } from '../api/client';
 import type { Me } from '../api/types';
 import { SessionProvider, useSession, type SessionValue } from './session-context';
@@ -69,5 +69,22 @@ describe('session', () => {
     if (!session) throw new Error('session indisponible');
     session.setMe(me);
     expect(await screen.findByText(/authenticated Awa/)).toBeTruthy();
+  });
+
+  it('recharge la session quand le réseau revient (M14)', async () => {
+    const loadMe = vi.fn(async () => me);
+    render(
+      <SessionProvider loadMe={loadMe}>
+        <Probe />
+      </SessionProvider>,
+    );
+    await screen.findByText(/authenticated Awa/);
+    expect(loadMe).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+    });
+
+    await waitFor(() => expect(loadMe).toHaveBeenCalledTimes(2));
   });
 });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { login } from '../../api/auth';
 import { ApiProblem } from '../../api/client';
 import { AuthShell } from '../../components/AuthShell';
@@ -28,7 +28,10 @@ function loginText(problem: ApiProblem): string {
 /** M8 et P2 : connexion par email et mot de passe, avec vérification anti-robot après échecs. */
 export function LoginScreen(): ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const { status, me, setMe } = useSession();
+  // Un écran protégé renvoie vers la connexion en laissant la trace de l'origine (§ 3.2).
+  const from = (location.state as { from?: string } | null)?.from ?? null;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +42,7 @@ export function LoginScreen(): ReactElement {
   const [localError, setLocalError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (status === 'authenticated' && me) return <Navigate to={homePathFor(me)} replace />;
+  if (status === 'authenticated' && me) return <Navigate to={from ?? homePathFor(me)} replace />;
 
   const retryIn = problem?.retryAfterSeconds ?? 0;
   const waiting = retryIn > 0;
@@ -59,12 +62,12 @@ export function LoginScreen(): ReactElement {
       const result = await login(token === null ? { email, password } : { email, password, turnstileToken: token });
       if (result.kind === 'second-factor') {
         navigate('/connexion/code', {
-          state: { email, expiresInSeconds: result.expiresInSeconds, resendAfterSeconds: result.resendAfterSeconds },
+          state: { email, from, expiresInSeconds: result.expiresInSeconds, resendAfterSeconds: result.resendAfterSeconds },
         });
         return;
       }
       setMe(result.me);
-      navigate(homePathFor(result.me));
+      navigate(from ?? homePathFor(result.me));
     } catch (e) {
       const p = e instanceof ApiProblem ? e : new ApiProblem({ status: 0, code: 'INTERNAL', extra: {}, requestId: '', retryAfterSeconds: null });
       setProblem(p);

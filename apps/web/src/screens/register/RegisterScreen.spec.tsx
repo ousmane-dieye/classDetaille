@@ -220,4 +220,27 @@ describe('inscription (P1, M7)', () => {
     await completeTurnstile('jeton-y');
     await waitFor(() => expect(widgets).toHaveLength(2));
   });
+
+  it('hors connexion : la demande est impossible, et la raison est dite (M14)', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        urls.push(String(url));
+        return jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' });
+      }),
+    );
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    try {
+      mountAtInscription();
+
+      expect(screen.getByText(/Hors connexion, tu peux consulter mais pas modifier\./)).toBeTruthy();
+      const button = screen.getByRole('button', { name: 'Envoyer ma demande' }) as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      fireEvent.click(button);
+      expect(urls.filter((u) => u === '/api/auth/register')).toHaveLength(0);
+    } finally {
+      Reflect.deleteProperty(navigator, 'onLine');
+    }
+  });
 });
