@@ -1,4 +1,4 @@
-﻿import type { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AdminCodeScreen } from './screens/login/AdminCodeScreen';
 import { LoginScreen } from './screens/login/LoginScreen';

@@ -1,4 +1,4 @@
-﻿import type { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 /** Lien d'évitement : premier élément focalisable de la page (UX § 5.1). */
 export function SkipLink(): ReactElement {

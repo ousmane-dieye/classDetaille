@@ -1,4 +1,4 @@
-﻿import type { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router';
 import './app.css';
 import { SkipLink } from './components/SkipLink';

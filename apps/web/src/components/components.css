@@ -184,3 +184,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--cp-muted);
 }
+
+.cp-turnstile {
+  margin: 0 0 12px;
+}

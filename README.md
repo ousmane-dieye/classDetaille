@@ -58,6 +58,17 @@ DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm cli create-class 
 DB_USER=cp_app DB_PASSWORD_FILE=../../.secrets/dev/cp_app pnpm exec tsx --conditions=source src/main.ts
 ```
 
+### Démarrer l'application web
+
+L'application partage l'origine de l'API (§ 3.1) : aucun CORS, le cookie de session suffit. Les cookies `__Host-` portant `Secure`, le serveur de développement Vite sert **`https://localhost:5173`** (certificat auto-signé généré à la première exécution dans `.secrets/dev/`, ignoré par git) et proxyfie `/api` vers `http://127.0.0.1:3000`. L'API doit donc être démarrée avec `APP_ORIGIN=https://localhost:5173` ; au premier lancement, le navigateur demande d'accepter le certificat.
+
+```bash
+cd apps/web
+pnpm dev
+```
+
+Clé publique Turnstile : `apps/web/.env.development` porte `VITE_TURNSTILE_SITEKEY` (clé de test de Cloudflare, qui accepte toujours ; jamais en production). Aucun secret ne passe au navigateur ; sans clé, le widget n'est pas rendu et l'écran le signale. Tests : `pnpm vitest run --project web` (jsdom, `fetch` simulé, aucun réseau).
+
 ### Commandes d'administration (`create-admin`, `create-class`)
 
 Elles s'exécutent sous le rôle `cp_app` (jamais `cp_owner` ni `postgres`), avec les mêmes variables d'environnement que l'API. En lot 1a, on les lance par `pnpm --filter @classepulse/api cli …` (ou `pnpm cli …` depuis `apps/api`), c'est-à-dire `tsx --conditions=source src/cli.ts`. `node dist/src/cli.js` ne fonctionnera qu'une fois le paquet partagé construit (lot 7).
