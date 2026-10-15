@@ -1,0 +1,53 @@
+/* Règles globales : focus visible, lien d'évitement, mise en page de base. */
+:focus-visible {
+  outline: 2px solid var(--cp-brand);
+  outline-offset: 2px;
+}
+
+.cp-skiplink {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 100;
+  padding: 12px 16px;
+  border: 1px solid var(--cp-line2);
+  border-radius: 12px;
+  background: var(--cp-surface);
+  color: var(--cp-ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 120ms ease;
+}
+
+.cp-skiplink:focus {
+  top: 8px;
+}
+
+#contenu {
+  min-height: 100vh;
+}
+
+/* Écrans d'état (M14) : un seul bloc centré, une colonne. */
+.cp-state {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin: 0 0 4px;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}

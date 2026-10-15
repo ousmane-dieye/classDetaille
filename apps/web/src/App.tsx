@@ -1,10 +1,14 @@
-export function App() {
+﻿import type { ReactElement } from 'react';
+import { BrowserRouter } from 'react-router';
+import './app.css';
+import { SkipLink } from './components/SkipLink';
+import { AppRoutes } from './routes';
+
+export function App(): ReactElement {
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
-        Classe<span style={{ color: 'var(--cp-brandtx)' }}>Pulse</span>
-      </h1>
-      <p>Les écrans arrivent avec les lots 1 à 6.</p>
-    </main>
+    <BrowserRouter>
+      <SkipLink />
+      <AppRoutes />
+    </BrowserRouter>
   );
 }

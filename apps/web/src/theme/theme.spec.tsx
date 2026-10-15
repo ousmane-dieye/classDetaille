@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+﻿import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyTheme, loadPreference, savePreference } from './theme';
 
 afterEach(() => { localStorage.clear(); delete document.documentElement.dataset.theme; vi.restoreAllMocks(); });

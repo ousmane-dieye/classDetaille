@@ -1,4 +1,4 @@
-import '@fontsource/figtree/latin-400.css';
+﻿import '@fontsource/figtree/latin-400.css';
 import '@fontsource/figtree/latin-600.css';
 import '@fontsource/figtree/latin-800.css';
 import './theme/tokens.css';
