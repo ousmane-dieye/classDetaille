@@ -111,94 +111,94 @@ apps/web/
 
 ### Task 1 : Dépendances, routage et squelette
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `routes.spec.tsx` : chaque adresse rend son écran ; une adresse inconnue rend l'écran « Cet élément n'existe pas ou n'est plus disponible » ; `App` monte le lien « Aller au contenu » et déclare `lang="fr"`.
-- [ ] **Step 2 : Implémenter** — `pnpm --filter @classepulse/web add -E react-router@8.4.0` ; `routes.tsx` (table déclarative), `App.tsx`, `app.css` (focus 2 px `--cp-brand` décalé, styles de base), `SkipLink`, `NotFoundScreen`. `App.tsx` n'affiche plus la page de garde.
-- [ ] **Step 3 : Vérifier** — `pnpm test:unit` (projet `web`), `pnpm --filter @classepulse/web typecheck`, `pnpm lint`.
-- [ ] **Step 4 : Commit** — `feat(lot1c): routage, squelette des écrans et lien d'évitement`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `routes.spec.tsx` : chaque adresse rend son écran ; une adresse inconnue rend l'écran « Cet élément n'existe pas ou n'est plus disponible » ; `App` monte le lien « Aller au contenu » et déclare `lang="fr"`.
+- [x] **Step 2 : Implémenter** — `pnpm --filter @classepulse/web add -E react-router@8.4.0` ; `routes.tsx` (table déclarative), `App.tsx`, `app.css` (focus 2 px `--cp-brand` décalé, styles de base), `SkipLink`, `NotFoundScreen`. `App.tsx` n'affiche plus la page de garde.
+- [x] **Step 3 : Vérifier** — `pnpm test:unit` (projet `web`), `pnpm --filter @classepulse/web typecheck`, `pnpm lint`.
+- [x] **Step 4 : Commit** — `feat(lot1c): routage, squelette des écrans et lien d'évitement`.
 
 ### Task 2 : Client HTTP et traduction des erreurs
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `messages.spec.ts` : chaque code du contrat (§ « Codes d'erreur du lot 1b », plus `INVALID_CREDENTIALS`, `ACCOUNT_SUSPENDED`, `EMAIL_TAKEN`, `SIGNUP_UNAVAILABLE`, `RESET_UNAVAILABLE`, `UNAUTHENTICATED`, `CSRF_REJECTED`, `TOO_MANY_REQUESTS`, `INTERNAL`) a un texte français ; un code inconnu donne le texte générique « Une erreur est survenue. Réessaie. » ; `Retry-After` est lu et converti en délai. `client.spec.ts` : `credentials: 'include'`, `Content-Type` posé seulement s'il y a un corps, `{}` envoyé pour un corps vide, `ApiProblem` porte `status`, `code`, `extra`, `requestId` et `retryAfterSeconds`.
-- [ ] **Step 2 : Implémenter** — `api/client.ts`, `api/messages.ts`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): client HTTP et textes français des erreurs`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `messages.spec.ts` : chaque code du contrat (§ « Codes d'erreur du lot 1b », plus `INVALID_CREDENTIALS`, `ACCOUNT_SUSPENDED`, `EMAIL_TAKEN`, `SIGNUP_UNAVAILABLE`, `RESET_UNAVAILABLE`, `UNAUTHENTICATED`, `CSRF_REJECTED`, `TOO_MANY_REQUESTS`, `INTERNAL`) a un texte français ; un code inconnu donne le texte générique « Une erreur est survenue. Réessaie. » ; `Retry-After` est lu et converti en délai. `client.spec.ts` : `credentials: 'include'`, `Content-Type` posé seulement s'il y a un corps, `{}` envoyé pour un corps vide, `ApiProblem` porte `status`, `code`, `extra`, `requestId` et `retryAfterSeconds`.
+- [x] **Step 2 : Implémenter** — `api/client.ts`, `api/messages.ts`.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): client HTTP et textes français des erreurs`.
 
 ### Task 3 : Composants de saisie et de retour (M14, UX § 3.1)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `Button` (libellé, état occupé `aria-busy`, jamais désactivé par défaut sans raison), `TextField` (libellé visible lié au champ, `aria-invalid`, message d'erreur annoncé par `role="alert"` et lié par `aria-describedby`, aide en dessous), `PasswordField` (bouton « Afficher »/« Masquer » avec `aria-pressed`, `autocomplete="new-password"` ou `current-password`, compteur « 17 caractères · 15 minimum » sans jauge), `InlineAlert` (icône + texte, jamais la couleur seule), `Skeleton` (masqué sous 300 ms), `Countdown` (affiche `mm:ss`, s'arrête à zéro, annonce polie toutes les minutes).
-- [ ] **Step 2 : Implémenter** — composants + styles, jetons uniquement.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): composants de saisie, boutons, alertes et compte à rebours`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `Button` (libellé, état occupé `aria-busy`, jamais désactivé par défaut sans raison), `TextField` (libellé visible lié au champ, `aria-invalid`, message d'erreur annoncé par `role="alert"` et lié par `aria-describedby`, aide en dessous), `PasswordField` (bouton « Afficher »/« Masquer » avec `aria-pressed`, `autocomplete="new-password"` ou `current-password`, compteur « 17 caractères · 15 minimum » sans jauge), `InlineAlert` (icône + texte, jamais la couleur seule), `Skeleton` (masqué sous 300 ms), `Countdown` (affiche `mm:ss`, s'arrête à zéro, annonce polie toutes les minutes).
+- [x] **Step 2 : Implémenter** — composants + styles, jetons uniquement.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): composants de saisie, boutons, alertes et compte à rebours`.
 
 ### Task 4 : Turnstile et origine de développement
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `turnstile.spec.ts` : le script est chargé une seule fois, le widget est rendu avec la clé, le jeton est transmis à l'écran, un jeton expiré n'est pas réutilisé, l'échec du script laisse le champ inutilisable avec un message. `vite.config.spec.ts` (lecture du fichier) : HTTPS activé, proxy `/api` présent.
-- [ ] **Step 2 : Implémenter** — `api/turnstile.ts`, `components/TurnstileField.tsx`, `scripts/gen-dev-cert.ts` + `selfsigned@5.5.0`, `vite.config.ts` (https + proxy), `.env.development` avec la clé de test, README (section « Application web »).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint ; démarrage manuel `pnpm --filter @classepulse/web dev` (certificat généré, page servie en https).
-- [ ] **Step 4 : Commit** — `feat(lot1c): Turnstile côté web et développement en HTTPS`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `turnstile.spec.ts` : le script est chargé une seule fois, le widget est rendu avec la clé, le jeton est transmis à l'écran, un jeton expiré n'est pas réutilisé, l'échec du script laisse le champ inutilisable avec un message. `vite.config.spec.ts` (lecture du fichier) : HTTPS activé, proxy `/api` présent.
+- [x] **Step 2 : Implémenter** — `api/turnstile.ts`, `components/TurnstileField.tsx`, `scripts/gen-dev-cert.ts` + `selfsigned@5.5.0`, `vite.config.ts` (https + proxy), `.env.development` avec la clé de test, README (section « Application web »).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint ; démarrage manuel `pnpm --filter @classepulse/web dev` (certificat généré, page servie en https).
+- [x] **Step 4 : Commit** — `feat(lot1c): Turnstile côté web et développement en HTTPS`.
 
 ### Task 5 : Inscription (M7, P1)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — formulaire complet : prénom, nom, email **saisi une seule fois** avec l'aide « Tes rappels et la récupération de ton compte arriveront à cette adresse : vérifie-la bien. », mot de passe **en double**, classe parmi les classes actives, Turnstile. Indicateur « N caractères · 15 minimum » ; erreur de correspondance affichée **en quittant le second champ** ; **rien n'est effacé** après une erreur serveur ; `409 EMAIL_TAKEN` → message + lien connexion ; `400 TURNSTILE_FAILED` → nouveau widget ; `503 SIGNUP_UNAVAILABLE` → message avec le compte à rebours ; `429` → message avec `Retry-After` ; succès → écran « Demande envoyée » avec l'email rappelé. Lien « Se connecter » en bas.
-- [ ] **Step 2 : Implémenter** — `RegisterScreen`, `AuthShell` (M7), `api/auth.ts` (register, classes actives), `SessionProvider` (profil enregistré après inscription).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): inscription et demande d'adhésion (P1)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — formulaire complet : prénom, nom, email **saisi une seule fois** avec l'aide « Tes rappels et la récupération de ton compte arriveront à cette adresse : vérifie-la bien. », mot de passe **en double**, classe parmi les classes actives, Turnstile. Indicateur « N caractères · 15 minimum » ; erreur de correspondance affichée **en quittant le second champ** ; **rien n'est effacé** après une erreur serveur ; `409 EMAIL_TAKEN` → message + lien connexion ; `400 TURNSTILE_FAILED` → nouveau widget ; `503 SIGNUP_UNAVAILABLE` → message avec le compte à rebours ; `429` → message avec `Retry-After` ; succès → écran « Demande envoyée » avec l'email rappelé. Lien « Se connecter » en bas.
+- [x] **Step 2 : Implémenter** — `RegisterScreen`, `AuthShell` (M7), `api/auth.ts` (register, classes actives), `SessionProvider` (profil enregistré après inscription).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): inscription et demande d'adhésion (P1)`.
 
 ### Task 6 : Écrans d'état (M7, UX § 1.1)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — après connexion (ou au démarrage) : `enrollment.status === 'PENDING'` → « Demande envoyée » (classe, email, date d'envoi, bouton « Se déconnecter ») ; `REFUSED` → « Demandée refusée » avec le motif entre guillemets s'il existe, la date de nouvelle demande et le bouton « Demander une autre classe » ; `null` (aucune demande) → écran invitant à contacter le délégué ; `ACCEPTED` sans classe → écran de secours. Un `GET /api/me` qui échoue affiche l'état d'erreur avec « Réessayer ».
-- [ ] **Step 2 : Implémenter** — `PendingScreen`, `RefusedScreen`, `StateScreen`, routage depuis `SessionProvider`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): écrans d'état demande envoyée et refusée (M7)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — après connexion (ou au démarrage) : `enrollment.status === 'PENDING'` → « Demande envoyée » (classe, email, date d'envoi, bouton « Se déconnecter ») ; `REFUSED` → « Demandée refusée » avec le motif entre guillemets s'il existe, la date de nouvelle demande et le bouton « Demander une autre classe » ; `null` (aucune demande) → écran invitant à contacter le délégué ; `ACCEPTED` sans classe → écran de secours. Un `GET /api/me` qui échoue affiche l'état d'erreur avec « Réessayer ».
+- [x] **Step 2 : Implémenter** — `PendingScreen`, `RefusedScreen`, `StateScreen`, routage depuis `SessionProvider`.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): écrans d'état demande envoyée et refusée (M7)`.
 
 ### Task 7 : Connexion (M8, P2)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — un seul champ mot de passe ; message **identique** « Email ou mot de passe incorrect. » pour `INVALID_CREDENTIALS`, `TURNSTILE_FAILED`, `TURNSTILE_REQUIRED` et `TOO_MANY_ATTEMPTS` ; `turnstileRequired: true` → widget affiché et inclus dans la tentative suivante ; `403 ACCOUNT_SUSPENDED` → message propre ; `429` → compte à rebours depuis `Retry-After`, bouton désactivé ; réponse `202 ADMIN_CODE_REQUIRED` → redirection vers `/connexion/code` avec `expiresInSeconds` et `resendAfterSeconds` ; étudiant connecté → écran d'état ou profil ; lien « Mot de passe oublié ? » et « Créer un compte ».
-- [ ] **Step 2 : Implémenter** — `LoginScreen`, `api/auth.ts` (login), `SessionProvider` (mise à jour).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): écran de connexion avec message unique (M8)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — un seul champ mot de passe ; message **identique** « Email ou mot de passe incorrect. » pour `INVALID_CREDENTIALS`, `TURNSTILE_FAILED`, `TURNSTILE_REQUIRED` et `TOO_MANY_ATTEMPTS` ; `turnstileRequired: true` → widget affiché et inclus dans la tentative suivante ; `403 ACCOUNT_SUSPENDED` → message propre ; `429` → compte à rebours depuis `Retry-After`, bouton désactivé ; réponse `202 ADMIN_CODE_REQUIRED` → redirection vers `/connexion/code` avec `expiresInSeconds` et `resendAfterSeconds` ; étudiant connecté → écran d'état ou profil ; lien « Mot de passe oublié ? » et « Créer un compte ».
+- [x] **Step 2 : Implémenter** — `LoginScreen`, `api/auth.ts` (login), `SessionProvider` (mise à jour).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): écran de connexion avec message unique (M8)`.
 
 ### Task 8 : Code administrateur (M8, P2)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `OtpInput` : 6 cases, saisie numérique, **collage** d'un code complet, retour arrière, navigation ; titre « Vérifie ton email », adresse **masquée** (`a•••••@esp.sn`), compte à rebours de 10 min, « Renvoyer » désactivé pendant 60 s puis actif ; succès → session ouverte et retour à l'écran demandé ; `400 CODE_INVALID` → « Code incorrect. Il te reste 4 essais. » avec les cases conservées et focus au premier champ ; `400 CODE_LOCKED` → message de verrouillage + renvoi vers la connexion ; `400 CHALLENGE_EXPIRED` → renvoi vers la connexion avec un bouton « Renvoyer un code » ; `429 TOO_MANY_CODE_REQUESTS` → compte à rebours ; note « Tu n'arrives pas à recevoir le code ? Contacte un opérateur de la plateforme : il pourra te délivrer un code de récupération. » (le code de récupération n'est **jamais** en libre-service, § 3.3).
-- [ ] **Step 2 : Implémenter** — `AdminCodeScreen`, `OtpInput`, `api/auth.ts` (verifyCode, resendCode, verifyRecovery désactivé côté formulaire mais présent dans le client pour le lot suivant : **non**, seul `verifyCode` et `resendCode` sont branchés ; la note renvoie vers l'opérateur).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): écran du code administrateur (M8)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `OtpInput` : 6 cases, saisie numérique, **collage** d'un code complet, retour arrière, navigation ; titre « Vérifie ton email », adresse **masquée** (`a•••••@esp.sn`), compte à rebours de 10 min, « Renvoyer » désactivé pendant 60 s puis actif ; succès → session ouverte et retour à l'écran demandé ; `400 CODE_INVALID` → « Code incorrect. Il te reste 4 essais. » avec les cases conservées et focus au premier champ ; `400 CODE_LOCKED` → message de verrouillage + renvoi vers la connexion ; `400 CHALLENGE_EXPIRED` → renvoi vers la connexion avec un bouton « Renvoyer un code » ; `429 TOO_MANY_CODE_REQUESTS` → compte à rebours ; note « Tu n'arrives pas à recevoir le code ? Contacte un opérateur de la plateforme : il pourra te délivrer un code de récupération. » (le code de récupération n'est **jamais** en libre-service, § 3.3).
+- [x] **Step 2 : Implémenter** — `AdminCodeScreen`, `OtpInput`, `api/auth.ts` (verifyCode, resendCode, verifyRecovery désactivé côté formulaire mais présent dans le client pour le lot suivant : **non**, seul `verifyCode` et `resendCode` sont branchés ; la note renvoie vers l'opérateur).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): écran du code administrateur (M8)`.
 
 ### Task 9 : Mot de passe oublié et réinitialisation (§ 3.2)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — demande : champ email, Turnstile **toujours** envoyé, réponse `202` toujours identique (« Si un compte existe avec cet email, tu reçois un message. ») ; `503 RESET_UNAVAILABLE` avec compte à rebours ; `429` ; aucun contenu effacé. Réinitialisation (depuis l'adresse exacte de l'email du lot 1b : `/reinitialiser-mot-de-passe#token=…`, jeton lu dans le **fragment** puis retiré de l'URL, R8 du lot 1b — correction de la tâche : le contrat de l'email prime sur la formulation initiale « `/reinitialisation?token=` ») : nouveau mot de passe **saisi deux fois**, politique 15 caractères, `400 RESET_TOKEN_INVALID` → message + lien vers une nouvelle demande, `503` → message, succès → confirmation et redirection vers la connexion. Un jeton absent de l'URL → « Ce lien n'est plus valable. »
-- [ ] **Step 2 : Implémenter** — `ForgotPasswordScreen`, `ResetPasswordScreen`, `api/auth.ts` (forgotPassword, resetPassword).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): mot de passe oublié et réinitialisation`.
+- [x] **Step 1 : Écrire les tests (échouent)** — demande : champ email, Turnstile **toujours** envoyé, réponse `202` toujours identique (« Si un compte existe avec cet email, tu reçois un message. ») ; `503 RESET_UNAVAILABLE` avec compte à rebours ; `429` ; aucun contenu effacé. Réinitialisation (depuis l'adresse exacte de l'email du lot 1b : `/reinitialiser-mot-de-passe#token=…`, jeton lu dans le **fragment** puis retiré de l'URL, R8 du lot 1b — correction de la tâche : le contrat de l'email prime sur la formulation initiale « `/reinitialisation?token=` ») : nouveau mot de passe **saisi deux fois**, politique 15 caractères, `400 RESET_TOKEN_INVALID` → message + lien vers une nouvelle demande, `503` → message, succès → confirmation et redirection vers la connexion. Un jeton absent de l'URL → « Ce lien n'est plus valable. »
+- [x] **Step 2 : Implémenter** — `ForgotPasswordScreen`, `ResetPasswordScreen`, `api/auth.ts` (forgotPassword, resetPassword).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): mot de passe oublié et réinitialisation`.
 
 ### Task 10 : Profil (M14, P10)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — sections « Nom » (prénom + nom, `PATCH /api/me/profile`, confirmation), « Mot de passe » (actuel + nouveau en double, `400 CURRENT_PASSWORD_INVALID` → message sous le champ actuel, `403 REAUTH_REQUIRED` → ressaisie, politique 16 caractères pour un administrateur), « Préférences d'email » (deux interrupteurs `emailReminders` / `emailAnnouncements`, `PATCH /api/me/email-preferences`), « Thème » (système / clair / sombre, mémorisé dans `cp.theme`), email en lecture seule, lien vers « Sessions actives ». Une erreur serveur n'efface jamais le contenu saisi.
-- [ ] **Step 2 : Implémenter** — `ProfileScreen`, `api/account.ts`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): profil, mot de passe, préférences et thème (M14)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — sections « Nom » (prénom + nom, `PATCH /api/me/profile`, confirmation), « Mot de passe » (actuel + nouveau en double, `400 CURRENT_PASSWORD_INVALID` → message sous le champ actuel, `403 REAUTH_REQUIRED` → ressaisie, politique 16 caractères pour un administrateur), « Préférences d'email » (deux interrupteurs `emailReminders` / `emailAnnouncements`, `PATCH /api/me/email-preferences`), « Thème » (système / clair / sombre, mémorisé dans `cp.theme`), email en lecture seule, lien vers « Sessions actives ». Une erreur serveur n'efface jamais le contenu saisi.
+- [x] **Step 2 : Implémenter** — `ProfileScreen`, `api/account.ts`.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): profil, mot de passe, préférences et thème (M14)`.
 
 ### Task 11 : Sessions actives (M14, § 3.4)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — liste des sessions (`GET /api/me/sessions`) : date de création, dernière activité, navigateur déduit de l'`userAgent`, badge « Cet appareil » sur la session courante ; bouton « Déconnecter les autres appareils » avec confirmation (« Déconnecter les autres appareils ? ») et retour du nombre ; `401` → retour à la connexion ; chargement et état vide.
-- [ ] **Step 2 : Implémenter** — `SessionsScreen`, `api/account.ts` (sessions, revokeOthers).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): sessions actives et déconnexion des autres appareils (M14)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — liste des sessions (`GET /api/me/sessions`) : date de création, dernière activité, navigateur déduit de l'`userAgent`, badge « Cet appareil » sur la session courante ; bouton « Déconnecter les autres appareils » avec confirmation (« Déconnecter les autres appareils ? ») et retour du nombre ; `401` → retour à la connexion ; chargement et état vide.
+- [x] **Step 2 : Implémenter** — `SessionsScreen`, `api/account.ts` (sessions, revokeOthers).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): sessions actives et déconnexion des autres appareils (M14)`.
 
 ### Task 12 : États communs, session expirée et hors ligne (M14, UX § 3.2)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `401` sur une route protégée → redirection vers `/connexion` avec retour prévu à l'écran d'origine après connexion ; `429` → message avec compte à rebours ; `503` → message de maintenance avec nouvel essai ; `404` de l'API → écran « Cet élément n'existe pas ou n'est plus disponible » ; échec réseau ou `navigator.onLine === false` → bandeau « Connexion perdue — reconnexion… », écritures désactivées avec la raison, rechargement au retour en ligne ; chargement affiché seulement au-delà de 300 ms.
-- [ ] **Step 2 : Implémenter** — `useOnline`, `Banner`, branchement dans `api/client.ts` et `SessionProvider`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint.
-- [ ] **Step 4 : Commit** — `feat(lot1c): états communs, session expirée et hors ligne (M14)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `401` sur une route protégée → redirection vers `/connexion` avec retour prévu à l'écran d'origine après connexion ; `429` → message avec compte à rebours ; `503` → message de maintenance avec nouvel essai ; `404` de l'API → écran « Cet élément n'existe pas ou n'est plus disponible » ; échec réseau ou `navigator.onLine === false` → bandeau « Connexion perdue — reconnexion… », écritures désactivées avec la raison, rechargement au retour en ligne ; chargement affiché seulement au-delà de 300 ms.
+- [x] **Step 2 : Implémenter** — `useOnline`, `Banner`, branchement dans `api/client.ts` et `SessionProvider`.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint.
+- [x] **Step 4 : Commit** — `feat(lot1c): états communs, session expirée et hors ligne (M14)`.
 
 ### Task 13 : Accessibilité, README et vérification finale
 
-- [ ] **Step 1 : Écrire la suite d'accessibilité (échoue tant qu'une violation existe)** — `a11y.spec.ts` : `axe-core` sur chaque écran rendu (inscription, connexion, code, états, profil, sessions, mot de passe oublié), **aucune violation `serious` ou `critical`**, dans les deux thèmes ; vérification du lien « Aller au contenu », de l'ordre de tabulation sur le code à 6 cases, et du couple `aria-invalid` + `aria-describedby` sur chaque champ en erreur.
-- [ ] **Step 2 : README** — section « Application web » : variables (`VITE_TURNSTILE_SITEKEY`), développement en HTTPS, parcours de vérification manuelle (inscription → demande en attente ; administrateur → code dans Mailpit), rappel du contrat et des codes traduits.
-- [ ] **Step 3 : Vérification finale** — `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:int` (aucune régression API), `pnpm depcruise`, `pnpm audit --audit-level high`, `pnpm --filter @classepulse/web build`. Mise à jour de la feuille de route (lot 1c terminé) et relecture de la couverture de la spec ci-dessous.
-- [ ] **Step 4 : Commit** — `feat(lot1c): accessibilité, README et vérification finale`.
+- [x] **Step 1 : Écrire la suite d'accessibilité (échoue tant qu'une violation existe)** — `a11y.spec.ts` : `axe-core` sur chaque écran rendu (inscription, connexion, code, états, profil, sessions, mot de passe oublié), **aucune violation `serious` ou `critical`**, dans les deux thèmes ; vérification du lien « Aller au contenu », de l'ordre de tabulation sur le code à 6 cases, et du couple `aria-invalid` + `aria-describedby` sur chaque champ en erreur.
+- [x] **Step 2 : README** — section « Application web » : variables (`VITE_TURNSTILE_SITEKEY`), développement en HTTPS, parcours de vérification manuelle (inscription → demande en attente ; administrateur → code dans Mailpit), rappel du contrat et des codes traduits.
+- [x] **Step 3 : Vérification finale** — `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:int` (aucune régression API), `pnpm depcruise`, `pnpm audit --audit-level high`, `pnpm --filter @classepulse/web build`. Mise à jour de la feuille de route (lot 1c terminé) et relecture de la couverture de la spec ci-dessous.
+- [x] **Step 4 : Commit** — `feat(lot1c): accessibilité, README et vérification finale`.
 
 ## Critères de sortie du lot 1c
 

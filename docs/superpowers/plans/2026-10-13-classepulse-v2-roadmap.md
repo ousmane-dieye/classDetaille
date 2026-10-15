@@ -40,3 +40,6 @@
 - **Classes minimales au lot 1** : table `classes`, liste des classes actives, création d'une classe en ligne de commande, demande d'adhésion créée à l'inscription et écran « demande en attente ». Les décisions d'admission (P8) restent au lot 2.
 - **Suppression de compte (anonymisation) au lot 2**, avec `priv.anonymize_user` et son écran, quand les appartenances existent. Le profil du lot 1 n'a pas de bouton de suppression.
 - **Worker d'envoi des emails au lot 1 (1b)** : processus worker et traitement `email.send` (bail, réservation, nouvelles tentatives, résultat ambigu, § 2.4). `job_runs`, Healthchecks.io et les autres traitements restent au lot 5.
+
+## Avancement
+- **2026-10-15 — lot 1 terminé** (1a API identité, 1b emails et administrateurs, 1c écrans) : l'application web de bout en bout est livrée sur `https://localhost:5173` — inscription P1, connexion P2 (code administrateur M8), demande en attente M7, mot de passe oublié et réinitialisation, profil M14/P10, sessions actives, états communs (chargement, vide, erreur, maintenance, hors ligne) et accessibilité (axe-core sur chaque écran, les deux thèmes). Tests web verts, typecheck, lint, build, `depcruise` et audit sans erreur ; aucune modification d'API dans ce lot. Le lot 2 (décisions d'admission P8, anonymisation) ouvre la suite.

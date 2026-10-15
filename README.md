@@ -67,7 +67,22 @@ cd apps/web
 pnpm dev
 ```
 
-Clé publique Turnstile : `apps/web/.env.development` porte `VITE_TURNSTILE_SITEKEY` (clé de test de Cloudflare, qui accepte toujours ; jamais en production). Aucun secret ne passe au navigateur ; sans clé, le widget n'est pas rendu et l'écran le signale. Tests : `pnpm vitest run --project web` (jsdom, `fetch` simulé, aucun réseau).
+Clé publique Turnstile : `apps/web/.env.development` porte `VITE_TURNSTILE_SITEKEY` (clé de test de Cloudflare, qui accepte toujours ; jamais en production). C'est la **seule** variable lue par le web ; aucun secret ne passe au navigateur, et sans clé le widget n'est pas rendu (l'écran le signale). Tests : `pnpm vitest run --project web` (jsdom, `fetch` simulé, aucun réseau), accessibilité comprise (`src/a11y.spec.ts`, axe-core sur chaque écran, les deux thèmes).
+
+Le thème (`system`, clair, sombre) est mémorisé dans `localStorage` sous `cp.theme` et appliqué par l'attribut `data-theme` de `<html>`. Hors connexion, `apiFetch` échoue aussitôt (`NETWORK`) sans tenter la requête : le bandeau « Connexion perdue — reconnexion… » s'affiche, les écritures sont désactivées avec la raison, et la session se recharge seule au retour du réseau.
+
+#### Parcours de vérification manuelle (application web)
+
+Sur `https://localhost:5173`, avec l'API, le worker, Mailpit et une classe créés (sections précédentes) :
+
+1. **Inscription d'une étudiante** : `/inscription` → envoi → `/etat/demande-envoyee` (adhésion `PENDING`). Se réinscrire avec le même email → « Un compte existe déjà avec cet email. »
+2. **Connexion étudiante** : `/connexion` → retour à la demande en attente ; un mot de passe erroné affiche le même message que toute autre erreur d'identification.
+3. **Administrateur** : après `create-admin`, `/connexion` renvoie vers `/connexion/code` (« Vérifie ton email », adresse masquée) ; le code à 6 chiffres arrive dans Mailpit (http://127.0.0.1:8025) — collage accepté, flèches pour se déplacer, 3 essais avant blocage. « Renvoyer » invalide le code précédent.
+4. **Mot de passe oublié** : `/mot-de-passe-oublie` → confirmation identique que pour un email inconnu ; le lien de l'email ouvre `/reinitialiser-mot-de-passe#token=…` (le jeton reste dans le fragment : jamais envoyé au serveur, jamais dans l'historique partageable). Nouveau mot de passe de 15 caractères (16 pour un administrateur).
+5. **Profil et sessions** : `/profil` (nom, mot de passe, préférences d'email, thème) via `PATCH /api/me/profile`, `PATCH /api/me/email-preferences` et `POST /api/me/password` ; `/profil/sessions` liste les appareils (« Cet appareil », « Dernière activité… ») et « Déconnecter les autres appareils » annonce le nombre déconnecté.
+6. **États** : `429` → message avec compte à rebours ; `503` → « ClassePulse revient très vite » avec nouvel essai automatique ; coupure réseau → bandeau et rechargement au retour ; `401` sur un écran protégé → `/connexion`, puis retour à l'écran d'origine après identification.
+
+Les codes d'erreur du serveur (`TOO_MANY_ATTEMPTS`, `SIGNUP_UNAVAILABLE`, `RESET_TOKEN_INVALID`, `CODE_INVALID`, …) sont traduits par `apps/web/src/api/messages.ts` : le texte du serveur ne s'affiche jamais tel quel, et une requête sans corps s'envoie `{}`.
 
 ### Commandes d'administration (`create-admin`, `create-class`)
 
