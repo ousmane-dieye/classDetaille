@@ -31,9 +31,83 @@
 
 /* Écrans d'état (M14) : un seul bloc centré, une colonne. */
 .cp-state {
-  max-width: 480px;
+  max-width: 560px;
   margin: 0 auto;
   padding: 24px 16px;
+}
+
+.cp-state h1 {
+  font-size: 24px;
+}
+
+.cp-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: var(--cp-navon);
+  color: var(--cp-brandtx);
+}
+
+.cp-state--success .cp-state__icon {
+  background: color-mix(in srgb, var(--cp-grn) 12%, var(--cp-surface));
+  color: var(--cp-grn);
+}
+
+.cp-state--error .cp-state__icon {
+  background: color-mix(in srgb, var(--cp-red) 10%, var(--cp-surface));
+  color: var(--cp-red);
+}
+
+.cp-state__body p {
+  font-size: 15px;
+}
+
+.cp-state__small {
+  font-size: 13px;
+  color: var(--cp-muted);
+}
+
+.cp-state__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Récapitulatif clé/valeur (« Email utilisé », « Motif indiqué… ») */
+.cp-recap {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: var(--cp-surface);
+  font-size: 13.5px;
+}
+
+.cp-recap div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.cp-recap--block div {
+  display: block;
+}
+
+.cp-recap dt {
+  color: var(--cp-muted);
+}
+
+.cp-recap dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--cp-ink);
+  word-break: break-word;
 }
 
 h1 {

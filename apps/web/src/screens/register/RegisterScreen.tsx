@@ -51,7 +51,10 @@ export function RegisterScreen(): ReactElement {
     setClassesError(false);
     listActiveClasses()
       .then((list) => {
-        if (!cancelled) setClasses(list);
+        if (cancelled) return;
+        // Réponse inattendue : jamais un crash, l'écran bascule sur son état d'erreur.
+        if (!Array.isArray(list)) throw new Error('REPONSE_CLASSES_INVALIDE');
+        setClasses(list);
       })
       .catch(() => {
         if (!cancelled) setClassesError(true);

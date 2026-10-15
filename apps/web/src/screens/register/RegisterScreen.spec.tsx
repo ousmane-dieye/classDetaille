@@ -111,6 +111,7 @@ describe('inscription (P1, M7)', () => {
   });
 
   it('envoie la demande et affiche la confirmation', async () => {
+    let sent: Record<string, unknown> = {};
     const me: Me = {
       id: 'u1',
       email: 'awa@example.com',
@@ -119,9 +120,16 @@ describe('inscription (P1, M7)', () => {
       globalRole: 'USER',
       emailReminders: true,
       emailAnnouncements: true,
-      enrollment: null,
+      enrollment: {
+        id: 'e1',
+        status: 'PENDING',
+        class: { id: 'c1', name: 'GIT3', level: 'L3', academicYear: '2026-2027' },
+        createdAt: new Date(2026, 9, 14, 9, 41).toISOString(),
+        decidedAt: null,
+        decisionNote: null,
+        retryAfter: null,
+      },
     };
-    let sent: Record<string, unknown> = {};
     stubApi({
       '/api/me': () => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }),
       '/api/classes/active': () => jsonResponse(200, [{ id: 'c1', name: 'GIT3', level: 'L3', academicYear: '2026-2027' }]),

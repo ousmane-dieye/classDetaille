@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProblem } from './api/client';
 import { SessionProvider } from './session/session-context';
 import { AppRoutes } from './routes';
 
@@ -12,7 +13,11 @@ afterEach(() => {
 function at(path: string): void {
   render(
     <MemoryRouter initialEntries={[path]}>
-      <SessionProvider loadMe={async () => Promise.reject(new Error('hors session'))}>
+      <SessionProvider
+        loadMe={async () => {
+          throw new ApiProblem({ status: 401, code: 'UNAUTHENTICATED', extra: {}, requestId: 'r', retryAfterSeconds: null });
+        }}
+      >
         <AppRoutes />
       </SessionProvider>
     </MemoryRouter>,
@@ -29,8 +34,6 @@ describe('routes', () => {
     ['/profil', 'Profil'],
     ['/profil/sessions', 'Sessions actives'],
     ['/confidentialite', 'Confidentialité'],
-    ['/etat/demande-envoyee', 'Demande envoyée'],
-    ['/etat/demande-refusee', 'Demande refusée'],
   ])('%s affiche « %s »', (path, heading) => {
     at(path);
     expect(screen.getByRole('heading', { level: 1, name: heading })).toBeTruthy();

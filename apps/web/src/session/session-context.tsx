@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { fetchMe, logout } from '../api/auth';
+import { ApiProblem } from '../api/client';
 import type { Me } from '../api/types';
 
-export type SessionStatus = 'loading' | 'anonymous' | 'authenticated';
+export type SessionStatus = 'loading' | 'anonymous' | 'authenticated' | 'unavailable';
 
 export type SessionValue = {
   status: SessionStatus;
@@ -33,10 +34,11 @@ export function SessionProvider({ children, loadMe = fetchMe }: SessionProviderP
       const profile = await loadMe();
       setMeState(profile);
       setStatus('authenticated');
-    } catch {
-      // 401, 403 ou réseau : aucune session utilisable. Le serveur fait foi (R4).
+    } catch (e) {
+      // 401/403 : aucune session. Tout le reste (réseau, 429, 503) : le serveur est indisponible,
+      // l'écran affiche alors son état d'erreur et propose de réessayer (UX § 3.2).
       setMeState(null);
-      setStatus('anonymous');
+      setStatus(e instanceof ApiProblem && (e.status === 401 || e.status === 403) ? 'anonymous' : 'unavailable');
     }
   }, [loadMe]);
 
@@ -56,6 +58,9 @@ export function SessionProvider({ children, loadMe = fetchMe }: SessionProviderP
       signOut: async () => {
         try {
           await logout();
+        } catch {
+          // Transport indisponible : la déconnexion reste affichée sans erreur, et la session
+          // restante sera révélée par le serveur au prochain chargement (le serveur fait foi).
         } finally {
           setMeState(null);
           setStatus('anonymous');
