@@ -25,7 +25,7 @@ export function AppRoutes(): ReactElement {
         <Route path="/connexion" element={<LoginScreen />} />
         <Route path="/connexion/code" element={<AdminCodeScreen />} />
         <Route path="/mot-de-passe-oublie" element={<ForgotPasswordScreen />} />
-        <Route path="/reinitialisation" element={<ResetPasswordScreen />} />
+        <Route path="/reinitialiser-mot-de-passe" element={<ResetPasswordScreen />} />
         <Route path="/profil" element={<ProfileScreen />} />
         <Route path="/profil/sessions" element={<SessionsScreen />} />
         <Route path="/confidentialite" element={<PrivacyScreen />} />

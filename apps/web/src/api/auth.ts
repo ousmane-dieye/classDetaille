@@ -46,6 +46,16 @@ export async function resendCode(): Promise<{ expiresInSeconds: number; resendAf
   return { expiresInSeconds: data.expiresInSeconds, resendAfterSeconds: data.resendAfterSeconds };
 }
 
+/** `POST /api/auth/forgot-password` : réponse identique dans tous les cas (R9), jeton obligatoire. */
+export function forgotPassword(body: { email: string; turnstileToken: string }): Promise<{ status: 'RESET_REQUESTED' }> {
+  return apiFetch<{ status: 'RESET_REQUESTED' }>('/api/auth/forgot-password', { method: 'POST', body });
+}
+
+/** `POST /api/auth/reset-password` : le jeton vient du fragment du lien reçu par email (R8). */
+export function resetPassword(body: { token: string; newPassword: string }): Promise<void> {
+  return apiFetch<void>('/api/auth/reset-password', { method: 'POST', body });
+}
+
 /** `GET /api/me` : le serveur fait foi (R4), appelé au démarrage de chaque écran protégé. */
 export function fetchMe(): Promise<Me> {
   return apiFetch<Me>('/api/me');

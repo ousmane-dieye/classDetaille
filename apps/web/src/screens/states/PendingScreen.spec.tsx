@@ -7,7 +7,10 @@ import { AppRoutes } from '../../routes';
 import { SessionProvider } from '../../session/session-context';
 
 const jsonResponse = (status: number, body: unknown): Response =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  // `Response` refuse tout corps sur 204/304 : on renvoie un corps vide.
+  status === 204
+    ? new Response(null, { status })
+    : new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
 function stubApi(): void {
   vi.stubGlobal(

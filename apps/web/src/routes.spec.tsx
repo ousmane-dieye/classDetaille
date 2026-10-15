@@ -29,7 +29,8 @@ describe('routes', () => {
     ['/inscription', 'Créer ton compte'],
     ['/connexion', 'Se connecter'],
     ['/mot-de-passe-oublie', 'Mot de passe oublié'],
-    ['/reinitialisation', 'Choisis un nouveau mot de passe'],
+    // L'email du lot 1b pointe vers `/reinitialiser-mot-de-passe#token=…` : le web suit le contrat.
+    ['/reinitialiser-mot-de-passe', 'Choisis un nouveau mot de passe'],
     ['/profil', 'Profil'],
     ['/profil/sessions', 'Sessions actives'],
     ['/confidentialite', 'Confidentialité'],
