@@ -1,6 +1,6 @@
 # ClassePulse V2 — Feuille de route d'implémentation
 
-> Index des lots. Chaque lot a son **propre plan détaillé** (`docs/superpowers/plans/AAAA-MM-JJ-classepulse-v2-lotN-<nom>.md`), rédigé au début du lot à partir du code réellement en place. Seul le lot 0 est détaillé à ce jour.
+> Index des lots. Chaque lot a son **propre plan détaillé** (`docs/superpowers/plans/AAAA-MM-JJ-classepulse-v2-lotN-<nom>.md`), rédigé au début du lot à partir du code réellement en place. Plans rédigés à ce jour : lot 0, lot 1a, lot 1b, **lot 1c** (`2026-10-15-classepulse-v2-lot1c-ecrans.md`).
 
 **Spécifications :** `docs/superpowers/specs/2026-10-13-classepulse-v2-design.md` (fonctionnel et technique) et `docs/superpowers/specs/2026-10-13-classepulse-v2-ux-design.md` (UI/UX). **Maquettes :** `docs/design/mockups/`.
 
