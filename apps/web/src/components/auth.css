@@ -48,6 +48,12 @@
   color: var(--cp-muted);
 }
 
+.cp-auth__forgot {
+  margin: -4px 0 14px;
+  text-align: right;
+  font-size: 13px;
+}
+
 .cp-two {
   display: flex;
   flex-direction: column;
