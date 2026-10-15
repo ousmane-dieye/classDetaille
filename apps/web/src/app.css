@@ -142,6 +142,54 @@
   border: 0;
 }
 
+/* Sessions actives (M14) */
+.cp-sessions {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: var(--cp-surface);
+  overflow: hidden;
+}
+
+.cp-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+.cp-session + .cp-session {
+  border-top: 1px solid var(--cp-line);
+}
+
+.cp-session__device {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cp-session__meta {
+  font-size: 12.5px;
+  color: var(--cp-muted);
+}
+
+.cp-session__badge {
+  flex: none;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cp-brand) 12%, var(--cp-surface));
+  color: var(--cp-ink);
+}
+
+.cp-revoke {
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
 /* Écrans d'état (M14) : un seul bloc centré, une colonne. */
 .cp-state {
   max-width: 560px;
