@@ -128,6 +128,24 @@ enum EnrollmentStatus {
   @@schema("app")
 }
 
+enum ClassRole {
+  STUDENT
+  DELEGATE
+
+  @@map("class_role")
+  @@schema("app")
+}
+
+enum LeaveReason {
+  REMOVED
+  TRANSFER
+  CLASS_ARCHIVED
+  ACCOUNT_DELETED
+
+  @@map("leave_reason")
+  @@schema("app")
+}
+
 enum AuditSource {
   APP
   PRIVILEGED
@@ -152,20 +170,33 @@ enum AuditAction {
   ADMIN_EMAIL_CHANGED
   PASSWORD_RESET_COMPLETED
   ADMIN_SECOND_FACTOR_BLOCKED
+  ENROLLMENT_ACCEPTED
+  ENROLLMENT_REFUSED
+  MEMBER_REMOVED
+  MEMBER_TRANSFERRED
+  DELEGATE_APPOINTED
+  DELEGATE_REVOKED
+  CLASS_ARCHIVED
+  SUBJECT_CREATED
+  SUBJECT_DELETED
+  ACCOUNT_DELETED
 
   @@map("audit_action")
   @@schema("app")
 }
 
 model Class {
-  id           String      @id @db.Uuid
-  name         String
-  level        String
-  academicYear String      @map("academic_year")
-  status       ClassStatus @default(ACTIVE)
-  archivedAt   DateTime?   @map("archived_at") @db.Timestamptz
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+  id                 String      @id @db.Uuid
+  name               String
+  level              String
+  academicYear       String      @map("academic_year")
+  status             ClassStatus @default(ACTIVE)
+  archivedAt         DateTime?   @map("archived_at") @db.Timestamptz
+  maxDelegates       Int         @default(2) @map("max_delegates") @db.SmallInt
+  storageQuotaBytes  BigInt?     @map("storage_quota_bytes") @db.BigInt
+  storageReservedBytes BigInt    @default(0) @map("storage_reserved_bytes") @db.BigInt
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @default(now()) @map("updated_at") @db.Timestamptz
 
   @@unique([name, academicYear])
   @@map("classes")
@@ -183,6 +214,33 @@ model EnrollmentRequest {
   decisionNote String?          @map("decision_note")
 
   @@map("enrollment_requests")
+  @@schema("app")
+}
+
+model ClassMembership {
+  id         String       @id @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  classId    String       @map("class_id") @db.Uuid
+  role       ClassRole    @default(STUDENT)
+  joinedAt   DateTime     @default(now()) @map("joined_at") @db.Timestamptz
+  leftAt     DateTime?    @map("left_at") @db.Timestamptz
+  leftReason LeaveReason? @map("left_reason")
+  leftBy     String?      @map("left_by") @db.Uuid
+  leftNote   String?      @map("left_note")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime     @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("class_memberships")
+  @@schema("app")
+}
+
+model Subject {
+  id        String   @id @db.Uuid
+  classId   String   @map("class_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("subjects")
   @@schema("app")
 }
 

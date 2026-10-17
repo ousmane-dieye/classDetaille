@@ -99,8 +99,10 @@ describe('rate_limit_buckets et role_guard', () => {
 describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
   const USERS = ['id', 'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', 'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'created_at', 'updated_at', 'second_factor_blocked_at', 'second_factor_cleared_at'];
   const SESSIONS = ['id', 'token_hash', 'user_id', 'created_at', 'last_seen_at', 'idle_expires_at', 'absolute_expires_at', 'reauth_at', 'ip', 'user_agent', 'revoked_at', 'revoke_reason', 'second_factor_at', 'second_factor_method', 'step_up_at'];
-  const CLASSES = ['id', 'name', 'level', 'academic_year', 'status', 'archived_at', 'created_at', 'updated_at'];
+  const CLASSES = ['id', 'name', 'level', 'academic_year', 'status', 'archived_at', 'max_delegates', 'storage_quota_bytes', 'storage_reserved_bytes', 'created_at', 'updated_at'];
   const ENROLLMENTS = ['id', 'user_id', 'class_id', 'status', 'created_at', 'decided_at', 'decided_by', 'decision_note'];
+  const MEMBERSHIPS = ['id', 'user_id', 'class_id', 'role', 'joined_at', 'left_at', 'left_reason', 'left_by', 'left_note', 'created_at', 'updated_at'];
+  const SUBJECTS = ['id', 'class_id', 'name', 'created_at'];
   const AUDIT = ['id', 'occurred_at', 'source', 'db_login_role', 'actor_user_id', 'action', 'target_type', 'target_id', 'metadata'];
   const BUCKETS = ['key', 'window_start', 'attempts', 'failures', 'last_failure_at'];
   const CHALLENGES = ['id', 'user_id', 'purpose', 'session_id', 'token_hash', 'code_hmac', 'pending_email', 'ip', 'attempts', 'created_at', 'expires_at', 'consumed_at', 'consumed_reason'];
@@ -119,6 +121,9 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     key('users', 'SELECT'),
     key('classes', 'SELECT'),
     key('enrollment_requests', 'SELECT'),
+    // lot 2 : aucune ligne supprimée, les écritures passent par les colonnes.
+    key('class_memberships', 'SELECT'),
+    key('subjects', 'SELECT'),
     // audit_log : SELECT en droit de table, INSERT par colonne seulement (aucun UPDATE ni DELETE).
     key('audit_log', 'SELECT'),
     // lot 1b : SELECT en droit de table, INSERT et UPDATE par colonne seulement (jamais de DELETE).
@@ -136,9 +141,16 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...['email', 'first_name', 'last_name', 'password_hash', 'email_reminders', 'email_announcements', 'second_factor_blocked_at', 'updated_at'].map((c) => key('users', 'UPDATE', c)),
     ...CLASSES.map((c) => key('classes', 'SELECT', c)),
     ...['id', 'name', 'level', 'academic_year', 'created_at', 'updated_at'].map((c) => key('classes', 'INSERT', c)),
+    ...['status', 'archived_at'].map((c) => key('classes', 'UPDATE', c)),
     key('classes', 'UPDATE', 'updated_at'),
     ...ENROLLMENTS.map((c) => key('enrollment_requests', 'SELECT', c)),
     ...['id', 'user_id', 'class_id', 'created_at'].map((c) => key('enrollment_requests', 'INSERT', c)),
+    ...['status', 'decided_at', 'decided_by', 'decision_note'].map((c) => key('enrollment_requests', 'UPDATE', c)),
+    ...MEMBERSHIPS.map((c) => key('class_memberships', 'SELECT', c)),
+    ...['id', 'user_id', 'class_id', 'role', 'joined_at', 'created_at', 'updated_at'].map((c) => key('class_memberships', 'INSERT', c)),
+    ...['role', 'left_at', 'left_reason', 'left_by', 'left_note', 'updated_at'].map((c) => key('class_memberships', 'UPDATE', c)),
+    ...SUBJECTS.map((c) => key('subjects', 'SELECT', c)),
+    ...['id', 'class_id', 'name', 'created_at'].map((c) => key('subjects', 'INSERT', c)),
     ...AUDIT.map((c) => key('audit_log', 'SELECT', c)),
     ...['actor_user_id', 'action', 'target_type', 'target_id', 'metadata'].map((c) => key('audit_log', 'INSERT', c)),
     ...CHALLENGES.map((c) => key('auth_challenges', 'SELECT', c)),
@@ -172,7 +184,7 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...['outcome', 'finished_at'].map((c) => key('email_attempts', 'UPDATE', c)),
     ...['actor_user_id', 'action', 'target_type', 'target_id', 'metadata'].map((c) => key('audit_log', 'INSERT', c)),
   ];
-  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens', 'email_outbox', 'email_attempts', 'job_leases'];
+  const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'class_memberships', 'subjects', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens', 'email_outbox', 'email_attempts', 'job_leases'];
 
   it('droits de table et droits par colonne : listes exactes (jamais de DELETE sur users, sessions, classes, demandes ni audit)', async () => {
     await expectExactCpAppPrivileges(db, TABLES, TABLE_GRANTS, COLUMN_GRANTS, { tableGrants: PRIVILEGED_TABLE_GRANTS, columnGrants: PRIVILEGED_COLUMN_GRANTS });
@@ -184,7 +196,7 @@ describe('classes et enrollment_requests (§ 2.2, R8, R9)', () => {
     const id = uuidv7();
     await app.query(`insert into app.classes (id, name, level, academic_year) values ($1, $2, 'L3', $3)`, [id, name, year]);
     if (status === 'ARCHIVED') {
-      // cp_app ne peut pas archiver au lot 1 : on passe par le propriétaire pour préparer la donnée.
+      // Préparation du test : l'archivage applicatif (service, audit) vient en tâche 6 du lot 2.
       const owner = await connectAs('cp_owner', db);
       await owner.query(`update app.classes set status = 'ARCHIVED', archived_at = now() where id = $1`, [id]);
       await owner.end();
@@ -224,16 +236,38 @@ describe('classes et enrollment_requests (§ 2.2, R8, R9)', () => {
   it('refuse une nouvelle demande pour la même classe moins de 24 h après un refus, l’accepte après', async () => {
     const c = await insertClass('C5');
     const u = await insertUser('enr4@example.com');
+    const reqId = uuidv7();
     const owner = await connectAs('cp_owner', db);
+    try {
+      await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [reqId, u, c]);
+      await owner.query(`update app.enrollment_requests set status = 'REFUSED', decided_at = now() - interval '23 hours', decided_by = $2 where id = $1`, [reqId, u]);
+      await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c]))
+        .rejects.toMatchObject({ code: '23514', message: 'enrollment: refused less than 24 hours ago' });
+      // La décision est définitive (§ 0.3) : on ne repousse pas la date du refus pour échapper au délai.
+      await expect(owner.query(`update app.enrollment_requests set decided_at = now() - interval '25 hours' where id = $1`, [reqId]))
+        .rejects.toMatchObject({ code: '23514', message: 'enrollment: decision is final' });
+      // Un refus de 25 h libère la nouvelle demande.
+      const c2 = await insertClass('C5b');
+      const u2 = await insertUser('enr4b@example.com');
+      await owner.query(
+        `insert into app.enrollment_requests (id, user_id, class_id, status, created_at, decided_at, decided_by)
+         values ($1, $2, $3, 'REFUSED', now() - interval '3 days', now() - interval '25 hours', $2)`,
+        [uuidv7(), u2, c2],
+      );
+      await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u2, c2]);
+    } finally { await owner.end(); }
+  });
+  it('cp_app peut décider une demande (lot 2) : les colonnes de décision s’écrivent ensemble, puis la décision est définitive', async () => {
+    const c = await insertClass('C6');
+    const u = await insertUser('dec1@example.com');
     const reqId = uuidv7();
     await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [reqId, u, c]);
-    await owner.query(`update app.enrollment_requests set status = 'REFUSED', decided_at = now() - interval '23 hours', decided_by = $2 where id = $1`, [reqId, u]);
-    await expect(app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c])).rejects.toMatchObject({ code: '23514', message: 'enrollment: refused less than 24 hours ago' });
-    await owner.query(`update app.enrollment_requests set decided_at = now() - interval '25 hours' where id = $1`, [reqId]);
-    await owner.end();
-    await app.query(`insert into app.enrollment_requests (id, user_id, class_id) values ($1, $2, $3)`, [uuidv7(), u, c]);
-  });
-  it('cp_app ne peut pas encore décider une demande (lot 2)', async () => {
-    await expect(app.query(`update app.enrollment_requests set status = 'ACCEPTED'`)).rejects.toMatchObject({ code: '42501' });
+    await expect(app.query(`update app.enrollment_requests set status = 'ACCEPTED' where id = $1`, [reqId]))
+      .rejects.toMatchObject({ code: '23514', constraint: 'enrollment_decision' });
+    await app.query(`update app.enrollment_requests set status = 'ACCEPTED', decided_at = now(), decided_by = $2 where id = $1`, [reqId, u]);
+    await expect(app.query(`update app.enrollment_requests set status = 'REFUSED' where id = $1`, [reqId]))
+      .rejects.toMatchObject({ code: '23514', message: 'enrollment: decision is final' });
+    await expect(app.query(`update app.enrollment_requests set decision_note = 'modifié' where id = $1`, [reqId]))
+      .rejects.toMatchObject({ code: '23514', message: 'enrollment: decision is final' });
   });
 });
