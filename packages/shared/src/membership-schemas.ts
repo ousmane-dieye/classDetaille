@@ -11,6 +11,11 @@ export type RefuseEnrollmentBody = z.infer<typeof RefuseEnrollmentBody>;
 export const RemoveMemberBody = z.strictObject({ note: Note });
 export type RemoveMemberBody = z.infer<typeof RemoveMemberBody>;
 
+export const AppointDelegateBody = z.strictObject({
+  userId: z.uuid(),
+});
+export type AppointDelegateBody = z.infer<typeof AppointDelegateBody>;
+
 export const CreateEnrollmentBody = z.strictObject({
   classId: z.uuid(),
 });

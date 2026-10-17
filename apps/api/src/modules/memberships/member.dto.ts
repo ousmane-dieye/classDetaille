@@ -8,3 +8,7 @@ export type MemberDto = {
   userId: string; firstName: string; lastName: string; email: string;
   role: 'STUDENT' | 'DELEGATE'; joinedAt: string;
 };
+/** Nomination ou révocation (M12) : le rôle après l'action. */
+export type DelegateDto = {
+  userId: string; role: 'STUDENT' | 'DELEGATE';
+};

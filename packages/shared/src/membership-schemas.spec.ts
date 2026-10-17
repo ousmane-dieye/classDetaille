@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CreateEnrollmentBody, RefuseEnrollmentBody, RemoveMemberBody } from './membership-schemas.js';
+import { AppointDelegateBody, CreateEnrollmentBody, RefuseEnrollmentBody, RemoveMemberBody } from './membership-schemas.js';
 
 const CLASS_ID = '6f0d8f9e-1f3a-4a0b-9f1a-2f7e0a3c5d10';
+const USER_ID = '0c9a1f2e-3b4d-4e5f-8a9b-0c1d2e3f4a5b';
 
 describe('RefuseEnrollmentBody', () => {
   it('motif facultatif, borné à 500 caractères, blancs inutiles retirés', () => {
@@ -34,5 +35,14 @@ describe('CreateEnrollmentBody', () => {
     expect(CreateEnrollmentBody.safeParse({}).success).toBe(false);
     expect(CreateEnrollmentBody.safeParse({ classId: 'pas-un-uuid' }).success).toBe(false);
     expect(CreateEnrollmentBody.safeParse({ classId: CLASS_ID, extra: 1 }).success).toBe(false);
+  });
+});
+
+describe('AppointDelegateBody', () => {
+  it('membre visé exigé, sous forme d’uuid, aucun champ inconnu', () => {
+    expect(AppointDelegateBody.safeParse({ userId: USER_ID }).success).toBe(true);
+    expect(AppointDelegateBody.safeParse({}).success).toBe(false);
+    expect(AppointDelegateBody.safeParse({ userId: 'pas-un-uuid' }).success).toBe(false);
+    expect(AppointDelegateBody.safeParse({ userId: USER_ID, role: 'DELEGATE' }).success).toBe(false);
   });
 });

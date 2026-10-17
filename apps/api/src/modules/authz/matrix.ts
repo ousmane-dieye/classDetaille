@@ -8,7 +8,7 @@ export const ACTIONS = [
   'me.reauth', 'me.stepUp', 'me.stepUpVerify', 'stepUp.assertFresh', 'reauth.assertRecent',
   'me.changeEmailStart', 'me.changeEmailVerifyOld', 'me.changeEmailVerifyNew',
   // Lot 2 : décisions d'adhésion (P8) et re-demande d'un compte existant (R16).
-  'memberships.listRequests', 'memberships.accept', 'memberships.refuse', 'memberships.listMembers', 'memberships.remove', 'me.createEnrollment',
+  'memberships.listRequests', 'memberships.accept', 'memberships.refuse', 'memberships.listMembers', 'memberships.remove', 'memberships.appointDelegate', 'memberships.revokeDelegate', 'me.createEnrollment',
   'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -49,6 +49,9 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'memberships.listMembers': ['user', 'admin'],
   // Retrait : délégué de la classe (affiné : étudiants seulement), admin ; le mot de passe récent est exigé en service.
   'memberships.remove': ['user', 'admin'],
+  // Délégation (M12) : réservée à l'administrateur ; la limite de deux vit en base (déclencheur delegate_limit, R8).
+  'memberships.appointDelegate': ['admin'],
+  'memberships.revokeDelegate': ['admin'],
   'me.createEnrollment': ['user'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],

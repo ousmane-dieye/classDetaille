@@ -11,7 +11,7 @@ import { FreshnessService } from '../authz/freshness.service.js';
 import { ClassesService } from '../classes/classes.service.js';
 import { MailService } from '../mail/mail.service.js';
 import type { AcceptDecisionDto, EnrollmentDto, EnrollmentRow, RequestDto } from './enrollment.dto.js';
-import type { MemberDto } from './member.dto.js';
+import type { DelegateDto, MemberDto } from './member.dto.js';
 import { MembershipsRepository } from './memberships.repository.js';
 
 const REFUSAL_RETRY_MS = 24 * 3600 * 1000;
@@ -114,6 +114,59 @@ export class MembershipsService {
     } catch (e) {
       throw this.decisionDbError(e);
     }
+  }
+
+  /** Nomination d'un délégué (M12) : administrateurs seulement, membre actif de la classe, ressaisie récente exigée. */
+  async appointDelegate(actor: UserActor, classId: string, userId: string): Promise<DelegateDto> {
+    this.authz.assert(actor, 'memberships.appointDelegate');
+    if (!UUID.safeParse(classId).success || !UUID.safeParse(userId).success) throw new ApiError(404, 'NOT_FOUND');
+    try {
+      return await this.prisma.withTx(async (tx) => {
+        const cls = await this.repo.lockClassInTx(tx, classId, true);
+        if (!cls) throw new ApiError(404, 'NOT_FOUND');
+        if (cls.status !== 'ACTIVE') throw new ApiError(409, 'CLASS_ARCHIVED');
+        const role = await this.repo.roleInClassOfInTx(tx, userId, classId);
+        if (!role) throw new ApiError(404, 'NOT_FOUND');
+        await this.freshness.assertRecentPasswordInTx(tx, actor);
+        if (role === 'STUDENT') {
+          await this.repo.setRoleInTx(tx, { classId, userId, role: 'DELEGATE' });
+          await this.audit.recordInTx(tx, actor, { action: 'DELEGATE_APPOINTED', targetType: 'USER', targetId: userId, metadata: { classId, userId } });
+        }
+        return { userId, role: 'DELEGATE' as const };
+      });
+    } catch (e) {
+      throw this.delegateDbError(e);
+    }
+  }
+
+  /** Révocation d'une délégation (M12) : idempotente ; sans effet ni audit si la personne n'est déjà plus déléguée. */
+  async revokeDelegate(actor: UserActor, classId: string, userId: string): Promise<DelegateDto> {
+    this.authz.assert(actor, 'memberships.revokeDelegate');
+    if (!UUID.safeParse(classId).success || !UUID.safeParse(userId).success) throw new ApiError(404, 'NOT_FOUND');
+    try {
+      return await this.prisma.withTx(async (tx) => {
+        const cls = await this.repo.lockClassInTx(tx, classId, true);
+        if (!cls) throw new ApiError(404, 'NOT_FOUND');
+        if (cls.status !== 'ACTIVE') throw new ApiError(409, 'CLASS_ARCHIVED');
+        const role = await this.repo.roleInClassOfInTx(tx, userId, classId);
+        if (!role) throw new ApiError(404, 'NOT_FOUND');
+        await this.freshness.assertRecentPasswordInTx(tx, actor);
+        if (role === 'DELEGATE') {
+          await this.repo.setRoleInTx(tx, { classId, userId, role: 'STUDENT' });
+          await this.audit.recordInTx(tx, actor, { action: 'DELEGATE_REVOKED', targetType: 'USER', targetId: userId, metadata: { classId, userId } });
+        }
+        return { userId, role: 'STUDENT' as const };
+      });
+    } catch (e) {
+      throw this.delegateDbError(e);
+    }
+  }
+
+  /** Le déclencheur membership_delegate_limit porte la limite (§ 0.2, R8) : son message devient un code d'API. */
+  private delegateDbError(e: unknown): unknown {
+    const msg = dbMessageOf(e);
+    if (msg.includes('delegate limit reached')) return new ApiError(409, 'DELEGATE_LIMIT_REACHED');
+    return this.decisionDbError(e);
   }
 
   /** Acceptation : appartenance étudiante en même temps que la décision, dans une transaction unique (§ 0.3). */

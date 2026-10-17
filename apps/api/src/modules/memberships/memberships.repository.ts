@@ -108,4 +108,14 @@ export class MembershipsRepository {
       where class_id = ${row.classId}::uuid and user_id = ${row.userId}::uuid and left_at is null`;
     return n === 1;
   }
+
+  /**
+   * Changement de rôle (M12) : le déclencheur membership_delegate_limit fait foi pour la limite
+   * de deux délégués (§ 0.2, R8) ; le service ne traduit que son message.
+   */
+  async setRoleInTx(tx: TxClient, row: { classId: string; userId: string; role: 'STUDENT' | 'DELEGATE' }): Promise<void> {
+    await tx.$executeRaw`update app.class_memberships
+      set role = ${row.role}::app.class_role, updated_at = clock_timestamp()
+      where class_id = ${row.classId}::uuid and user_id = ${row.userId}::uuid and left_at is null`;
+  }
 }

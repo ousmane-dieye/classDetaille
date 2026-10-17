@@ -47,6 +47,8 @@ const EXPECTED: Record<Action, readonly Name[]> = {
   'memberships.refuse': ['user', 'admin'],
   'memberships.listMembers': ['user', 'admin'],
   'memberships.remove': ['user', 'admin'],
+  'memberships.appointDelegate': ['admin'],
+  'memberships.revokeDelegate': ['admin'],
   'me.createEnrollment': ['user'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],

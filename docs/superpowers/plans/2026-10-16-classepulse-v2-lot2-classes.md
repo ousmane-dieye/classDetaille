@@ -122,10 +122,10 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 4 : Délégués (M12, API)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `delegates.int.spec.ts` : l'admin nomme un délégué (`role` passe `DELEGATE`), révocation (`STUDENT`) ; **3 nominations concurrentes pour une limite de 2** : exactement 2 passent, l'attente de verrou est observée (`pg_stat` ou `FOR UPDATE` sur `classes`), les autres reçoivent `409 DELEGATE_LIMIT_REACHED` ; un délégué ne nomme personne (`403`) ; nomination dans une autre classe → `404` ; audit `DELEGATE_APPOINTED` / `DELEGATE_REVOKED`.
-- [ ] **Step 2 : Implémenter** — `memberships.appointDelegate`, `memberships.revokeDelegate` (admin) ; `assertRecentPasswordInTx` ; le déclencheur `delegate_limit` fait foi, l'API traduit.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
-- [ ] **Step 4 : Commit** — `feat(lot2): delegation jusqu'a deux, nomination par l'administrateur`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `delegates.int.spec.ts` : l'admin nomme un délégué (`role` passe `DELEGATE`), révocation (`STUDENT`) ; **3 nominations concurrentes pour une limite de 2** : exactement 2 passent, l'attente de verrou est observée (`pg_stat` ou `FOR UPDATE` sur `classes`), les autres reçoivent `409 DELEGATE_LIMIT_REACHED` ; un délégué ne nomme personne (`403`) ; nomination dans une autre classe → `404` ; audit `DELEGATE_APPOINTED` / `DELEGATE_REVOKED`.
+- [x] **Step 2 : Implémenter** — `memberships.appointDelegate`, `memberships.revokeDelegate` (admin) ; `assertRecentPasswordInTx` ; le déclencheur `delegate_limit` fait foi, l'API traduit.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
+- [x] **Step 4 : Commit** — `feat(lot2): delegation jusqu'a deux, nomination par l'administrateur`.
 
 ### Task 5 : Matières (P8, API)
 
