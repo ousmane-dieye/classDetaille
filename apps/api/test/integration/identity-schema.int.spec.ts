@@ -121,9 +121,9 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     key('users', 'SELECT'),
     key('classes', 'SELECT'),
     key('enrollment_requests', 'SELECT'),
-    // lot 2 : aucune ligne supprimée, les écritures passent par les colonnes.
+    // lot 2 : aucune ligne supprimée hors matières libres (R12, tâche 5) ; les autres écritures passent par les colonnes.
     key('class_memberships', 'SELECT'),
-    key('subjects', 'SELECT'),
+    key('subjects', 'SELECT'), key('subjects', 'DELETE'),
     // audit_log : SELECT en droit de table, INSERT par colonne seulement (aucun UPDATE ni DELETE).
     key('audit_log', 'SELECT'),
     // lot 1b : SELECT en droit de table, INSERT et UPDATE par colonne seulement (jamais de DELETE).

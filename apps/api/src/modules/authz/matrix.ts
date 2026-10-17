@@ -9,6 +9,8 @@ export const ACTIONS = [
   'me.changeEmailStart', 'me.changeEmailVerifyOld', 'me.changeEmailVerifyNew',
   // Lot 2 : décisions d'adhésion (P8) et re-demande d'un compte existant (R16).
   'memberships.listRequests', 'memberships.accept', 'memberships.refuse', 'memberships.listMembers', 'memberships.remove', 'memberships.appointDelegate', 'memberships.revokeDelegate', 'me.createEnrollment',
+  // Lot 2 : matières de la classe (R12) — portée délégué/admin affinée en service.
+  'classes.listSubjects', 'classes.createSubject', 'classes.deleteSubject',
   'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -53,6 +55,10 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'memberships.appointDelegate': ['admin'],
   'memberships.revokeDelegate': ['admin'],
   'me.createEnrollment': ['user'],
+  // Matières (R12) : tout utilisateur authentifié, affiné en service (délégué de la classe ou admin).
+  'classes.listSubjects': ['user', 'admin'],
+  'classes.createSubject': ['user', 'admin'],
+  'classes.deleteSubject': ['user', 'admin'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],

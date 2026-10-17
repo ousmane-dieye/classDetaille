@@ -21,7 +21,10 @@ export const AUDIT_METADATA = {
   MEMBER_REMOVED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
   DELEGATE_APPOINTED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
   DELEGATE_REVOKED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
+  // Le nom de la matière est la seule trace après suppression (§ 2.5 : aucun secret dans l'audit).
+  SUBJECT_CREATED: z.strictObject({ classId: z.uuid(), subjectId: z.uuid(), name: z.string() }),
+  SUBJECT_DELETED: z.strictObject({ classId: z.uuid(), subjectId: z.uuid(), name: z.string() }),
 } as const;
 export type AppAuditAction = keyof typeof AUDIT_METADATA;
-export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST';
+export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST' | 'SUBJECT';
 export const AUDIT_METADATA_MAX_BYTES = 4096;

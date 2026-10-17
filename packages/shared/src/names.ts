@@ -13,3 +13,9 @@ export function isValidName(s: string): boolean {
   const n = [...s].length;
   return n >= 2 && n <= 80 && !hasForbiddenNameChars(s);
 }
+
+/** Matière d'une classe (texte déjà normalisé) : 2 à 60 points de code, sans caractère Cc/Cf — mêmes bornes que `subjects_name_len`. */
+export function isValidSubjectName(s: string): boolean {
+  const n = [...s].length;
+  return n >= 2 && n <= 60 && !hasForbiddenNameChars(s);
+}

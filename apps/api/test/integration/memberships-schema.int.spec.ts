@@ -180,14 +180,15 @@ describe('enrollment complété (§ 0.3, R9)', () => {
 });
 
 describe('droits de cp_app (§ 2.2)', () => {
-  it('écrit les appartenances et les matières, mais ne supprime aucune ligne', async () => {
+  it('écrit les appartenances et les matières, ne supprime que les matières (R12, lot 2)', async () => {
     const c = await insertClass(`M${++seq}`);
     const u = await insertUser('p1@example.com');
     const m = await insertMembership(u, c);
     const s = uuidv7();
     await app.query(`insert into app.subjects (id, class_id, name) values ($1, $2, 'Physique')`, [s, c]);
     await expect(app.query('delete from app.class_memberships where id = $1', [m])).rejects.toMatchObject({ code: '42501' });
-    await expect(app.query('delete from app.subjects where id = $1', [s])).rejects.toMatchObject({ code: '42501' });
+    // La suppression des matières libres est la seule autorisée (aucune table ne les référence avant le lot 3).
+    await app.query('delete from app.subjects where id = $1', [s]);
     await expect(app.query('delete from app.users where id = $1', [u])).rejects.toMatchObject({ code: '42501' });
   });
 });

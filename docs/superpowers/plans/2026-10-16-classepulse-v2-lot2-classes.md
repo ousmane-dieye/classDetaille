@@ -129,10 +129,12 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 5 : Matières (P8, API)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `subjects.int.spec.ts` : création par le délégué (`201`) et par l'admin ; doublon insensible à la casse → `409 SUBJECT_ALREADY_EXISTS` ; nom hors gabarit (2–60, caractères interdits) → `400 INVALID_SUBJECT_NAME` ; suppression d'une matière libre → `204` ; suppression d'une matière **utilisée → `409 SUBJECT_IN_USE` avec le motif dans `extra`** ; matière d'une autre classe → `404` ; classe archivée → `409` ; audit `SUBJECT_CREATED` / `SUBJECT_DELETED`.
-- [ ] **Step 2 : Implémenter** — `classes.listSubjects/createSubject/deleteSubject` (user, admin) ; `normalizeName` partagé ; le service vérifie l'usage sur les tables existantes (R12).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
-- [ ] **Step 4 : Commit** — `feat(lot2): matieres de la classe, suppression refusee si utilisee`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `subjects.int.spec.ts` : création par le délégué (`201`) et par l'admin ; doublon insensible à la casse → `409 SUBJECT_ALREADY_EXISTS` ; nom hors gabarit (2–60, caractères interdits) → `400 INVALID_SUBJECT_NAME` ; suppression d'une matière libre → `204` ; matière d'une autre classe → `404` ; classe archivée → `409` ; audit `SUBJECT_CREATED` / `SUBJECT_DELETED`.
+- [x] **Step 2 : Implémenter** — `classes.listSubjects/createSubject/deleteSubject` (user, admin) ; `normalizeName` partagé ; migration `20261016000100_subjects_delete` (`GRANT DELETE ON app.subjects`, seul privilège manquant).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta ; oracles `identity-schema` (catalogue exact) et `memberships-schema` (droits cp_app) adaptés au nouveau `GRANT`.
+- [x] **Step 4 : Commit** — `feat(lot2): matieres de la classe, suppression des matieres libres`.
+
+**Amend (tâche 5) — `SUBJECT_IN_USE` reporté au lot 3.** Aucune table ne référence `subjects` avant le lot 3 (`tasks` et `resources`, seules tables porteuses de `subject_id` — spec § 2.2, maquette M9 « utilisée par des devoirs ou des ressources »). La suppression « matière utilisée » est donc inatteignable ici : son déclencheur de base, sa traduction `409 SUBJECT_IN_USE` et son test arrivent **avec les références, au lot 3** — conforme à R12 (« la portée s'étendra aux devoirs au lot 3 ») et à la règle interdisant un code « à brancher plus tard ». *(Question posée au responsable, sans réponse avant la reprise : l'option recommandée — report au lot 3 — a été retenue pour ne pas bloquer.)*
 
 ### Task 6 : Classe : détail, création in-app et archivage (M11/M12, API)
 

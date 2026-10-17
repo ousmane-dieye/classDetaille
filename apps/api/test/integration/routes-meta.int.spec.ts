@@ -34,6 +34,9 @@ const EXPECTED_ROUTES: Record<string, { public: boolean }> = {
   'DELETE /api/classes/:classId/members/:userId': { public: false },
   'POST /api/classes/:classId/delegates': { public: false },
   'DELETE /api/classes/:classId/delegates/:userId': { public: false },
+  'GET /api/classes/:classId/subjects': { public: false },
+  'POST /api/classes/:classId/subjects': { public: false },
+  'DELETE /api/classes/:classId/subjects/:subjectId': { public: false },
 };
 
 let t: TestApp;
@@ -75,6 +78,8 @@ const VALID_BODY: Record<string, () => Record<string, unknown>> = {
   'DELETE /api/classes/:classId/members/:userId': () => ({}),
   'POST /api/classes/:classId/delegates': () => ({ userId: classId }),
   'DELETE /api/classes/:classId/delegates/:userId': () => ({}),
+  'POST /api/classes/:classId/subjects': () => ({ name: 'Mathématiques' }),
+  'DELETE /api/classes/:classId/subjects/:subjectId': () => ({}),
 };
 
 const modifying = () => entries().filter((r) => r.method !== 'GET');
