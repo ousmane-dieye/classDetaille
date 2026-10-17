@@ -1,6 +1,6 @@
 # ClassePulse V2 — Feuille de route d'implémentation
 
-> Index des lots. Chaque lot a son **propre plan détaillé** (`docs/superpowers/plans/AAAA-MM-JJ-classepulse-v2-lotN-<nom>.md`), rédigé au début du lot à partir du code réellement en place. Plans rédigés à ce jour : lot 0, lot 1a, lot 1b, **lot 1c** (`2026-10-15-classepulse-v2-lot1c-ecrans.md`).
+> Index des lots. Chaque lot a son **propre plan détaillé** (`docs/superpowers/plans/AAAA-MM-JJ-classepulse-v2-lotN-<nom>.md`), rédigé au début du lot à partir du code réellement en place. Plans rédigés à ce jour : lot 0, lot 1a, lot 1b, lot 1c (`2026-10-15-classepulse-v2-lot1c-ecrans.md`), **lot 2** (`2026-10-16-classepulse-v2-lot2-classes.md`).
 
 **Spécifications :** `docs/superpowers/specs/2026-10-13-classepulse-v2-design.md` (fonctionnel et technique) et `docs/superpowers/specs/2026-10-13-classepulse-v2-ux-design.md` (UI/UX). **Maquettes :** `docs/design/mockups/`.
 
@@ -42,4 +42,5 @@
 - **Worker d'envoi des emails au lot 1 (1b)** : processus worker et traitement `email.send` (bail, réservation, nouvelles tentatives, résultat ambigu, § 2.4). `job_runs`, Healthchecks.io et les autres traitements restent au lot 5.
 
 ## Avancement
+- **2026-10-16 — plan du lot 2 rédigé** (`2026-10-16-classepulse-v2-lot2-classes.md`, 16 tâches) : tables `class_memberships` et `subjects`, décisions d'admission P8, membres et retrait, délégués (limite en base), matières, fiche et archivage, transfert simple et en masse avec vérification supplémentaire, `priv.anonymize_user`, écrans M9, M11, M12, M13 et suppression de compte, méta-test d'isolation sur le registre de routes. Décisions R1-R15 à relire par le responsable (notamment R2 méta-test sur le registre, R3 « copier les annales » au lot 3, R5 suspension hors lot).
 - **2026-10-15 — lot 1 terminé** (1a API identité, 1b emails et administrateurs, 1c écrans) : l'application web de bout en bout est livrée sur `https://localhost:5173` — inscription P1, connexion P2 (code administrateur M8), demande en attente M7, mot de passe oublié et réinitialisation, profil M14/P10, sessions actives, états communs (chargement, vide, erreur, maintenance, hors ligne) et accessibilité (axe-core sur chaque écran, les deux thèmes). Tests web verts, typecheck, lint, build, `depcruise` et audit sans erreur ; aucune modification d'API dans ce lot. Le lot 2 (décisions d'admission P8, anonymisation) ouvre la suite.
