@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateEnrollmentBody, RefuseEnrollmentBody } from './membership-schemas.js';
+import { CreateEnrollmentBody, RefuseEnrollmentBody, RemoveMemberBody } from './membership-schemas.js';
 
 const CLASS_ID = '6f0d8f9e-1f3a-4a0b-9f1a-2f7e0a3c5d10';
 
@@ -15,6 +15,16 @@ describe('RefuseEnrollmentBody', () => {
 
   it('aucun champ inconnu accepté', () => {
     expect(RefuseEnrollmentBody.safeParse({ note: 'x', decidedBy: 'autre' }).success).toBe(false);
+  });
+});
+
+describe('RemoveMemberBody', () => {
+  it('même motif facultatif et même borne que le retrait en base (1 à 500)', () => {
+    expect(RemoveMemberBody.safeParse({}).success).toBe(true);
+    expect(RemoveMemberBody.safeParse({ note: 'Ne vient plus en cours' }).success).toBe(true);
+    expect(RemoveMemberBody.safeParse({ note: 'x'.repeat(501) }).success).toBe(false);
+    expect(RemoveMemberBody.safeParse({ note: '   ' }).success).toBe(false);
+    expect(RemoveMemberBody.safeParse({ note: 'x', by: 'autre' }).success).toBe(false);
   });
 });
 

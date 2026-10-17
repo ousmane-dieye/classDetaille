@@ -68,17 +68,6 @@ export class SessionsRepository {
     await tx.$executeRaw`update app.sessions set reauth_at = clock_timestamp() where id = ${sessionId}::uuid and revoked_at is null`;
   }
 
-  /** Fraîcheur (moins de 5 min) du mot de passe et du code, sous `FOR SHARE` : la session ne peut pas être révoquée pendant l'action. `null` : session invalide. */
-  async freshnessInTx(tx: TxClient, sessionId: string): Promise<{ password: boolean; code: boolean } | null> {
-    const r = await tx.$queryRaw<{ pw: boolean; code: boolean }[]>`
-      select coalesce(reauth_at > clock_timestamp() - interval '5 minutes', false) as pw,
-             coalesce(step_up_at > clock_timestamp() - interval '5 minutes', false) as code
-        from app.sessions
-       where id = ${sessionId}::uuid and revoked_at is null and idle_expires_at > clock_timestamp() and absolute_expires_at > clock_timestamp()
-         for share`;
-    return r[0] ? { password: r[0].pw, code: r[0].code } : null;
-  }
-
   async markStepUpInTx(tx: TxClient, sessionId: string): Promise<boolean> {
     const r = await tx.$queryRaw<{ n: number }[]>`
       update app.sessions set step_up_at = clock_timestamp() where id = ${sessionId}::uuid and revoked_at is null returning 1 as n`;

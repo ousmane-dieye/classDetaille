@@ -115,10 +115,10 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 3 : Membres et retrait (P8, API)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `members.int.spec.ts` : liste des membres avec email et rôle ; retrait d'un étudiant par le délégué → `204`, appartenance clôturée `REMOVED`, audit ; retrait **d'un autre délégué par un délégué → `403 DELEGATE_FORBIDDEN`** (et le bouton n'existe pas côté web) ; l'admin retire n'importe qui ; motif facultatif (≤ 500) ; retrait d'un membre d'une autre classe → `404` ; membre retiré : ses requêtes ultérieures sur la classe → `404` ; classe archivée → `409 CLASS_ARCHIVED`.
-- [ ] **Step 2 : Implémenter** — `memberships.listMembers`, `memberships.remove` (user, admin) ; `assertRecentPasswordInTx` pour le retrait (§ 3.3) ; audit `MEMBER_REMOVED`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
-- [ ] **Step 4 : Commit** — `feat(lot2): membres et retrait avec motif (P8)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `members.int.spec.ts` : liste des membres avec email et rôle ; retrait d'un étudiant par le délégué → `204`, appartenance clôturée `REMOVED`, audit ; retrait **d'un autre délégué par un délégué → `403 DELEGATE_FORBIDDEN`** (et le bouton n'existe pas côté web) ; l'admin retire n'importe qui ; motif facultatif (≤ 500) ; retrait d'un membre d'une autre classe → `404` ; membre retiré : ses requêtes ultérieures sur la classe → `404` ; classe archivée → `409 CLASS_ARCHIVED`.
+- [x] **Step 2 : Implémenter** — `memberships.listMembers`, `memberships.remove` (user, admin) ; `assertRecentPasswordInTx` pour le retrait (§ 3.3) ; audit `MEMBER_REMOVED`. *(Service de fraîcheur extrait dans `AuthzModule` global — `FreshnessService` — pour éviter un cycle Auth ↔ métier ; step-up.int.spec adapté.)*
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
+- [x] **Step 4 : Commit** — `feat(lot2): membres et retrait avec motif (P8)`.
 
 ### Task 4 : Délégués (M12, API)
 

@@ -7,9 +7,11 @@ import { ApiError } from '../../http/errors.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { AnonymousActor, UserActor } from '../authz/actor.js';
 import { AuthzService } from '../authz/authz.service.js';
+import { FreshnessService } from '../authz/freshness.service.js';
 import { ClassesService } from '../classes/classes.service.js';
 import { MailService } from '../mail/mail.service.js';
 import type { AcceptDecisionDto, EnrollmentDto, EnrollmentRow, RequestDto } from './enrollment.dto.js';
+import type { MemberDto } from './member.dto.js';
 import { MembershipsRepository } from './memberships.repository.js';
 
 const REFUSAL_RETRY_MS = 24 * 3600 * 1000;
@@ -25,6 +27,7 @@ export class MembershipsService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(ClassesService) private readonly classes: ClassesService,
     @Inject(MailService) private readonly mail: MailService,
+    @Inject(FreshnessService) private readonly freshness: FreshnessService,
   ) {}
 
   /** Demande d'adhésion créée dans la transaction de l'inscription (§ 0.3). */
@@ -69,6 +72,48 @@ export class MembershipsService {
       const rows = await this.repo.listPendingOfInTx(tx, classId);
       return rows.map((r) => ({ id: r.id, status: 'PENDING', createdAt: r.createdAt.toISOString(), user: { firstName: r.firstName, lastName: r.lastName, email: r.email } }));
     });
+  }
+
+  /** Membres actifs de la classe (P8, écran M9) : mêmes portées que les demandes. */
+  async listMembers(actor: UserActor, classId: string): Promise<MemberDto[]> {
+    this.authz.assert(actor, 'memberships.listMembers');
+    if (!UUID.safeParse(classId).success) throw new ApiError(404, 'NOT_FOUND');
+    return this.prisma.withTx(async (tx) => {
+      if (!(await this.repo.lockClassInTx(tx, classId, false))) throw new ApiError(404, 'NOT_FOUND');
+      await this.assertScopeInTx(tx, actor, classId);
+      const rows = await this.repo.listMembersOfInTx(tx, classId);
+      return rows.map((r) => ({ ...r, joinedAt: r.joinedAt.toISOString() }));
+    });
+  }
+
+  /**
+   * Retrait d'un membre (§ 4.5, R6/R7) : le délégué retire un étudiant, l'admin n'importe qui ;
+   * ressaisie du mot de passe datant de moins de 5 min (§ 3.3), clôture et audit dans la même transaction.
+   * Le motif vit dans `class_memberships.left_note` — jamais dans l'audit (§ 2.5).
+   */
+  async remove(actor: UserActor, classId: string, userId: string, note: string | null): Promise<void> {
+    this.authz.assert(actor, 'memberships.remove');
+    if (!UUID.safeParse(classId).success || !UUID.safeParse(userId).success) throw new ApiError(404, 'NOT_FOUND');
+    try {
+      await this.prisma.withTx(async (tx) => {
+        // Verrou d'écriture en tête (§ 2.1) : retrait sérialisé avec décisions, transferts et promotions.
+        const cls = await this.repo.lockClassInTx(tx, classId, true);
+        if (!cls) throw new ApiError(404, 'NOT_FOUND');
+        await this.assertScopeInTx(tx, actor, classId);
+        if (cls.status !== 'ACTIVE') throw new ApiError(409, 'CLASS_ARCHIVED');
+        const role = await this.repo.roleInClassOfInTx(tx, userId, classId);
+        if (!role) throw new ApiError(404, 'NOT_FOUND');
+        if (actor.globalRole !== 'ADMIN' && role === 'DELEGATE') throw new ApiError(403, 'DELEGATE_FORBIDDEN');
+        // Après la portée ET la cible : un étranger reçoit toujours le même 404, quoi qu'il en soit de son mot de passe.
+        await this.freshness.assertRecentPasswordInTx(tx, actor);
+        if (!(await this.repo.closeMembershipInTx(tx, { classId, userId, reason: 'REMOVED', leftBy: actor.userId, note }))) {
+          throw new ApiError(404, 'NOT_FOUND'); // clôturée entre-temps : même corps qu'un absent
+        }
+        await this.audit.recordInTx(tx, actor, { action: 'MEMBER_REMOVED', targetType: 'USER', targetId: userId, metadata: { classId, userId } });
+      });
+    } catch (e) {
+      throw this.decisionDbError(e);
+    }
   }
 
   /** Acceptation : appartenance étudiante en même temps que la décision, dans une transaction unique (§ 0.3). */

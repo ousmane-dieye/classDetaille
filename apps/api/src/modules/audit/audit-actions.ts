@@ -17,6 +17,8 @@ export const AUDIT_METADATA = {
   ENROLLMENT_ACCEPTED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
   // Le motif de refus n'est jamais journalisé (illégitime § 2.5, cf. R6) ; il part uniquement par email.
   ENROLLMENT_REFUSED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
+  // Idem pour le motif de retrait : il vit dans class_memberships.left_note, pas dans l'audit.
+  MEMBER_REMOVED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
 } as const;
 export type AppAuditAction = keyof typeof AUDIT_METADATA;
 export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST';

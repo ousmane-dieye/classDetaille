@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '../../src/database/prisma.service.js';
-import { StepUpService } from '../../src/modules/auth/step-up.service.js';
+import { FreshnessService } from '../../src/modules/authz/freshness.service.js';
 import { PASSWORD, buildTestApp, insertClass, registerStudent, send, type TestApp } from '../support/app.js';
 import { waitForLockWait } from '../support/lock-wait.js';
 import { ageChallenges, loginAdmin, latestCode } from '../support/second-factor.js';
@@ -9,12 +9,12 @@ import { connectAs, createTestDatabase } from '../support/pg.js';
 
 let db: string;
 let t: TestApp;
-let svc: StepUpService;
+let svc: FreshnessService;
 let prisma: PrismaService;
 beforeAll(async () => {
   db = await createTestDatabase();
   t = await buildTestApp(db);
-  svc = t.app.get(StepUpService, { strict: false });
+  svc = t.app.get(FreshnessService, { strict: false });
   prisma = t.app.get(PrismaService, { strict: false });
 });
 afterAll(async () => { await t.close(); });

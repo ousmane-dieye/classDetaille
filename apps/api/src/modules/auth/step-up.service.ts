@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PrismaService, type TxClient } from '../../database/prisma.service.js';
-import { ApiError } from '../../http/errors.js';
+import { PrismaService } from '../../database/prisma.service.js';
 import type { UserActor } from '../authz/actor.js';
 import { AuthzService } from '../authz/authz.service.js';
 import type { ClientContext } from './client-context.js';
@@ -53,22 +52,5 @@ export class StepUpService {
       return r;
     });
     if (!outcome.ok) throw outcomeToError(outcome, { clearChallengeCookie: false });
-  }
-
-  /** À appeler dans la transaction de l'action qui exige une vérification supplémentaire (promotion, suspension, anonymisation, transfert en masse, archivage). */
-  async assertStepUpFreshInTx(tx: TxClient, actor: UserActor): Promise<void> {
-    this.authz.assert(actor, 'stepUp.assertFresh');
-    const f = await this.sessions.freshnessInTx(tx, actor.sessionId);
-    if (!f) throw new ApiError(401, 'UNAUTHENTICATED');
-    if (!f.password) throw new ApiError(403, 'STEP_UP_REQUIRED', { missing: 'PASSWORD' });
-    if (!f.code) throw new ApiError(403, 'STEP_UP_REQUIRED', { missing: 'CODE' });
-  }
-
-  /** Pour les autres actions sensibles : ressaisie du mot de passe datant de moins de 5 min. */
-  async assertRecentPasswordInTx(tx: TxClient, actor: UserActor): Promise<void> {
-    this.authz.assert(actor, 'reauth.assertRecent');
-    const f = await this.sessions.freshnessInTx(tx, actor.sessionId);
-    if (!f) throw new ApiError(401, 'UNAUTHENTICATED');
-    if (!f.password) throw new ApiError(403, 'REAUTH_REQUIRED');
   }
 }

@@ -2,6 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { v7 as uuidv7 } from 'uuid';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
 import type { EnrollmentRow, RequestRow } from './enrollment.dto.js';
+import type { MemberRow } from './member.dto.js';
+
+/** Motif de clôture — miroir TS de app.leave_reason (§ 0.3 : REMOVED, TRANSFER, …). */
+export type LeaveReason = 'REMOVED' | 'TRANSFER' | 'CLASS_ARCHIVED' | 'ACCOUNT_DELETED';
 
 @Injectable()
 export class MembershipsRepository {
@@ -81,5 +85,27 @@ export class MembershipsRepository {
     const r = rows[0];
     if (!r) throw new Error('membership insert returned no row');
     return r;
+  }
+
+  /** Membres actifs de la classe (P8) : tri stable par nom. */
+  listMembersOfInTx(tx: TxClient, classId: string): Promise<MemberRow[]> {
+    return tx.$queryRaw<MemberRow[]>`select m.user_id as "userId", u.first_name as "firstName", u.last_name as "lastName", u.email as "email", m.role as "role", m.joined_at as "joinedAt"
+      from app.class_memberships m join app.users u on u.id = m.user_id
+      where m.class_id = ${classId}::uuid and m.left_at is null
+      order by u.last_name, u.first_name, m.user_id`;
+  }
+
+  /**
+   * Clôture d'une appartenance (§ 4.5) : date, motif et acteur ensemble (contrainte membership_departure ;
+   * la note 1–500, même borne que le schéma HTTP). `false` : déjà clôturée entre-temps.
+   */
+  async closeMembershipInTx(
+    tx: TxClient,
+    row: { classId: string; userId: string; reason: LeaveReason; leftBy: string; note: string | null },
+  ): Promise<boolean> {
+    const n = await tx.$executeRaw`update app.class_memberships
+      set left_at = clock_timestamp(), left_reason = ${row.reason}::app.leave_reason, left_by = ${row.leftBy}::uuid, left_note = ${row.note}, updated_at = clock_timestamp()
+      where class_id = ${row.classId}::uuid and user_id = ${row.userId}::uuid and left_at is null`;
+    return n === 1;
   }
 }

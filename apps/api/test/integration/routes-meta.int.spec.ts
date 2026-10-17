@@ -30,6 +30,8 @@ const EXPECTED_ROUTES: Record<string, { public: boolean }> = {
   'GET /api/classes/:classId/requests': { public: false },
   'POST /api/classes/:classId/requests/:requestId/accept': { public: false },
   'POST /api/classes/:classId/requests/:requestId/refuse': { public: false },
+  'GET /api/classes/:classId/members': { public: false },
+  'DELETE /api/classes/:classId/members/:userId': { public: false },
 };
 
 let t: TestApp;
@@ -42,7 +44,7 @@ beforeAll(async () => {
 afterAll(async () => { await t.close(); });
 
 const entries = () => Object.entries(EXPECTED_ROUTES).map(([k, v]) => {
-  const [method, url] = k.split(' ') as ['GET' | 'POST' | 'PATCH', string];
+  const [method, url] = k.split(' ') as ['GET' | 'POST' | 'PATCH' | 'DELETE', string];
   return { key: k, method, url, ...v };
 });
 /** Corps valide par route modifiante : la sonde « champ inconnu » ajoute `__x` à un corps qui passe la validation. */
@@ -68,6 +70,7 @@ const VALID_BODY: Record<string, () => Record<string, unknown>> = {
   'POST /api/me/enrollment': () => ({ classId }),
   'POST /api/classes/:classId/requests/:requestId/accept': () => ({}),
   'POST /api/classes/:classId/requests/:requestId/refuse': () => ({}),
+  'DELETE /api/classes/:classId/members/:userId': () => ({}),
 };
 
 const modifying = () => entries().filter((r) => r.method !== 'GET');

@@ -135,6 +135,8 @@ describe('contrat avec le lot 1c : codes d’erreur stables (R4)', () => {
     const files: string[] = [];
     const walk = (d: string) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (p.endsWith('.ts') && !p.endsWith('.spec.ts')) files.push(p); } };
     walk(resolve(dir, 'auth'));
+    // Le service de fraîcheur vit dans authz (global, pour éviter un cycle) mais porte deux codes du contrat d'authentification.
+    files.push(resolve(dir, 'authz/freshness.service.ts'));
     const found = new Set<string>();
     for (const f of files) for (const m of readFileSync(f, 'utf8').matchAll(/(?:new ApiError\(\d{3}, |tooManyRequests\()'([A-Z_]+)'/g)) found.add(m[1]!);
     for (const m of readFileSync(resolve(dir, 'auth/second-factor/second-factor.service.ts'), 'utf8').matchAll(/(?:new ApiError\(\d{3}, |tooManyRequests\()'([A-Z_]+)'/g)) found.add(m[1]!);
