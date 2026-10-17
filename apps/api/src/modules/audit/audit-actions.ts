@@ -6,7 +6,8 @@ import { z } from 'zod';
  */
 export const AUDIT_METADATA = {
   ADMIN_CREATED: z.strictObject({ via: z.literal('cli') }),
-  CLASS_CREATED: z.strictObject({ via: z.literal('cli') }),
+  CLASS_CREATED: z.strictObject({ via: z.enum(['cli', 'app']) }),
+  CLASS_ARCHIVED: z.strictObject({ classId: z.uuid() }),
   ACCOUNT_REGISTERED: z.strictObject({ classId: z.uuid(), enrollmentRequestId: z.uuid() }),
   PASSWORD_CHANGED: z.strictObject({ revokedSessions: z.number().int().min(0) }),
   SESSIONS_REVOKED: z.strictObject({ reason: z.literal('OTHER_DEVICES'), count: z.number().int().min(0) }),

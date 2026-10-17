@@ -8,11 +8,15 @@ import { ApiError } from '../../http/errors.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { Actor, AnonymousActor, CliActor, UserActor } from '../authz/actor.js';
 import { AuthzService } from '../authz/authz.service.js';
-import type { ClassSummaryDto, SubjectDto } from './class.dto.js';
+import { FreshnessService } from '../authz/freshness.service.js';
+import type { ClassAdminSummaryDto, ClassArchiveDto, ClassCreateDto, ClassDetailDto, ClassSummaryDto, SubjectDto } from './class.dto.js';
 import { ClassesRepository } from './classes.repository.js';
 
 const YEAR = /^(\d{4})-(\d{4})$/;
 const UUID = z.uuid();
+
+/** Corps validé d'une création de classe (CLI et application). */
+type CreateClassInput = { name: string; level: string; academicYear: string };
 
 @Injectable()
 export class ClassesService {
@@ -21,6 +25,7 @@ export class ClassesService {
     @Inject(AuthzService) private readonly authz: AuthzService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(FreshnessService) private readonly freshness: FreshnessService,
   ) {}
 
   async listActive(actor: Actor): Promise<ClassSummaryDto[]> {
@@ -40,18 +45,13 @@ export class ClassesService {
   }
 
   /** `create-class` (R8). */
-  async create(actor: CliActor, input: { name: string; level: string; academicYear: string }): Promise<string> {
+  async create(actor: CliActor, input: CreateClassInput): Promise<string> {
     this.authz.assert(actor, 'classes.create');
-    const name = normalizeName(input.name);
-    const level = normalizeName(input.level);
-    const m = YEAR.exec(input.academicYear.trim());
-    if (!isValidName(name)) throw new ApiError(400, 'INVALID_CLASS_NAME');
-    if ([...level].length < 1 || [...level].length > 40 || hasForbiddenNameChars(level)) throw new ApiError(400, 'INVALID_CLASS_LEVEL');
-    if (!m || Number(m[2]) !== Number(m[1]) + 1) throw new ApiError(400, 'INVALID_ACADEMIC_YEAR');
+    const v = this.validateClass(input);
     const id = uuidv7();
     try {
       await this.prisma.withTx(async (tx) => {
-        await this.repo.createInTx(tx, { id, name, level, academicYear: input.academicYear.trim() });
+        await this.repo.createInTx(tx, { id, ...v });
         await this.audit.recordInTx(tx, actor, { action: 'CLASS_CREATED', targetType: 'CLASS', targetId: id, metadata: { via: 'cli' } });
       });
     } catch (e) {
@@ -59,6 +59,75 @@ export class ClassesService {
       throw e;
     }
     return id;
+  }
+
+  /** Toutes les classes (M11) : administrateurs seulement, archivées incluses, avec l'effectif. */
+  async listAll(actor: UserActor): Promise<ClassAdminSummaryDto[]> {
+    this.authz.assert(actor, 'classes.list');
+    return this.repo.listAllWithCounts();
+  }
+
+  /** Création dans l'application (M11, R8) : mêmes validités que la CLI, audit `via: 'app'`. */
+  async createApp(actor: UserActor, input: CreateClassInput): Promise<ClassCreateDto> {
+    this.authz.assert(actor, 'classes.createApp');
+    const v = this.validateClass(input);
+    const id = uuidv7();
+    try {
+      await this.prisma.withTx(async (tx) => {
+        await this.repo.createInTx(tx, { id, ...v });
+        await this.audit.recordInTx(tx, actor, { action: 'CLASS_CREATED', targetType: 'CLASS', targetId: id, metadata: { via: 'app' } });
+      });
+    } catch (e) {
+      if (isUniqueViolation(e)) throw new ApiError(409, 'CLASS_ALREADY_EXISTS');
+      throw e;
+    }
+    return { id, ...v, status: 'ACTIVE' };
+  }
+
+  /** Fiche de la classe (M12, R11) : membres actifs et demandes ; appartenance active ou admin, sinon 404 (isolation). */
+  async detail(actor: UserActor, classId: string): Promise<ClassDetailDto> {
+    this.authz.assert(actor, 'classes.read');
+    if (!UUID.safeParse(classId).success) throw new ApiError(404, 'NOT_FOUND');
+    return this.prisma.withTx(async (tx) => {
+      if (!(await this.repo.lockClassInTx(tx, classId, false))) throw new ApiError(404, 'NOT_FOUND');
+      // Les anciens membres (appartenance clôturée) reçoivent le même 404 qu'un étranger.
+      if (actor.globalRole !== 'ADMIN' && !(await this.repo.roleInClassOfInTx(tx, actor.userId, classId))) throw new ApiError(404, 'NOT_FOUND');
+      const d = await this.repo.detailInTx(tx, classId);
+      if (!d) throw new ApiError(404, 'NOT_FOUND');
+      const { archivedAt, members, pendingRequests, decidedRequests, ...rest } = d;
+      return { ...rest, archivedAt: archivedAt ? archivedAt.toISOString() : null, stats: { members, pendingRequests, decidedRequests } };
+    });
+  }
+
+  /**
+   * Archivage (§ 0.3, M13) : vérification supplémentaire complète (mot de passe puis code, § 3.3),
+   * clôture de toutes les appartenances CLASS_ARCHIVED et statut dans la même transaction (ordre des verrous § 2.1).
+   */
+  async archive(actor: UserActor, classId: string): Promise<ClassArchiveDto> {
+    this.authz.assert(actor, 'classes.archive');
+    if (!UUID.safeParse(classId).success) throw new ApiError(404, 'NOT_FOUND');
+    await this.prisma.withTx(async (tx) => {
+      const cls = await this.repo.lockClassInTx(tx, classId, true);
+      if (!cls) throw new ApiError(404, 'NOT_FOUND');
+      if (cls.status !== 'ACTIVE') throw new ApiError(409, 'CLASS_ARCHIVED');
+      await this.freshness.assertStepUpFreshInTx(tx, actor);
+      await this.repo.closeAllMembershipsInTx(tx, { classId, leftBy: actor.userId });
+      await this.repo.archiveClassInTx(tx, classId);
+      await this.audit.recordInTx(tx, actor, { action: 'CLASS_ARCHIVED', targetType: 'CLASS', targetId: classId, metadata: { classId } });
+    });
+    return { id: classId, status: 'ARCHIVED' };
+  }
+
+  /** Validités partagées CLI et application (§ 0.3, R8) : nom 2–80, niveau 1–40, année AAAA-AAAA consécutive. */
+  private validateClass(input: CreateClassInput): { name: string; level: string; academicYear: string } {
+    const name = normalizeName(input.name);
+    const level = normalizeName(input.level);
+    const academicYear = input.academicYear.trim();
+    const m = YEAR.exec(academicYear);
+    if (!isValidName(name)) throw new ApiError(400, 'INVALID_CLASS_NAME');
+    if ([...level].length < 1 || [...level].length > 40 || hasForbiddenNameChars(level)) throw new ApiError(400, 'INVALID_CLASS_LEVEL');
+    if (!m || Number(m[2]) !== Number(m[1]) + 1) throw new ApiError(400, 'INVALID_ACADEMIC_YEAR');
+    return { name, level, academicYear };
   }
 
   /** Matières de la classe (R12, écran M9) : délégué de la classe ou administrateur (R2). */

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
-import type { ClassSummaryDto, SubjectRow } from './class.dto.js';
+import type { ClassAdminRow, ClassDetailRow, ClassSummaryDto, SubjectRow } from './class.dto.js';
 
 const SUMMARY = { id: true, name: true, level: true, academicYear: true } as const;
 
@@ -73,5 +73,34 @@ export class ClassesRepository {
   async deleteSubjectInTx(tx: TxClient, classId: string, subjectId: string): Promise<boolean> {
     const n = await tx.$executeRaw`delete from app.subjects where class_id = ${classId}::uuid and id = ${subjectId}::uuid`;
     return n === 1;
+  }
+
+  /** Liste admin (M11) : toutes les classes, archivées incluses, avec l'effectif courant. */
+  listAllWithCounts(): Promise<ClassAdminRow[]> {
+    return this.prisma.client.$queryRaw<ClassAdminRow[]>`select c.id, c.name, c.level, c.academic_year as "academicYear", c.status,
+        (select count(*)::int from app.class_memberships m where m.class_id = c.id and m.left_at is null)::int as "membersCount"
+      from app.classes c order by c.academic_year desc, c.name asc, c.id`;
+  }
+
+  /** Fiche de la classe (M12, R11) : statistiques simples calculées sur l'état courant. */
+  async detailInTx(tx: TxClient, classId: string): Promise<ClassDetailRow | null> {
+    const rows = await tx.$queryRaw<ClassDetailRow[]>`select c.id, c.name, c.level, c.academic_year as "academicYear", c.status, c.archived_at as "archivedAt",
+        (select count(*)::int from app.class_memberships m where m.class_id = c.id and m.left_at is null)::int as members,
+        (select count(*)::int from app.enrollment_requests r where r.class_id = c.id and r.status = 'PENDING')::int as "pendingRequests",
+        (select count(*)::int from app.enrollment_requests r where r.class_id = c.id and r.status <> 'PENDING')::int as "decidedRequests"
+      from app.classes c where c.id = ${classId}::uuid`;
+    return rows[0] ?? null;
+  }
+
+  /** Clôture de toutes les appartenances actives à l'archivage (§ 0.3) : motif CLASS_ARCHIVED, acteur journalisé. */
+  async closeAllMembershipsInTx(tx: TxClient, row: { classId: string; leftBy: string }): Promise<number> {
+    return tx.$executeRaw`update app.class_memberships
+      set left_at = clock_timestamp(), left_reason = 'CLASS_ARCHIVED', left_by = ${row.leftBy}::uuid, updated_at = clock_timestamp()
+      where class_id = ${row.classId}::uuid and left_at is null`;
+  }
+
+  /** Archivage de la classe (§ 0.3) : statut et date ensemble (contrainte classes_archive_state). */
+  async archiveClassInTx(tx: TxClient, classId: string): Promise<void> {
+    await tx.$executeRaw`update app.classes set status = 'ARCHIVED', archived_at = clock_timestamp(), updated_at = clock_timestamp() where id = ${classId}::uuid`;
   }
 }

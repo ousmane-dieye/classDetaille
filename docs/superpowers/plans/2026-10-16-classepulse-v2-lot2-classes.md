@@ -138,10 +138,12 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 6 : Classe : détail, création in-app et archivage (M11/M12, API)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `classes-admin.int.spec.ts` : `GET /api/classes` (admin : toutes, archivées incluses ; délégué → `403`) ; `POST /api/classes` (admin ; `409 CLASS_ALREADY_EXISTS`, mêmes validités que la CLI) ; `GET /api/classes/:classId` (membre, délégué, admin) avec statistiques simples (R11) ; **archivage** : STEP_UP exigé (`403 STEP_UP_REQUIRED` sans vérification, puis succès), toutes les appartenances clôturées `CLASS_ARCHIVED`, `409 CLASS_ARCHIVED` en écriture, l'admin garde la lecture, les anciens membres reçoivent `404`, audit `CLASS_ARCHIVED` ; archiver deux fois → `409` ; classe d'une autre classe → `404`.
-- [ ] **Step 2 : Implémenter** — `classes.listAll`, `classes.create` (admin, `via: 'app'`), `classes.detail`, `classes.archive` ; actions `classes.list`, `classes.createApp`, `classes.read`, `classes.archive` ; audit `CLASS_CREATED` (via app) ; `assertStepUpFreshInTx` consommé.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
-- [ ] **Step 4 : Commit** — `feat(lot2): classe en application, fiche et archivage verifie`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `classes-admin.int.spec.ts` : `GET /api/classes` (admin : toutes, archivées incluses ; délégué → `403`) ; `POST /api/classes` (admin ; `409 CLASS_ALREADY_EXISTS`, mêmes validités que la CLI) ; `GET /api/classes/:classId` (membre, délégué, admin) avec statistiques simples (R11) ; **archivage** : STEP_UP exigé (`403 STEP_UP_REQUIRED` sans vérification, puis succès), toutes les appartenances clôturées `CLASS_ARCHIVED`, `409 CLASS_ARCHIVED` en écriture, l'admin garde la lecture, les anciens membres reçoivent `404`, audit `CLASS_ARCHIVED` ; archiver deux fois → `409` ; classe d'une autre classe → `404`.
+- [x] **Step 2 : Implémenter** — `classes.listAll`, `classes.createApp` (admin, `via: 'app'`, validation partagée avec la CLI via `validateClass`), `classes.detail`, `classes.archive` ; actions `classes.list`, `classes.createApp`, `classes.read`, `classes.archive` ; audit `CLASS_CREATED` (via app) ; `assertStepUpFreshInTx` consommé (FreshnessService, avant toute écriture).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
+- [x] **Step 4 : Commit** — `feat(lot2): classe en application, fiche et archivage verifie`.
+
+**Formes de réponse (tâche 6).** `GET /api/classes` → `{ id, name, level, academicYear, status, membersCount }[]` (statut et effectif pour le badge « Lecture seule » de M11) ; `GET /api/classes/:classId` → fiche + `stats: { members, pendingRequests, decidedRequests }` (R11, imbriqué pour accueillir les taux du lot 3 sans casser le contrat) ; `POST /api/classes/:classId/archive` → `200 { id, status: 'ARCHIVED' }`.
 
 ### Task 7 : Transfert simple et en masse (M13, API)
 

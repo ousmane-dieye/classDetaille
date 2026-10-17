@@ -11,6 +11,8 @@ export const ACTIONS = [
   'memberships.listRequests', 'memberships.accept', 'memberships.refuse', 'memberships.listMembers', 'memberships.remove', 'memberships.appointDelegate', 'memberships.revokeDelegate', 'me.createEnrollment',
   // Lot 2 : matières de la classe (R12) — portée délégué/admin affinée en service.
   'classes.listSubjects', 'classes.createSubject', 'classes.deleteSubject',
+  // Lot 2 : administration des classes (M11/M12) — liste et création réservées à l'admin.
+  'classes.list', 'classes.createApp', 'classes.read', 'classes.archive',
   'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -59,6 +61,12 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'classes.listSubjects': ['user', 'admin'],
   'classes.createSubject': ['user', 'admin'],
   'classes.deleteSubject': ['user', 'admin'],
+  // Administration des classes (M11/M12) : liste et création réservées à l'admin ;
+  // la lecture est ouverte aux membres, affinée en service (appartenance active ou admin, sinon 404).
+  'classes.list': ['admin'],
+  'classes.createApp': ['admin'],
+  'classes.read': ['user', 'admin'],
+  'classes.archive': ['admin'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],
