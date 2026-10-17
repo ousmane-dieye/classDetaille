@@ -4,7 +4,6 @@ import type { AppConfig } from '../../config/load-config.js';
 import type { AppOverrides } from '../../http/app.js';
 import { AppThrottlerGuard } from '../../http/throttle.js';
 import { ClassesModule } from '../classes/classes.module.js';
-import { MailModule } from '../mail/mail.module.js';
 import { MembershipsModule } from '../memberships/memberships.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AccountController } from './account.controller.js';
@@ -30,7 +29,8 @@ export class AuthModule {
   static register(config: AppConfig, o: AppOverrides): DynamicModule {
     return {
       module: AuthModule,
-      imports: [UsersModule, ClassesModule, MembershipsModule, MailModule.register(config.security.outboxPayloadKey)],
+      // MailModule est global (features.ts) : injecté sans import supplémentaire.
+      imports: [UsersModule, ClassesModule, MembershipsModule],
       controllers: [AuthController, AccountController],
       providers: [
         // Ordre des gardes globaux : limitation générale, PUIS session (aucune lecture en base avant la limitation).

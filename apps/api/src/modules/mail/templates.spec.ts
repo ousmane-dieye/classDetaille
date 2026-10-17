@@ -17,6 +17,8 @@ const cases = [
   ['ADMIN_SECURITY_ALERT', { event: 'SECOND_FACTOR_BLOCKED', accountEmail: 'a@example.com' }, null],
   ['ADMIN_SECURITY_ALERT', { event: 'EMAIL_CHANGED', accountEmail: 'a@example.com' }, null],
   ['ADMIN_SECURITY_ALERT', { event: 'RECOVERY_CODE_ISSUED', accountEmail: 'a@example.com' }, null],
+  ['REFUSAL', { className: 'L3 Informatique' }, null],
+  ['REFUSAL', { className: 'L3 Informatique', note: 'Classe complète' }, null],
   ['TEST', {}, null],
 ] as const;
 
@@ -45,7 +47,14 @@ describe('renderEmail', () => {
     expect(() => renderEmail('ADMIN_OTP', { purpose: 'LOGIN' }, { code: '12' }, ctx)).toThrow(RenderError);
   });
   it('un type sans modèle au lot 1b échoue en RenderError (R13)', () => {
-    for (const k of ['WELCOME', 'REFUSAL', 'DIGEST', 'ANNOUNCEMENT', 'ADMIN_ALERT'] as const) expect(() => renderEmail(k, {}, null, ctx)).toThrow(RenderError);
+    for (const k of ['WELCOME', 'DIGEST', 'ANNOUNCEMENT', 'ADMIN_ALERT'] as const) expect(() => renderEmail(k, {}, null, ctx)).toThrow(RenderError);
+  });
+  it('le refus nomme la classe et le motif facultatif entre guillemets (§ 0.3)', () => {
+    const r = renderEmail('REFUSAL', { className: 'L3 Informatique', note: 'Classe complète' }, null, ctx);
+    expect(r.text).toContain('L3 Informatique');
+    expect(r.text).toContain('Motif : « Classe complète »');
+    expect(r.text).toContain('24 heures');
+    expect(renderEmail('REFUSAL', { className: 'L3 Informatique' }, null, ctx).text).not.toContain('Motif');
   });
 });
 

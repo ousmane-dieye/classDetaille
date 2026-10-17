@@ -14,6 +14,9 @@ export const AUDIT_METADATA = {
   ADMIN_EMAIL_CHANGED: z.strictObject({ revokedSessions: z.number().int().min(0) }),
   PASSWORD_RESET_COMPLETED: z.strictObject({ revokedSessions: z.number().int().min(0) }),
   ADMIN_SECOND_FACTOR_BLOCKED: z.strictObject({ failures: z.number().int().min(0) }),
+  ENROLLMENT_ACCEPTED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
+  // Le motif de refus n'est jamais journalisé (illégitime § 2.5, cf. R6) ; il part uniquement par email.
+  ENROLLMENT_REFUSED: z.strictObject({ classId: z.uuid(), userId: z.uuid() }),
 } as const;
 export type AppAuditAction = keyof typeof AUDIT_METADATA;
 export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST';

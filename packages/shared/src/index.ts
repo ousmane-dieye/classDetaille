@@ -4,3 +4,4 @@ export * from './password.js';
 export * from './names.js';
 export * from './identity-schemas.js';
 export * from './second-factor-schemas.js';
+export * from './membership-schemas.js';

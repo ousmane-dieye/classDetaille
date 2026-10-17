@@ -7,6 +7,8 @@ export const ACTIONS = [
   'auth.verifyCode', 'auth.resendCode', 'auth.verifyRecovery', 'auth.forgotPassword', 'auth.resetPassword',
   'me.reauth', 'me.stepUp', 'me.stepUpVerify', 'stepUp.assertFresh', 'reauth.assertRecent',
   'me.changeEmailStart', 'me.changeEmailVerifyOld', 'me.changeEmailVerifyNew',
+  // Lot 2 : décisions d'adhésion (P8) et re-demande d'un compte existant (R16).
+  'memberships.listRequests', 'memberships.accept', 'memberships.refuse', 'me.createEnrollment',
   'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -40,6 +42,11 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'me.changeEmailStart': ['admin'],
   'me.changeEmailVerifyOld': ['admin'],
   'me.changeEmailVerifyNew': ['admin'],
+  // Lot 2 : l'appartenance (délégation, classe) est affinée par le service, pas par la matrice (R2).
+  'memberships.listRequests': ['user', 'admin'],
+  'memberships.accept': ['user', 'admin'],
+  'memberships.refuse': ['user', 'admin'],
+  'me.createEnrollment': ['user'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],

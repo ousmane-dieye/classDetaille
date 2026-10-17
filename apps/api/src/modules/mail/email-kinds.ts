@@ -22,6 +22,8 @@ export const KIND_SCHEMAS = {
   ADMIN_EMAIL_CHANGE_NEW: { payload: z.strictObject({}), secret: otp },
   PASSWORD_RESET: { payload: z.strictObject({}), secret: z.strictObject({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }) },
   SECURITY_ALERT: { payload: z.strictObject({ event: z.enum(['PASSWORD_RESET', 'EMAIL_CHANGED']) }), secret: null },
+  // Refus d'adhésion (§ 0.3, R6) : tenu par le délégué ou l'admin, donc jamais secret ; destiné à l'étudiante.
+  REFUSAL: { payload: z.strictObject({ className: z.string().min(1).max(120), note: z.string().max(500).optional() }), secret: null },
   ADMIN_SECURITY_ALERT: {
     payload: z.strictObject({
       event: z.enum(['SECOND_FACTOR_FAILURES', 'SECOND_FACTOR_BLOCKED', 'EMAIL_CHANGED', 'RECOVERY_CODE_ISSUED']),

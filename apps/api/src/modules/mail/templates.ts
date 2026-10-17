@@ -49,6 +49,14 @@ export function renderEmail(kind: EmailKind, payload: unknown, secret: unknown, 
       return d.event === 'PASSWORD_RESET'
         ? { subject: 'Ton mot de passe ClassePulse a été réinitialisé', text: lines('Bonjour,', '', 'Le mot de passe de ton compte vient d’être réinitialisé et tes appareils ont été déconnectés.', 'Si ce n’est pas toi, contacte un administrateur sans attendre.') }
         : { subject: 'L’adresse de ton compte ClassePulse a changé', text: lines('Bonjour,', '', 'L’adresse email de ton compte vient d’être remplacée. Cette adresse ne recevra plus de messages.', 'Si ce n’est pas toi, contacte un autre administrateur sans attendre.') };
+    case 'REFUSAL': {
+      const motif = typeof d.note === 'string' ? ['', `Motif : « ${d.note} »`] : [];
+      return {
+        subject: 'Ta demande d’adhésion a été refusée',
+        text: lines('Bonjour,', '', `Ta demande d’adhésion pour la classe ${String(d.className)} a été refusée.`, ...motif, '',
+          'Tu pourras refaire une demande pour cette classe à partir de 24 heures après le refus, ou demander une autre classe dès maintenant.'),
+      };
+    }
     case 'ADMIN_SECURITY_ALERT': {
       const who = String(d.accountEmail);
       const what: Record<string, string> = {

@@ -40,6 +40,12 @@ const EXPECTED: Record<Action, readonly Name[]> = {
   'me.changeEmailStart': ['admin'],
   'me.changeEmailVerifyOld': ['admin'],
   'me.changeEmailVerifyNew': ['admin'],
+  // Lot 2 : décisions d'adhésion (P8) et re-demande (R16). L'affinage par classe
+  // (délégué DELEGATE actif, étudiant → 403, hors classe → 404) est porté par le service.
+  'memberships.listRequests': ['user', 'admin'],
+  'memberships.accept': ['user', 'admin'],
+  'memberships.refuse': ['user', 'admin'],
+  'me.createEnrollment': ['user'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],

@@ -6,11 +6,13 @@ import { CoreModule } from '../http/core.module.js';
 import { AuditModule } from '../modules/audit/audit.module.js';
 import { AuthzModule } from '../modules/authz/authz.module.js';
 import { ClassesModule } from '../modules/classes/classes.module.js';
+import { MailModule } from '../modules/mail/mail.module.js';
 import { UsersModule } from '../modules/users/users.module.js';
 
 @Module({})
 export class CliModule {
   static forRoot(config: AppConfig): DynamicModule {
-    return { module: CliModule, imports: [ConfigModule.forRoot(config), DatabaseModule, CoreModule.forRoot(), AuthzModule, AuditModule, UsersModule, ClassesModule] };
+    // MailModule (global) : MembershipsService, chargé par UsersModule, enfile l'email de refus (R6).
+    return { module: CliModule, imports: [ConfigModule.forRoot(config), DatabaseModule, CoreModule.forRoot(), AuthzModule, AuditModule, MailModule.register(config.security.outboxPayloadKey), UsersModule, ClassesModule] };
   }
 }
