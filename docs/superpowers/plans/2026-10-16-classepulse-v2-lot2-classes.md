@@ -147,10 +147,10 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 7 : Transfert simple et en masse (M13, API)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `transfers.int.spec.ts` : transfert simple d'un étudiant (admin, mot de passe récent) → ancienne appartenance `TRANSFER`, nouvelle `STUDENT`, l'ancienne classe renvoie `404` au transféré ; **transfert d'un délégué → il redevient `STUDENT`** ; masse : atomique (une cible invalide annule tout), **201 transférés sur 200 demandés → `400 BATCH_TOO_LARGE`**, STEP_UP exigé, délégués non reconduits (un délégué dans le lot reste `STUDENT`) ; transfert vers une classe archivée → `409` ; utilisateur d'une autre classe → `404` ; audits `MEMBER_TRANSFERRED` (un par étudiant, métadonnées sans liste d'emails).
-- [ ] **Step 2 : Implémenter** — `memberships.transfer`, `memberships.transferMass` (admin) ; `assertRecentPasswordInTx` / `assertStepUpFreshInTx` ; clôture puis création dans la transaction (ordre des verrous).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
-- [ ] **Step 4 : Commit** — `feat(lot2): transfert simple et en masse avec verification`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `transfers.int.spec.ts` : transfert simple d'un étudiant (admin, mot de passe récent) → ancienne appartenance `TRANSFER`, nouvelle `STUDENT`, l'ancienne classe renvoie `404` au transféré ; **transfert d'un délégué → il redevient `STUDENT`** ; masse : atomique (une cible invalide annule tout), **201 transférés sur 200 demandés → `400 BATCH_TOO_LARGE`**, STEP_UP exigé, délégués non reconduits (un délégué dans le lot reste `STUDENT`) ; transfert vers une classe archivée → `409` ; utilisateur d'une autre classe → `404` ; audits `MEMBER_TRANSFERRED` (un par étudiant, métadonnées sans liste d'emails).
+- [x] **Step 2 : Implémenter** — `memberships.transfer`, `memberships.transferMass` (admin) ; `assertRecentPasswordInTx` / `assertStepUpFreshInTx` ; clôture puis création dans la transaction (ordre des verrous).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
+- [x] **Step 4 : Commit** — `feat(lot2): transfert simple et en masse avec verification`.
 
 ### Task 8 : `priv.anonymize_user` et suppression de compte (API)
 

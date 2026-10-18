@@ -20,3 +20,17 @@ export const CreateEnrollmentBody = z.strictObject({
   classId: z.uuid(),
 });
 export type CreateEnrollmentBody = z.infer<typeof CreateEnrollmentBody>;
+
+// Transfert (R7) : le simple vise une destination saisie, la masse vise la classe du corps de la
+// requête (`:classId` = destination, M13 : créer la classe nouvelle, y transférer, archiver l'ancienne).
+// Le seuil de 200 étudiants par appel est porté par le service (`400 BATCH_TOO_LARGE`) ;
+// l'unicité et l'appartenance active sont portées par la base.
+export const TransferBody = z.strictObject({
+  toClassId: z.uuid(),
+});
+export type TransferBody = z.infer<typeof TransferBody>;
+
+export const TransferBatchBody = z.strictObject({
+  userIds: z.array(z.uuid()).min(1).max(1000),
+});
+export type TransferBatchBody = z.infer<typeof TransferBatchBody>;

@@ -57,6 +57,8 @@ const EXPECTED: Record<Action, readonly Name[]> = {
   'classes.createApp': ['admin'],
   'classes.read': ['user', 'admin'],
   'classes.archive': ['admin'],
+  'memberships.transfer': ['admin'],
+  'memberships.transferMass': ['admin'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],

@@ -12,3 +12,11 @@ export type MemberDto = {
 export type DelegateDto = {
   userId: string; role: 'STUDENT' | 'DELEGATE';
 };
+/** Transfert simple (M13, R7) : la personne et sa nouvelle classe. */
+export type TransferDto = {
+  userId: string; toClassId: string;
+};
+/** Transfert en masse (M13, R7) : nombre d'étudiants transférés (tout ou rien). */
+export type TransferBatchDto = {
+  transferred: number;
+};

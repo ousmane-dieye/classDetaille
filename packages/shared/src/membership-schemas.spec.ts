@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AppointDelegateBody, CreateEnrollmentBody, RefuseEnrollmentBody, RemoveMemberBody } from './membership-schemas.js';
+import { AppointDelegateBody, CreateEnrollmentBody, RefuseEnrollmentBody, RemoveMemberBody, TransferBatchBody, TransferBody } from './membership-schemas.js';
 
 const CLASS_ID = '6f0d8f9e-1f3a-4a0b-9f1a-2f7e0a3c5d10';
 const USER_ID = '0c9a1f2e-3b4d-4e5f-8a9b-0c1d2e3f4a5b';
@@ -44,5 +44,26 @@ describe('AppointDelegateBody', () => {
     expect(AppointDelegateBody.safeParse({}).success).toBe(false);
     expect(AppointDelegateBody.safeParse({ userId: 'pas-un-uuid' }).success).toBe(false);
     expect(AppointDelegateBody.safeParse({ userId: USER_ID, role: 'DELEGATE' }).success).toBe(false);
+  });
+});
+
+describe('TransferBody', () => {
+  it('destination exigée, sous forme d’uuid, aucun champ inconnu', () => {
+    expect(TransferBody.safeParse({ toClassId: CLASS_ID }).success).toBe(true);
+    expect(TransferBody.safeParse({}).success).toBe(false);
+    expect(TransferBody.safeParse({ toClassId: 'pas-un-uuid' }).success).toBe(false);
+    expect(TransferBody.safeParse({ toClassId: CLASS_ID, userIds: [USER_ID] }).success).toBe(false);
+  });
+});
+
+describe('TransferBatchBody', () => {
+  it('liste non vide d’uuid, 1 à 1000 éléments (le seuil de 200 est porté par le service)', () => {
+    expect(TransferBatchBody.safeParse({ userIds: [USER_ID] }).success).toBe(true);
+    expect(TransferBatchBody.safeParse({ userIds: Array.from({ length: 201 }, () => USER_ID) }).success).toBe(true);
+    expect(TransferBatchBody.safeParse({ userIds: Array.from({ length: 1001 }, () => USER_ID) }).success).toBe(false);
+    expect(TransferBatchBody.safeParse({ userIds: [] }).success).toBe(false);
+    expect(TransferBatchBody.safeParse({ userIds: ['pas-un-uuid'] }).success).toBe(false);
+    expect(TransferBatchBody.safeParse({}).success).toBe(false);
+    expect(TransferBatchBody.safeParse({ userIds: [USER_ID], toClassId: CLASS_ID }).success).toBe(false);
   });
 });

@@ -25,6 +25,8 @@ export const AUDIT_METADATA = {
   // Le nom de la matière est la seule trace après suppression (§ 2.5 : aucun secret dans l'audit).
   SUBJECT_CREATED: z.strictObject({ classId: z.uuid(), subjectId: z.uuid(), name: z.string() }),
   SUBJECT_DELETED: z.strictObject({ classId: z.uuid(), subjectId: z.uuid(), name: z.string() }),
+  // Transfert (R7) : d'où, où, qui — jamais d'email ni de liste d'adresses (§ 2.5).
+  MEMBER_TRANSFERRED: z.strictObject({ userId: z.uuid(), fromClassId: z.uuid(), toClassId: z.uuid() }),
 } as const;
 export type AppAuditAction = keyof typeof AUDIT_METADATA;
 export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST' | 'SUBJECT';

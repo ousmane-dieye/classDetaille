@@ -52,6 +52,32 @@ export class MembershipsRepository {
     return rows[0]?.role ?? null;
   }
 
+  /** Appartenance active unique de la personne, pour le transfert (R7) : `null` si elle n'appartient à aucune classe. */
+  async activeMembershipOfInTx(tx: TxClient, userId: string): Promise<{ classId: string; role: 'STUDENT' | 'DELEGATE' } | null> {
+    const rows = await tx.$queryRaw<{ classId: string; role: 'STUDENT' | 'DELEGATE' }[]>`select class_id as "classId", role from app.class_memberships where user_id = ${userId}::uuid and left_at is null`;
+    return rows[0] ?? null;
+  }
+
+  /** Appartenances actives d'un lot (R7) : lecture unique pour le transfert en masse (atomique, tout ou rien). */
+  async activeMembershipsOfInTx(tx: TxClient, userIds: string[]): Promise<Array<{ userId: string; classId: string }>> {
+    return tx.$queryRaw<Array<{ userId: string; classId: string }>>`select user_id as "userId", class_id as "classId"
+      from app.class_memberships where left_at is null and user_id = any(${userIds}::uuid[])`;
+  }
+
+  /**
+   * Verrous de plusieurs classes (R7, transferts) : `for no key update` un par un, **dans l'ordre des
+   * identifiants**, pour que deux transferts croisés ne se bloquent jamais (ordre global § 2.1).
+   */
+  async lockClassesInTx(tx: TxClient, classIds: string[]): Promise<Array<{ id: string; status: string }>> {
+    const rows: Array<{ id: string; status: string }> = [];
+    for (const id of [...new Set(classIds)].sort()) {
+      const r = await tx.$queryRaw<{ id: string; status: string }[]>`select id, status from app.classes where id = ${id}::uuid for no key update`;
+      const row = r[0];
+      if (row) rows.push(row);
+    }
+    return rows;
+  }
+
   /** Demandes en attente de la classe, avec l'email (P8) : lecture seule, sans relation Prisma (maison : SQL). */
   listPendingOfInTx(tx: TxClient, classId: string): Promise<RequestRow[]> {
     return tx.$queryRaw<RequestRow[]>`select r.id as "id", r.status as "status", r.created_at as "createdAt", u.first_name as "firstName", u.last_name as "lastName", u.email as "email"

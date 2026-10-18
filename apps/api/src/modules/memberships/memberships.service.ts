@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import { v7 as uuidv7 } from 'uuid';
 import { PrismaService, type TxClient } from '../../database/prisma.service.js';
-import { dbMessageOf } from '../../database/errors.js';
+import { dbMessageOf, isUniqueViolation } from '../../database/errors.js';
 import { ApiError } from '../../http/errors.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { AnonymousActor, UserActor } from '../authz/actor.js';
@@ -11,11 +11,13 @@ import { FreshnessService } from '../authz/freshness.service.js';
 import { ClassesService } from '../classes/classes.service.js';
 import { MailService } from '../mail/mail.service.js';
 import type { AcceptDecisionDto, EnrollmentDto, EnrollmentRow, RequestDto } from './enrollment.dto.js';
-import type { DelegateDto, MemberDto } from './member.dto.js';
+import type { DelegateDto, MemberDto, TransferBatchDto, TransferDto } from './member.dto.js';
 import { MembershipsRepository } from './memberships.repository.js';
 
 const REFUSAL_RETRY_MS = 24 * 3600 * 1000;
 const REFUSAL_EMAIL_TTL_S = 7 * 24 * 3600;
+/** Seuil du transfert en masse (R7) : au-delà, plusieurs appels (`400 BATCH_TOO_LARGE`). */
+const MASS_TRANSFER_MAX = 200;
 const UUID = z.uuid();
 
 @Injectable()
@@ -160,6 +162,83 @@ export class MembershipsService {
     } catch (e) {
       throw this.delegateDbError(e);
     }
+  }
+
+  /**
+   * Transfert simple (R7, M13) : administrateur seul, ressaisie du mot de passe datant de moins de
+   * 5 min (§ 3.3). L'ancienne appartenance est clôturée `TRANSFER`, la nouvelle est créée étudiant —
+   * un délégué transféré perd ses droits immédiatement (§ 0.3). Les deux classes sont verrouillées
+   * dans l'ordre des identifiants, pour que deux transferts croisés ne se bloquent jamais (§ 2.1).
+   */
+  async transfer(actor: UserActor, userId: string, toClassId: string): Promise<TransferDto> {
+    this.authz.assert(actor, 'memberships.transfer');
+    if (!UUID.safeParse(userId).success) throw new ApiError(404, 'NOT_FOUND');
+    try {
+      await this.prisma.withTx(async (tx) => {
+        // Sans appartenance active (inconnu, jamais accepté, clôturée entre-temps) : 404 identique.
+        const from = await this.repo.activeMembershipOfInTx(tx, userId);
+        if (!from) throw new ApiError(404, 'NOT_FOUND');
+        const classes = await this.repo.lockClassesInTx(tx, [from.classId, toClassId]);
+        const dest = classes.find((c) => c.id === toClassId);
+        if (!dest) throw new ApiError(404, 'NOT_FOUND');
+        if (dest.status !== 'ACTIVE') throw new ApiError(409, 'CLASS_ARCHIVED');
+        // Après la portée ET la cible : un étranger reçoit le même 404, quoi qu'il en soit de son mot de passe.
+        await this.freshness.assertRecentPasswordInTx(tx, actor);
+        if (!(await this.repo.closeMembershipInTx(tx, { classId: from.classId, userId, reason: 'TRANSFER', leftBy: actor.userId, note: null }))) {
+          throw new ApiError(404, 'NOT_FOUND'); // clôturée entre-temps : même corps qu'un absent
+        }
+        await this.repo.createMembershipInTx(tx, { userId, classId: toClassId });
+        await this.audit.recordInTx(tx, actor, { action: 'MEMBER_TRANSFERRED', targetType: 'USER', targetId: userId, metadata: { userId, fromClassId: from.classId, toClassId } });
+      });
+    } catch (e) {
+      throw this.transferDbError(e);
+    }
+    return { userId, toClassId };
+  }
+
+  /**
+   * Transfert en masse (R7, M13) : la classe du trajet est la destination, le lot une liste d'étudiants.
+   * Vérification supplémentaire complète (mot de passe puis code, § 3.3) et atomicité absolue : une
+   * cible sans appartenance active annule tout. Les délégués ne sont pas reconduits (§ 0.3) — tout le
+   * lot est reçu étudiant.
+   */
+  async transferMass(actor: UserActor, toClassId: string, userIds: string[]): Promise<TransferBatchDto> {
+    this.authz.assert(actor, 'memberships.transferMass');
+    if (!UUID.safeParse(toClassId).success) throw new ApiError(404, 'NOT_FOUND');
+    if (userIds.length > MASS_TRANSFER_MAX) throw new ApiError(400, 'BATCH_TOO_LARGE'); // au-delà : plusieurs appels
+    const targets = [...new Set(userIds)]; // un doublon dans le corps ne compte qu'une fois
+    try {
+      await this.prisma.withTx(async (tx) => {
+        const froms = await this.repo.activeMembershipsOfInTx(tx, targets);
+        // Chaque cible appartient à une autre classe : absente ou déjà membre de la destination → même 404.
+        if (froms.length !== targets.length || froms.some((m) => m.classId === toClassId)) throw new ApiError(404, 'NOT_FOUND');
+        const classes = await this.repo.lockClassesInTx(tx, [toClassId, ...froms.map((m) => m.classId)]);
+        const dest = classes.find((c) => c.id === toClassId);
+        if (!dest) throw new ApiError(404, 'NOT_FOUND');
+        if (dest.status !== 'ACTIVE') throw new ApiError(409, 'CLASS_ARCHIVED');
+        await this.freshness.assertStepUpFreshInTx(tx, actor);
+        for (const m of froms) {
+          if (!(await this.repo.closeMembershipInTx(tx, { classId: m.classId, userId: m.userId, reason: 'TRANSFER', leftBy: actor.userId, note: null }))) {
+            throw new ApiError(404, 'NOT_FOUND'); // clôturée entre-temps : tout le lot est annulé
+          }
+          await this.repo.createMembershipInTx(tx, { userId: m.userId, classId: toClassId });
+          await this.audit.recordInTx(tx, actor, { action: 'MEMBER_TRANSFERRED', targetType: 'USER', targetId: m.userId, metadata: { userId: m.userId, fromClassId: m.classId, toClassId } });
+        }
+      });
+    } catch (e) {
+      throw this.transferDbError(e);
+    }
+    return { transferred: targets.length };
+  }
+
+  /** Les déclencheurs d'appartenance portent la règle (§ 0.2) : leur message devient un code d'API. */
+  private transferDbError(e: unknown): unknown {
+    const msg = dbMessageOf(e);
+    if (msg.includes('membership: class is not active')) return new ApiError(409, 'CLASS_ARCHIVED'); // course retranchée
+    if (msg.includes('membership: user cannot join')) return new ApiError(403, 'FORBIDDEN'); // compte suspendu ou rôle non étudiant
+    // Appartenance prise ailleurs entre-temps (index membership_one_active) : même 404 qu'un absent.
+    if (isUniqueViolation(e)) return new ApiError(404, 'NOT_FOUND');
+    return e;
   }
 
   /** Le déclencheur membership_delegate_limit porte la limite (§ 0.2, R8) : son message devient un code d'API. */

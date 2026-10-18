@@ -13,6 +13,8 @@ export const ACTIONS = [
   'classes.listSubjects', 'classes.createSubject', 'classes.deleteSubject',
   // Lot 2 : administration des classes (M11/M12) — liste et création réservées à l'admin.
   'classes.list', 'classes.createApp', 'classes.read', 'classes.archive',
+  // Lot 2 : transfert (R7) — administrateurs seulement, vérification supplémentaire en service.
+  'memberships.transfer', 'memberships.transferMass',
   'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -67,6 +69,8 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'classes.createApp': ['admin'],
   'classes.read': ['user', 'admin'],
   'classes.archive': ['admin'],
+  'memberships.transfer': ['admin'],
+  'memberships.transferMass': ['admin'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],
