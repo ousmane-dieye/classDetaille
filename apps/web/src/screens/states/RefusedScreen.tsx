@@ -1,11 +1,18 @@
+import { useState } from 'react';
 import type { ReactElement } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
+import { createEnrollment } from '../../api/me';
+import { ApiProblem } from '../../api/client';
 import { Button } from '../../components/Button';
+import { InlineAlert } from '../../components/InlineAlert';
 import { StateScreen } from '../../components/StateScreen';
 import type { Me } from '../../api/types';
 import { formatDateTime } from '../../lib/format';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from './require-session';
+
+const toProblem = (e: unknown): ApiProblem =>
+  e instanceof ApiProblem ? e : new ApiProblem({ status: 0, code: 'INTERNAL', extra: {}, requestId: '', retryAfterSeconds: null });
 
 const classNameOf = (me: Me): string | null => (me.enrollment?.class ? `${me.enrollment.class.name} · ${me.enrollment.class.academicYear}` : null);
 
@@ -26,11 +33,34 @@ function SignOutButton(): ReactElement {
 /** M7 « refusée » : motif s'il existe, date de nouvelle demande (24 h), et alternative. */
 function Refused({ me }: { me: Me }): ReactElement {
   const enrollment = me.enrollment;
+  const { refresh } = useSession();
+  const navigate = useNavigate();
+
+  const [retrying, setRetrying] = useState(false);
+  const [retryProblem, setRetryProblem] = useState<ApiProblem | null>(null);
 
   if (enrollment?.status !== 'REFUSED') return <Navigate to="/etat/demande-envoyee" replace />;
 
   const className = classNameOf(me) ?? 'ta classe';
   const retryAfter = enrollment.retryAfter ? formatDateTime(enrollment.retryAfter) : '';
+  const classId = enrollment.class?.id;
+
+  /** R16 : on redemande la même classe. Le délai de 24 h et l'appartenance sont ceux du serveur. */
+  const retry = async (): Promise<void> => {
+    if (!classId) return;
+    setRetrying(true);
+    setRetryProblem(null);
+    try {
+      await createEnrollment(classId);
+      await refresh();
+      navigate('/etat/demande-envoyee', { replace: true });
+    } catch (e) {
+      // Le délai de 24 h nomme la date du serveur : aucun compte à rebours côté client.
+      setRetryProblem(toProblem(e));
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   return (
     <StateScreen
@@ -38,6 +68,11 @@ function Refused({ me }: { me: Me }): ReactElement {
       tone="error"
       actions={
         <>
+          {classId ? (
+            <Button busy={retrying} onClick={() => void retry()}>
+              Refaire ta demande
+            </Button>
+          ) : null}
           <Link className="cp-btn cp-btn--primary" to="/inscription">
             Demander une autre classe
           </Link>
@@ -45,6 +80,7 @@ function Refused({ me }: { me: Me }): ReactElement {
         </>
       }
     >
+      {retryProblem ? <InlineAlert>{retryProblem.text}</InlineAlert> : null}
       <p>
         Ta demande pour rejoindre <b>{className}</b> n&apos;a pas été acceptée.
       </p>

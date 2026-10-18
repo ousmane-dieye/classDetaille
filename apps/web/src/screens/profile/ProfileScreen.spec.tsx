@@ -197,6 +197,34 @@ describe('profil (P10, M14)', () => {
     expect(screen.getByText('Délégué')).toBeTruthy();
   });
 
+  it('déléguée : le lien de gestion ouvre sa classe et annonce les demandes en attente (R14)', async () => {
+    const pending = (id: string) => ({
+      id,
+      status: 'PENDING',
+      createdAt: '2026-10-14T09:41:00.000Z',
+      user: { firstName: 'Awa', lastName: 'Diop', email: 'a•••••@esp.sn' },
+    });
+    stubApi((url) =>
+      url === '/api/classes/c1/requests'
+        ? jsonResponse(200, [pending('r1'), pending('r2')])
+        : jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }),
+    );
+    await mountAt({ ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } });
+
+    const link = await screen.findByRole('link', { name: /Gestion de ma classe/ });
+    expect(link.getAttribute('href')).toBe('/classes/c1/demandes');
+    // Le compte arrive avec la requête : on attend, on ne devine pas.
+    expect(await screen.findByText('2')).toBeTruthy();
+  });
+
+  it('étudiante : aucun lien de gestion', async () => {
+    stubApi(() => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }));
+    await mountAt({ ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'STUDENT' } });
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Ma classe' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Gestion de ma classe/ })).toBeNull();
+  });
+
   it('sans appartenance, aucune section « Ma classe »', async () => {
     stubApi(() => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }));
     await mountAt();

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router';
 import { changePassword, updatePreferences, updateProfile } from '../../api/account';
+import { listRequests } from '../../api/classes';
 import { ApiProblem } from '../../api/client';
 import type { Me } from '../../api/types';
 import { Button } from '../../components/Button';
@@ -14,6 +15,31 @@ import { RequireSession } from '../states/require-session';
 
 const toProblem = (e: unknown): ApiProblem =>
   e instanceof ApiProblem ? e : new ApiProblem({ status: 0, code: 'INTERNAL', extra: {}, requestId: '', retryAfterSeconds: null });
+
+function ManageClassLink({ classId }: { classId: string }): ReactElement {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void listRequests(classId)
+      .then((requests) => {
+        if (alive) setCount(requests.length);
+      })
+      .catch(() => {
+        /* le badge n'est qu'un détail : son absence ne doit pas peser sur le profil */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [classId]);
+
+  return (
+    <Link className="cp-btn cp-btn--secondary" to={`/classes/${classId}/demandes`}>
+      Gestion de ma classe
+      {count ? <span className="cp-badge">{count}</span> : null}
+    </Link>
+  );
+}
 
 function Profile({ me }: { me: Me }): ReactElement {
   const { setMe } = useSession();
@@ -136,6 +162,8 @@ function Profile({ me }: { me: Me }): ReactElement {
             {/* Masculin générique : le serveur ne connaît pas le genre. */}
             <span>{me.membership.role === 'DELEGATE' ? 'Délégué' : 'Étudiant'}</span>
           </p>
+          {/* R14 : l'entrée de gestion n'existe que pour qui la gère. */}
+          {me.membership.role === 'DELEGATE' ? <ManageClassLink classId={me.membership.classId} /> : null}
         </section>
       ) : null}
 

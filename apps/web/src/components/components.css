@@ -244,3 +244,71 @@
     box-shadow: none;
   }
 }
+
+.cp-dialog__definitive {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cp-red);
+  margin-bottom: 10px;
+}
+
+/* M9 : la file d'attente des demandes d'adhésion. */
+.cp-requests {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.cp-request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  background: var(--cp-surface);
+}
+
+.cp-request__body {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.cp-request__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cp-request__meta {
+  font-size: 13px;
+  color: var(--cp-muted);
+  overflow-wrap: anywhere;
+}
+
+.cp-request__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cp-requests__empty {
+  margin: 16px 0 0;
+  color: var(--cp-muted);
+}
+
+/* R14 : le nombre de demandes en attente, dans le lien de gestion du profil. */
+.cp-badge {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--cp-brand);
+  color: var(--cp-onbrand);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}

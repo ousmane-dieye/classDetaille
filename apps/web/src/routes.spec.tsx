@@ -48,6 +48,7 @@ describe('routes', () => {
     ['/reinitialiser-mot-de-passe', 'Choisis un nouveau mot de passe', false],
     ['/profil', 'Profil', true],
     ['/profil/sessions', 'Sessions actives', true],
+    ['/classes/c1/demandes', 'Demandes', true],
     ['/confidentialite', 'Confidentialité', false],
   ])('%s affiche « %s »', async (path, heading, auth) => {
     at(path, auth);

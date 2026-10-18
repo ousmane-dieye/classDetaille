@@ -13,6 +13,13 @@ const jsonResponse = (status: number, body: unknown): Response =>
 
 const CLASS = { id: 'c1', name: 'GIT3', level: 'L3', academicYear: '2026-2027' };
 
+const REQUEST = {
+  id: 'r1',
+  status: 'PENDING',
+  createdAt: '2026-10-14T09:41:00.000Z',
+  user: { firstName: 'Awa', lastName: 'Diop', email: 'a•••••@esp.sn' },
+};
+
 const me: Me = {
   id: 'u1',
   email: 'awa.diop@esp.sn',
@@ -37,6 +44,8 @@ const pendingEnrollment: Enrollment = {
 
 const mePending: Me = { ...me, enrollment: pendingEnrollment };
 
+const meDelegate: Me = { ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } };
+
 const session: Session = {
   id: 's1',
   createdAt: '2026-10-12T10:00:00.000Z',
@@ -55,6 +64,7 @@ beforeEach(() => {
     'fetch',
     vi.fn(async (url: string) => {
       if (url === '/api/classes/active') return jsonResponse(200, [CLASS]);
+      if (url === '/api/classes/c1/requests') return jsonResponse(200, [REQUEST]);
       if (url === '/api/me/sessions') return jsonResponse(200, [session]);
       return jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' });
     }),
@@ -111,8 +121,9 @@ const SCREENS: ScreenCase[] = [
   {
     name: 'profil d’une déléguée (section « Ma classe », R9)',
     path: '/profil',
-    loadMe: async () => ({ ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } }),
+    loadMe: async () => meDelegate,
   },
+  { name: 'demandes de ma classe (M9)', path: '/classes/c1/demandes', loadMe: async () => meDelegate },
   { name: 'sessions actives', path: '/profil/sessions', loadMe: async () => me },
 ];
 

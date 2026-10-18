@@ -13,6 +13,7 @@ import { PendingScreen } from './screens/states/PendingScreen';
 import { RefusedScreen } from './screens/states/RefusedScreen';
 import { NotFoundScreen } from './screens/states/NotFoundScreen';
 import { PrivacyScreen } from './screens/states/PrivacyScreen';
+import { ClassRequestsScreen } from './screens/gestion/ClassRequestsScreen';
 
 /**
  * Une adresse par écran (UX § 1.5). La table reste déclarative : les tests de routes
@@ -36,6 +37,8 @@ export function AppRoutes(): ReactElement {
         <Route path="/confidentialite" element={<PrivacyScreen />} />
         <Route path="/etat/demande-envoyee" element={<PendingScreen />} />
         <Route path="/etat/demande-refusee" element={<RefusedScreen />} />
+        {/* La classe est dans l'URL : le serveur renvoie un 404 identique pour une classe qui n'est pas la sienne. */}
+        <Route path="/classes/:classId/demandes" element={<ClassRequestsScreen />} />
         <Route path="*" element={<NotFoundScreen />} />
       </Routes>
     </main>
