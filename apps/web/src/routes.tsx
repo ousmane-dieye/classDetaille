@@ -17,6 +17,9 @@ import { ClassRequestsScreen } from './screens/gestion/ClassRequestsScreen';
 import { ClassMembersScreen } from './screens/gestion/ClassMembersScreen';
 import { ClassSubjectsScreen } from './screens/gestion/ClassSubjectsScreen';
 import { ClassStatsScreen } from './screens/gestion/ClassStatsScreen';
+import { ClassesScreen } from './screens/admin/ClassesScreen';
+import { ClassCreateScreen } from './screens/admin/ClassCreateScreen';
+import { ClassDetailScreen } from './screens/admin/ClassDetailScreen';
 
 /**
  * Une adresse par écran (UX § 1.5). La table reste déclarative : les tests de routes
@@ -45,6 +48,10 @@ export function AppRoutes(): ReactElement {
         <Route path="/classes/:classId/membres" element={<ClassMembersScreen />} />
         <Route path="/classes/:classId/matieres" element={<ClassSubjectsScreen />} />
         <Route path="/classes/:classId/statistiques" element={<ClassStatsScreen />} />
+        {/* L'ordre compte : `nouvelle` déclarée après `:classId` serait avalée par le paramètre. */}
+        <Route path="/classes" element={<ClassesScreen />} />
+        <Route path="/classes/nouvelle" element={<ClassCreateScreen />} />
+        <Route path="/classes/:classId" element={<ClassDetailScreen />} />
         <Route path="*" element={<NotFoundScreen />} />
       </Routes>
     </main>

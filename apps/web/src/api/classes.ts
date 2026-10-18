@@ -1,6 +1,8 @@
 import { apiFetch } from './client';
 import type {
   ClassAdminSummary,
+  ClassArchive,
+  ClassCreate,
   ClassDetail,
   ClassMember,
   Delegate,
@@ -93,4 +95,14 @@ export function listClasses(): Promise<ClassAdminSummary[]> {
 /** `GET /api/classes/:classId` (M12, R11) : fiche et statistiques. Membre de la classe ou administrateur, sinon 404. */
 export function getClassDetail(classId: string): Promise<ClassDetail> {
   return apiFetch<ClassDetail>(`/api/classes/${classId}`);
+}
+
+/** `POST /api/classes` (M11) : création in-app, la classe naît ACTIVE — administrateurs seulement. */
+export function createClass(name: string, level: string, academicYear: string): Promise<ClassCreate> {
+  return apiFetch<ClassCreate>('/api/classes', { method: 'POST', body: { name, level, academicYear } });
+}
+
+/** `POST /api/classes/:classId/archive` (M13) : vérification supplémentaire exigée par l'API. */
+export function archiveClass(classId: string): Promise<ClassArchive> {
+  return apiFetch<ClassArchive>(`/api/classes/${classId}/archive`, { method: 'POST', body: {} });
 }

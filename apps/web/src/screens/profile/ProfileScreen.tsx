@@ -167,6 +167,18 @@ function Profile({ me }: { me: Me }): ReactElement {
         </section>
       ) : null}
 
+      {/* M11 : la liste d'administration n'existe que pour qui administre. */}
+      {me.globalRole === 'ADMIN' ? (
+        <section aria-labelledby="profil-admin">
+          <h2 className="cp-legend" id="profil-admin">
+            Administration
+          </h2>
+          <Link className="cp-btn cp-btn--secondary" to="/classes">
+            Classes
+          </Link>
+        </section>
+      ) : null}
+
       <section aria-labelledby="profil-nom">
         <h2 className="cp-legend" id="profil-nom">
           Nom

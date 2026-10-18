@@ -46,6 +46,17 @@ const mePending: Me = { ...me, enrollment: pendingEnrollment };
 
 const meDelegate: Me = { ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } };
 
+const meAdmin: Me = { ...me, id: 'a1', email: 'direction@esp.sn', globalRole: 'ADMIN' };
+
+const CLASS_ADMIN_ROW = {
+  id: 'c1',
+  name: 'GIT3',
+  level: 'L3',
+  academicYear: '2026-2027',
+  status: 'ACTIVE',
+  membersCount: 42,
+};
+
 const MEMBER = {
   userId: 'u1',
   firstName: 'Awa',
@@ -89,6 +100,7 @@ beforeEach(() => {
       if (url === '/api/classes/c1/members') return jsonResponse(200, [MEMBER]);
       if (url === '/api/classes/c1/subjects') return jsonResponse(200, [SUBJECT]);
       if (url === '/api/classes/c1') return jsonResponse(200, CLASS_DETAIL);
+      if (url === '/api/classes') return jsonResponse(200, [CLASS_ADMIN_ROW]);
       if (url === '/api/me/sessions') return jsonResponse(200, [session]);
       return jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' });
     }),
@@ -151,6 +163,9 @@ const SCREENS: ScreenCase[] = [
   { name: 'membres de ma classe (M9)', path: '/classes/c1/membres', loadMe: async () => meDelegate },
   { name: 'matières de ma classe (R12)', path: '/classes/c1/matieres', loadMe: async () => meDelegate },
   { name: 'statistiques de ma classe (R11)', path: '/classes/c1/statistiques', loadMe: async () => meDelegate },
+  { name: 'liste des classes (M11)', path: '/classes', loadMe: async () => meAdmin },
+  { name: 'création de classe (M11)', path: '/classes/nouvelle', loadMe: async () => meAdmin },
+  { name: 'fiche de classe (M12)', path: '/classes/c1', loadMe: async () => meAdmin },
   { name: 'sessions actives', path: '/profil/sessions', loadMe: async () => me },
 ];
 

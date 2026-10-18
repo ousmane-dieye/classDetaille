@@ -400,3 +400,27 @@
 .cp-stat__link .cp-stat__label {
   text-decoration: underline;
 }
+
+/* M11 : la liste d'administration — la ligne entière ouvre la fiche. */
+.cp-classes {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.cp-classrow {
+  display: block;
+  flex: 1 1 200px;
+  min-width: 0;
+  color: var(--cp-ink);
+  text-decoration: none;
+}
+
+.cp-classrow .cp-request__name {
+  text-decoration: underline;
+}
+
+/* M12 : la fiche, découpée en sections nommées. */
+.cp-classdetail__section {
+  margin-top: 30px;
+}

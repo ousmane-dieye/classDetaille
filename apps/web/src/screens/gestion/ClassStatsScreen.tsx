@@ -9,6 +9,7 @@ import { Skeleton, useDelayedFlag } from '../../components/Skeleton';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
 import { ClassNav, useClassId } from './class-nav';
+import { ClassStatsPanel } from './class-stats-panel';
 import { useLoad } from './class-load';
 
 const NOT_FOUND = 'Cette classe n’existe pas ou n’est plus disponible.';
@@ -62,27 +63,7 @@ function ClassStats(): ReactElement {
         </>
       ) : null}
 
-      {detail.data ? (
-        <ul className="cp-stats">
-          <li className="cp-stat">
-            <p className="cp-stat__value">{detail.data.stats.members}</p>
-            <p className="cp-stat__label">Membres actifs</p>
-          </li>
-          <li className="cp-stat">
-            {/* Le seul chiffre qui appelle à une action ouvre la file d'attente. */}
-            <Link className="cp-stat__link" to={`/classes/${classId}/demandes`}>
-              <span className="cp-stat__value">{detail.data.stats.pendingRequests}</span>
-              {/* L'espace n'est pas décoratif : il sépare les deux mots du nom accessible du lien. */}
-              {' '}
-              <span className="cp-stat__label">Demandes en attente</span>
-            </Link>
-          </li>
-          <li className="cp-stat">
-            <p className="cp-stat__value">{detail.data.stats.decidedRequests}</p>
-            <p className="cp-stat__label">Demandes traitées</p>
-          </li>
-        </ul>
-      ) : null}
+      {detail.data ? <ClassStatsPanel stats={detail.data.stats} classId={classId} /> : null}
 
       {detail.data?.status === 'ARCHIVED' ? (
         <InlineAlert tone="info">

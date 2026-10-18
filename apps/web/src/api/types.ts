@@ -87,6 +87,12 @@ export type ClassDetail = {
   stats: ClassStats;
 };
 
+/** Classe créée en application (M11) : elle naît ACTIVE. */
+export type ClassCreate = { id: string; name: string; level: string; academicYear: string; status: 'ACTIVE' };
+
+/** Archivage (M13) : le statut après l'action. */
+export type ClassArchive = { id: string; status: 'ARCHIVED' };
+
 export type Session = {
   id: string;
   createdAt: string;

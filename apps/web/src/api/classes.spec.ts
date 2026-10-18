@@ -3,6 +3,8 @@ import type { ApiRequest } from './client';
 import {
   acceptRequest,
   appointDelegate,
+  archiveClass,
+  createClass,
   createSubject,
   deleteSubject,
   getClassDetail,
@@ -95,6 +97,16 @@ const ROUTES: Case[] = [
   ],
   ['GET /api/classes', () => listClasses(), ['/api/classes']],
   ['GET /api/classes/:classId', () => getClassDetail(CLASS), [`/api/classes/${CLASS}`]],
+  [
+    'POST /api/classes',
+    () => createClass('L1 Informatique', 'L1', '2026-2027'),
+    ['/api/classes', { method: 'POST', body: { name: 'L1 Informatique', level: 'L1', academicYear: '2026-2027' } }],
+  ],
+  [
+    'POST /api/classes/:classId/archive',
+    () => archiveClass(CLASS),
+    [`/api/classes/${CLASS}/archive`, { method: 'POST', body: {} }],
+  ],
 ];
 
 describe('api classes (lot 2)', () => {
@@ -112,7 +124,15 @@ describe('api classes (lot 2)', () => {
     await refuseRequest(CLASS, REQUEST);
     await removeMember(CLASS, USER);
     await revokeDelegate(CLASS, USER);
+    await deleteSubject(CLASS, SUBJECT);
+    await archiveClass(CLASS);
     // `body` présent (et non `undefined`) : sinon aucun `Content-Type` ne part et l'API n'a rien à valider.
-    expect(vi.mocked(apiFetch).mock.calls.map(([, init]) => (init as ApiRequest | undefined)?.body)).toEqual([{}, {}, {}]);
+    expect(vi.mocked(apiFetch).mock.calls.map(([, init]) => (init as ApiRequest | undefined)?.body)).toEqual([
+      {},
+      {},
+      {},
+      {},
+      {},
+    ]);
   });
 });

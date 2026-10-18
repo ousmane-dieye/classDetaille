@@ -225,6 +225,14 @@ describe('profil (P10, M14)', () => {
     expect(screen.queryByRole('link', { name: /Gestion de ma classe/ })).toBeNull();
   });
 
+  it('administratrice : le lien « Classes » ouvre la liste d’administration', async () => {
+    stubApi(() => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }));
+    await mountAt({ ...me, globalRole: 'ADMIN' });
+
+    const link = await screen.findByRole('link', { name: 'Classes' });
+    expect(link.getAttribute('href')).toBe('/classes');
+  });
+
   it('sans appartenance, aucune section « Ma classe »', async () => {
     stubApi(() => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }));
     await mountAt();

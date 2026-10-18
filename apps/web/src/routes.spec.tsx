@@ -52,6 +52,10 @@ describe('routes', () => {
     ['/classes/c1/membres', 'Membres', true],
     ['/classes/c1/matieres', 'Matières', true],
     ['/classes/c1/statistiques', 'Statistiques', true],
+    ['/classes', 'Classes', true],
+    ['/classes/nouvelle', 'Créer une classe', true],
+    // Sans fiche chargée, la fiche garde son titre : une adresse de classe n'est jamais une page blanche.
+    ['/classes/c1', 'Classe', true],
     ['/confidentialite', 'Confidentialité', false],
   ])('%s affiche « %s »', async (path, heading, auth) => {
     at(path, auth);

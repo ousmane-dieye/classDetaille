@@ -57,6 +57,9 @@ const TEXTS: Record<string, string> = {
   // Aucune table ne référence encore `subjects` (devoirs et ressources au lot 3) : le texte est
   // prêt, l'interdiction elle viendra de la base en même temps que le code.
   SUBJECT_IN_USE: 'Cette matière sert encore à un devoir ou à une ressource : retire-les d’abord.',
+  // `@@unique([name, academicYear])` : c'est le nom porté par une autre classe cette année-là.
+  CLASS_ALREADY_EXISTS: 'Une classe nommée ainsi existe déjà pour cette année scolaire.',
+  INVALID_CLASS_NAME: 'Ce nom de classe n’est pas valide : 2 à 80 caractères.',
   CLASS_ARCHIVED: 'Cette classe est archivée : elle n’accepte plus aucune écriture.',
   BATCH_TOO_LARGE: 'Trop d’étudiants d’un coup : 200 maximum par transfert.',
 };

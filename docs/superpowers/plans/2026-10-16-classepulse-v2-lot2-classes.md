@@ -210,10 +210,18 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 12 : Administration — vue d'ensemble, création et fiche de classe (M11/M12)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `ClassesScreen` : toutes les classes (nom, niveau, année, effectif, badge « Lecture seule » sur les archivées), bouton « Créer une classe » ; `ClassCreateScreen` : nom, niveau, année `AAAA-AAAA`, `409` → message ; `ClassDetailScreen` (M12) : fiche, sélecteur de contexte (revenir à la liste), statistiques, **nomination et révocation des délégués** avec `409 DELEGATE_LIMIT_REACHED` affiché, section « Archiver la classe » (renvoie vers l'assistant de confirmation de l'étape 4), `404` pour une classe inconnue ou interdite.
-- [ ] **Step 2 : Implémenter** — `ClassesScreen`, `ClassCreateScreen`, `ClassDetailScreen`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, a11y.
-- [ ] **Step 4 : Commit** — `feat(lot2): administration des classes et delegation (M11, M12)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `ClassesScreen` : toutes les classes (nom, niveau, année, effectif, badge « Lecture seule » sur les archivées), bouton « Créer une classe » ; `ClassCreateScreen` : nom, niveau, année `AAAA-AAAA`, `409` → message ; `ClassDetailScreen` (M12) : fiche, sélecteur de contexte (revenir à la liste), statistiques, **nomination et révocation des délégués** avec `409 DELEGATE_LIMIT_REACHED` affiché, section « Archiver la classe » (renvoie vers l'assistant de confirmation de l'étape 4), `404` pour une classe inconnue ou interdite.
+- [x] **Step 2 : Implémenter** — `ClassesScreen`, `ClassCreateScreen`, `ClassDetailScreen`.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, a11y.
+- [x] **Step 4 : Commit** — `feat(lot2): administration des classes et delegation (M11, M12)`.
+
+**Écarts arrêtés en cours de route** :
+- **Pas de « sélecteur de contexte » distinct.** Le retour à la liste vient du lien « Classes » que l'on ajoute au profil pour les administrateurs, et d'un bandeau `ClassNav` sur la fiche — celui des tâches 11. Un sélecteur de classe supposerait plusieurs classes à choisir dans un écran qui n'en affiche qu'une ; c'est une mécanique à inventer pour un cas qui n'existe pas encore.
+- **Le lien « Classes » du profil part d'ici**, pour la même raison que le lien R14 en tâche 10 : une adresse ne sert à rien sans le lien qui l'ouvre. Il n'apparaît que pour `globalRole === 'ADMIN'`.
+- **L'archivage réutilise `StepUpDialog` tel quel** plutôt qu'un « assistant de confirmation » à part : le refus `STEP_UP_REQUIRED` ouvre la fenêtre au champ que le serveur réclame (mot de passe, puis code — R13 se fait en deux pas), puis rejoue l'action. Les étapes d'ordre sont celles de `StepUpDialog`, pas une seconde implémentation des mêmes étapes.
+- **La fiche liste les membres** : nomination et révocation ne peuvent pas s'imaginer sans voir qui l'est. C'est le même `GET …/members` que la tâche 11, pas une route de plus.
+- **Deux codes API sans texte n'étaient pas traduits** : `CLASS_ALREADY_EXISTS` (l'unique `[name, academicYear]`) et `INVALID_CLASS_NAME` (2 à 80 caractères, sans caractère de contrôle). Ils tombaient sur le message générique — le tableau des codes existe justement pour nommer la cause ; les deux lignes manquaient.
+- **`/classes/nouvelle` est déclarée avant `/classes/:classId`** : sinon le paramètre l'avale, et le formulaire deviendrait la fiche d'une classe nommée « nouvelle ». C'est noté en commentaire dans `routes.tsx`.
 
 ### Task 13 : Assistant de changement d'année (M13, P9)
 
