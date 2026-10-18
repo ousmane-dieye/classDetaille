@@ -1,8 +1,10 @@
 /**
- * Traduction des codes d'erreur de l'API (lots 1a et 1b, « Codes d'erreur du lot 1b » du README)
+ * Traduction des codes d'erreur de l'API (lots 1a, 1b et 2, « Codes d'erreur du lot 1b » du README)
  * en textes français, au tutoiement, qui nomment la cause sans accuser (UX § 3.3).
  * Un code non prévu donne un texte générique : un code ajouté côté API n'apparaît jamais tel quel.
  */
+
+import { formatLongDate } from '../lib/format';
 
 export const GENERIC_MESSAGE = 'Une erreur est survenue. Réessaie.';
 
@@ -43,6 +45,20 @@ const TEXTS: Record<string, string> = {
   UNSUPPORTED_MEDIA_TYPE: "Cette action n'est pas autorisée depuis cette page. Recharge-la.",
   NETWORK: 'Connexion impossible. Vérifie ta connexion internet.',
   INTERNAL: GENERIC_MESSAGE,
+
+  // Lot 2 : gestion d'une classe (décisions, membres, délégués, matières, transfert).
+  REQUEST_ALREADY_DECIDED: 'Cette demande a déjà été traitée. Recharge la page.',
+  REQUEST_ALREADY_PENDING: 'Cette personne a déjà une demande en attente pour cette classe.',
+  ALREADY_MEMBER: 'Cette personne est déjà membre de cette classe.',
+  DELEGATE_LIMIT_REACHED: 'Cette classe a déjà le maximum de délégués. Révoque-en un d’abord.',
+  DELEGATE_FORBIDDEN: 'Seuls un délégué de la classe ou un administrateur peuvent faire cela.',
+  SUBJECT_ALREADY_EXISTS: 'Cette matière existe déjà dans la classe.',
+  INVALID_SUBJECT_NAME: 'Ce nom de matière n’est pas valide : 2 à 60 caractères.',
+  // Aucune table ne référence encore `subjects` (devoirs et ressources au lot 3) : le texte est
+  // prêt, l'interdiction elle viendra de la base en même temps que le code.
+  SUBJECT_IN_USE: 'Cette matière sert encore à un devoir ou à une ressource : retire-les d’abord.',
+  CLASS_ARCHIVED: 'Cette classe est archivée : elle n’accepte plus aucune écriture.',
+  BATCH_TOO_LARGE: 'Trop d’étudiants d’un coup : 200 maximum par transfert.',
 };
 
 function attemptsText(attemptsLeft: number): string {
@@ -55,9 +71,19 @@ function stepUpText(missing: unknown): string {
   return 'Confirme ton identité pour continuer.';
 }
 
+/**
+ * Délai de 24 h (R16) : la date vient du serveur, aucun compte à rebours côté client —
+ * l'écran affiche le jour à partir duquel une nouvelle demande est possible.
+ */
+function retryText(retryAfter: unknown): string {
+  const date = typeof retryAfter === 'string' ? formatLongDate(retryAfter) : '';
+  return date ? `Tu pourras refaire ta demande à partir du ${date}.` : 'Tu pourras refaire ta demande dans 24 heures.';
+}
+
 /** Texte affiché pour un code de l'API. `extra` porte les champs sûrs renvoyés par le serveur. */
 export function messageFor(code: string, extra: Record<string, unknown> = {}): string {
   if (code === 'CODE_INVALID' && typeof extra.attemptsLeft === 'number') return attemptsText(extra.attemptsLeft);
   if (code === 'STEP_UP_REQUIRED') return stepUpText(extra.missing);
+  if (code === 'ENROLLMENT_RETRY_PENDING') return retryText(extra.retryAfter);
   return TEXTS[code] ?? GENERIC_MESSAGE;
 }

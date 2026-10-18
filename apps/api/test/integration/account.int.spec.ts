@@ -29,6 +29,18 @@ describe('GET /api/me', () => {
     await query(db, `update app.enrollment_requests set status = 'REFUSED', decided_at = '2026-10-14T10:00:00Z', decided_by = user_id, decision_note = 'Classe complète' where user_id = $1`, [s.userId], 'cp_owner');
     const me = (await send(t.app, 'GET', '/api/me', undefined, cookieHeader(s.token))).json();
     expect(me.enrollment).toMatchObject({ status: 'REFUSED', decisionNote: 'Classe complète', decidedAt: '2026-10-14T10:00:00.000Z', retryAfter: '2026-10-15T10:00:00.000Z' });
+    expect(me.membership).toBeNull(); // refusée : toujours aucune classe
+  });
+  it('membership : null sans appartenance, puis libellé complet et rôle (R9)', async () => {
+    const s = await registerStudent(t.app, classId);
+    expect((await send(t.app, 'GET', '/api/me', undefined, cookieHeader(s.token))).json().membership).toBeNull();
+    await query(db, `update app.enrollment_requests set status = 'ACCEPTED', decided_at = now(), decided_by = user_id where user_id = $1 and status = 'PENDING'`, [s.userId], 'cp_owner');
+    await query(db, `insert into app.class_memberships (id, user_id, class_id, role) values (gen_random_uuid(), $1, $2, 'DELEGATE')`, [s.userId, classId], 'cp_owner');
+    expect((await send(t.app, 'GET', '/api/me', undefined, cookieHeader(s.token))).json().membership).toEqual({
+      classId,
+      classLabel: 'L3 Informatique · L3 · 2026-2027',
+      role: 'DELEGATE',
+    });
   });
 });
 

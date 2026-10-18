@@ -125,6 +125,20 @@ function Profile({ me }: { me: Me }): ReactElement {
     <div className="cp-page">
       <h1>Profil</h1>
 
+      {/* R9 : la classe vient du serveur avec le profil — jamais une liste, jamais une autre classe. */}
+      {me.membership ? (
+        <section aria-labelledby="profil-classe">
+          <h2 className="cp-legend" id="profil-classe">
+            Ma classe
+          </h2>
+          <p className="cp-recap">
+            <span>{me.membership.classLabel}</span>
+            {/* Masculin générique : le serveur ne connaît pas le genre. */}
+            <span>{me.membership.role === 'DELEGATE' ? 'Délégué' : 'Étudiant'}</span>
+          </p>
+        </section>
+      ) : null}
+
       <section aria-labelledby="profil-nom">
         <h2 className="cp-legend" id="profil-nom">
           Nom

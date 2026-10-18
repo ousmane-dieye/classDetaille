@@ -22,6 +22,7 @@ const me: Me = {
   emailReminders: true,
   emailAnnouncements: false,
   enrollment: null,
+  membership: null,
 };
 
 const unauthenticated = async (): Promise<Me> => {
@@ -185,6 +186,22 @@ describe('profil (P10, M14)', () => {
     fireEvent.click(screen.getByLabelText('Système'));
     expect(localStorage.getItem('cp.theme')).toBe('system');
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+  });
+
+  it('ma classe : le libellé et le rôle viennent du serveur (R9)', async () => {
+    stubApi(() => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }));
+    await mountAt({ ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } });
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Ma classe' })).toBeTruthy();
+    expect(screen.getByText('GIT3 · L3 · 2026-2027')).toBeTruthy();
+    expect(screen.getByText('Délégué')).toBeTruthy();
+  });
+
+  it('sans appartenance, aucune section « Ma classe »', async () => {
+    stubApi(() => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }));
+    await mountAt();
+
+    expect(screen.queryByRole('heading', { level: 2, name: 'Ma classe' })).toBeNull();
   });
 
   it('sans session, renvoie vers la connexion', async () => {

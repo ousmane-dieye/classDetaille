@@ -45,6 +45,12 @@ export class MembershipsService {
     return this.repo.latestForUser(actor.userId);
   }
 
+  /** Appartenance active (R9) : une étudiante acceptée retrouve sa classe sur `/profil`. */
+  async activeMembershipOf(actor: UserActor): Promise<{ classId: string; role: 'STUDENT' | 'DELEGATE' } | null> {
+    this.authz.assert(actor, 'me.read');
+    return this.repo.activeMembershipOf(actor.userId);
+  }
+
   /** Nouvelle demande d'un compte existant (R16) : délai de 24 h et absence d'appartenance sont portés par la base. */
   async createEnrollment(actor: UserActor, classId: string): Promise<EnrollmentDto> {
     this.authz.assert(actor, 'me.createEnrollment');

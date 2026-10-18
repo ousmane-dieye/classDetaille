@@ -29,6 +29,7 @@ const me: Me = {
   emailReminders: true,
   emailAnnouncements: true,
   enrollment: null,
+  membership: null,
 };
 
 const CURRENT: Session = {

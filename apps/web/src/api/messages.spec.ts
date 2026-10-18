@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { formatLongDate } from '../lib/format';
 import { GENERIC_MESSAGE, messageFor } from './messages';
 
 describe('textes français des erreurs', () => {
@@ -42,6 +43,35 @@ describe('textes français des erreurs', () => {
   it('un code inconnu donne le texte générique, jamais un code brut', () => {
     expect(messageFor('SOME_FUTURE_CODE')).toBe(GENERIC_MESSAGE);
     expect(messageFor('')).toBe(GENERIC_MESSAGE);
+  });
+
+  // Codes du lot 2 : chaque refus du serveur a son texte, et aucun code brut n'atteint l'écran.
+  it.each([
+    ['REQUEST_ALREADY_DECIDED', 'Cette demande a déjà été traitée. Recharge la page.'],
+    ['REQUEST_ALREADY_PENDING', 'Cette personne a déjà une demande en attente pour cette classe.'],
+    ['ALREADY_MEMBER', 'Cette personne est déjà membre de cette classe.'],
+    ['DELEGATE_LIMIT_REACHED', 'Cette classe a déjà le maximum de délégués. Révoque-en un d’abord.'],
+    ['DELEGATE_FORBIDDEN', 'Seuls un délégué de la classe ou un administrateur peuvent faire cela.'],
+    ['SUBJECT_IN_USE', 'Cette matière sert encore à un devoir ou à une ressource : retire-les d’abord.'],
+    ['SUBJECT_ALREADY_EXISTS', 'Cette matière existe déjà dans la classe.'],
+    ['INVALID_SUBJECT_NAME', 'Ce nom de matière n’est pas valide : 2 à 60 caractères.'],
+    ['CLASS_ARCHIVED', 'Cette classe est archivée : elle n’accepte plus aucune écriture.'],
+    ['BATCH_TOO_LARGE', 'Trop d’étudiants d’un coup : 200 maximum par transfert.'],
+  ])('%s a un texte français (lot 2)', (code, text) => {
+    expect(messageFor(code)).toBe(text);
+  });
+
+  it('le délai de nouvelle demande nomme la date du serveur, sans compte à rebours', () => {
+    const retryAfter = '2026-10-15T10:00:00Z';
+    expect(messageFor('ENROLLMENT_RETRY_PENDING', { retryAfter })).toBe(
+      `Tu pourras refaire ta demande à partir du ${formatLongDate(retryAfter)}.`,
+    );
+    expect(messageFor('ENROLLMENT_RETRY_PENDING', { retryAfter })).toContain('Tu pourras refaire ta demande à partir du');
+    // Sans date : le délai reste annoncé, jamais un code brut ni un texte générique.
+    expect(messageFor('ENROLLMENT_RETRY_PENDING')).toBe('Tu pourras refaire ta demande dans 24 heures.');
+    expect(messageFor('ENROLLMENT_RETRY_PENDING', { retryAfter: 'pas-une-date' })).toBe(
+      'Tu pourras refaire ta demande dans 24 heures.',
+    );
   });
 
   it('indique le nombre d’essais restants pour un code incorrect', () => {

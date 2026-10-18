@@ -25,6 +25,11 @@ export class MembershipsRepository {
     });
   }
 
+  /** Appartenance active du compte (R9) : `null` tant qu'il n'a pas de classe. L'index partiel n'en autorise qu'une. */
+  activeMembershipOf(userId: string): Promise<{ classId: string; role: 'STUDENT' | 'DELEGATE' } | null> {
+    return this.prisma.client.classMembership.findFirst({ where: { userId, leftAt: null }, select: { classId: true, role: true } });
+  }
+
   /** Dernière date de refus, pour le retryAfter du délai de 24 h (§ 0.3). */
   async lastRefusalAt(userId: string, classId: string): Promise<Date | null> {
     const row = await this.prisma.client.enrollmentRequest.findFirst({

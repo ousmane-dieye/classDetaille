@@ -129,6 +129,7 @@ describe('inscription (P1, M7)', () => {
         decisionNote: null,
         retryAfter: null,
       },
+      membership: null,
     };
     stubApi({
       '/api/me': () => jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' }),

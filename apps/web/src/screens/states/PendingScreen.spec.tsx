@@ -35,6 +35,7 @@ function meWith(enrollment: Enrollment | null): Me {
     emailReminders: true,
     emailAnnouncements: true,
     enrollment,
+    membership: null,
   };
 }
 

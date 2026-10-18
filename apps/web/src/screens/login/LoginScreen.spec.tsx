@@ -42,6 +42,7 @@ function meWithEnrollment(status: 'PENDING' | 'ACCEPTED' | 'REFUSED'): Me {
       decisionNote: null,
       retryAfter: null,
     },
+    membership: null,
   };
 }
 

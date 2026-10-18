@@ -22,6 +22,7 @@ const me: Me = {
   emailReminders: true,
   emailAnnouncements: true,
   enrollment: null,
+  membership: null,
 };
 
 const pendingEnrollment: Enrollment = {
@@ -107,6 +108,11 @@ const SCREENS: ScreenCase[] = [
   { name: 'état : introuvable', path: '/quelque-chose', loadMe: anonymous },
   { name: 'confidentialité', path: '/confidentialite', loadMe: anonymous },
   { name: 'profil', path: '/profil', loadMe: async () => me },
+  {
+    name: 'profil d’une déléguée (section « Ma classe », R9)',
+    path: '/profil',
+    loadMe: async () => ({ ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } }),
+  },
   { name: 'sessions actives', path: '/profil/sessions', loadMe: async () => me },
 ];
 

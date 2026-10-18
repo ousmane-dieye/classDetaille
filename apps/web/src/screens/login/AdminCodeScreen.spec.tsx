@@ -26,6 +26,7 @@ const me: Me = {
   emailReminders: true,
   emailAnnouncements: true,
   enrollment: null,
+  membership: null,
 };
 
 const challengeState = { email: 'awa.diop@esp.sn', expiresInSeconds: 522, resendAfterSeconds: 0 };

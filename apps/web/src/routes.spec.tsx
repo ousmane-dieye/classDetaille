@@ -20,6 +20,7 @@ const me: Me = {
   emailReminders: true,
   emailAnnouncements: true,
   enrollment: null,
+  membership: null,
 };
 
 /** @param auth les écrans de profil exigent une session ; les autres se rendent anonymes. */

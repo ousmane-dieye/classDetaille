@@ -123,6 +123,8 @@ enum EnrollmentStatus {
   PENDING
   ACCEPTED
   REFUSED
+  // Clôture sans décideur : le compte a été anonymisé (R4) — ni acceptée ni refusée.
+  CANCELLED
 
   @@map("enrollment_status")
   @@schema("app")
