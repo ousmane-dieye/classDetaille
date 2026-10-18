@@ -79,6 +79,16 @@ export class UsersRepository {
     await tx.$queryRaw`select id from app.role_guard where id = 1 for update`;
   }
 
+  /**
+   * Anonymisation (R4, § 2.6) : la seule voie d'effacement. La fonction privilégiée vérifie les droits
+   * de l'acteur dans la base, limite les dégâts (cinq par acteur sur 24 h) et écrit l'audit PRIVILEGED ;
+   * l'application ne fait que l'appeler. Aucune ligne n'est supprimée : la ligne du compte reste (§ 2.2).
+   */
+  async anonymizeInTx(tx: TxClient, userId: string, actorId: string): Promise<void> {
+    // `void` n'est pas désérialisable par Prisma : le résultat est casté en text, et ignoré.
+    await tx.$queryRaw`select priv.anonymize_user(${userId}::uuid, ${actorId}::uuid)::text as done`;
+  }
+
   async activeAdminExistsInTx(tx: TxClient): Promise<boolean> {
     const r = await tx.$queryRaw<{ found: boolean }[]>`select exists (select 1 from app.users where global_role = 'ADMIN' and status = 'ACTIVE') as found`;
     return r[0]?.found === true;

@@ -20,7 +20,30 @@ describe('droits de cp_app (§ 2.1, § 2.6)', () => {
   it('ne peut pas prendre le rôle cp_privileged', () => expectDenied('cp_app', 'set role cp_privileged'));
   it('ne peut pas désactiver les triggers', () => expectDenied('cp_app', "set session_replication_role = 'replica'"));
   it('ne peut pas modifier sync_epoch', () => expectDenied('cp_app', 'update app.sync_epoch set epoch = gen_random_uuid()'));
-  it('ne peut pas lire le schéma priv', () => expectDenied('cp_app', 'select 1 from priv.nothing', '42501'));
+  // priv reste fermé : cp_app n'en obtient que l'accès syntaxique, pour la seule fonction d'anonymisation
+  // qui lui est explicitement accordée (R4, § 2.6). Aucune lecture de table, aucune création d'objet.
+  // On passe par les OID : cp_owner n'a lui-même aucun USAGE sur priv, et la résolution d'un nom de
+  // schéma par has_*_privilege exigerait ce droit.
+  it("n'a sur priv que l'accès au schéma : pas de CREATE, ni d'exécution d'une autre fonction", async () => {
+    const c = await connectAs('cp_owner', db);
+    try {
+      const r = await c.query(
+        `select has_schema_privilege('cp_app', n.oid, 'USAGE')  as usage,
+                has_schema_privilege('cp_app', n.oid, 'CREATE') as create_priv
+           from pg_namespace n where n.nspname = 'priv'`,
+      );
+      expect(r.rows[0]).toMatchObject({ usage: true, create_priv: false });
+      const f = await c.query(
+        `select p.proname as name, has_function_privilege('cp_app', p.oid, 'EXECUTE') as executable
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'priv' order by p.proname`,
+      );
+      expect(f.rows).toEqual([
+        { name: 'anonymize_user', executable: true }, // la seule accordée (R4)
+        { name: 'issue_admin_recovery_code', executable: false },
+      ]);
+    } finally { await c.end(); }
+  });
   it('peut lire sync_epoch', async () => {
     const c = await connectAs('cp_app', db);
     try {

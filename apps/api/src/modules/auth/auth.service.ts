@@ -188,4 +188,19 @@ export class AuthService {
       await this.audit.recordInTx(tx, actor, { action: 'PASSWORD_CHANGED', targetType: 'USER', targetId: actor.userId, metadata: { revokedSessions } });
     });
   }
+
+  /**
+   * P10, R4 : la suppression de compte est une anonymisation (§ 2.6). Le mot de passe est confirmé par
+   * le compte lui-même (400 si faux, R15), puis la fonction privilégiée efface l'identité, révoque les
+   * sessions et clôture l'appartenance — sans jamais supprimer de ligne. L'audit APP est déclaratif,
+   * l'audit PRIVILEGED que la fonction écrit est la preuve que l'effacement a eu lieu (§ 2.5).
+   */
+  async deleteAccount(actor: UserActor, password: string, ctx: ClientContext): Promise<void> {
+    this.authz.assert(actor, 'me.deleteAccount');
+    await this.credentials.verifyOrThrow(actor, password, ctx);
+    await this.prisma.withTx(async (tx) => {
+      await this.audit.recordInTx(tx, actor, { action: 'ACCOUNT_DELETED', targetType: 'USER', targetId: actor.userId, metadata: {} });
+      await this.users.anonymizeInTx(tx, actor, actor.userId);
+    });
+  }
 }

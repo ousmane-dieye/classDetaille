@@ -59,6 +59,7 @@ const EXPECTED: Record<Action, readonly Name[]> = {
   'classes.archive': ['admin'],
   'memberships.transfer': ['admin'],
   'memberships.transferMass': ['admin'],
+  'me.deleteAccount': ['user', 'admin'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],

@@ -170,19 +170,36 @@ describe('catalogue exact des droits de cp_app (§ 2.2, § 2.6)', () => {
     ...LEASES.map((c) => key('job_leases', 'SELECT', c)),
     ...['holder', 'lease_until', 'fencing_token'].map((c) => key('job_leases', 'UPDATE', c)),
   ];
-  // cp_privileged (fonction priv.issue_admin_recovery_code, lot 1b tâche 11) : liste exacte écrite à la main.
-  const PRIVILEGED_TABLE_GRANTS = [key('users', 'SELECT'), key('auth_challenges', 'SELECT'), key('email_outbox', 'SELECT'), key('email_attempts', 'SELECT')];
+  // cp_privileged (fonctions priv.* SECURITY DEFINER : code de récupération lot 1b, anonymisation lot 2
+  // tâche 8) : liste exacte écrite à la main. Une lecture en droit de table se décline en une entrée
+  // par colonne dans information_schema.column_privileges.
+  const PRIVILEGED_TABLE_GRANTS = [
+    key('users', 'SELECT'), key('auth_challenges', 'SELECT'), key('email_outbox', 'SELECT'), key('email_attempts', 'SELECT'),
+    key('sessions', 'SELECT'), key('class_memberships', 'SELECT'), key('enrollment_requests', 'SELECT'), key('audit_log', 'SELECT'),
+  ];
   const PRIVILEGED_COLUMN_GRANTS = [
-    ...USERS.map((c) => key('users', 'SELECT', c)), key('users', 'UPDATE', 'second_factor_blocked_at'), key('users', 'UPDATE', 'second_factor_cleared_at'),
+    ...USERS.map((c) => key('users', 'SELECT', c)),
+    ...['second_factor_blocked_at', 'second_factor_cleared_at', // lot 1b
+      'email', 'first_name', 'last_name', 'password_hash', 'global_role', 'status', 'email_flagged_at', // anonymisation
+      'email_reminders', 'email_announcements', 'unsubscribe_token_hash', 'deleted_at', 'updated_at'].map((c) => key('users', 'UPDATE', c)),
     ...CHALLENGES.map((c) => key('auth_challenges', 'SELECT', c)),
     ...['id', 'user_id', 'purpose', 'code_hmac', 'expires_at'].map((c) => key('auth_challenges', 'INSERT', c)),
     ...['consumed_at', 'consumed_reason'].map((c) => key('auth_challenges', 'UPDATE', c)),
     ...OUTBOX.map((c) => key('email_outbox', 'SELECT', c)),
     ...['id', 'recipient_user_id', 'to_address', 'kind', 'dedupe_key', 'payload', 'message_id', 'expires_at'].map((c) => key('email_outbox', 'INSERT', c)),
-    ...['status', 'claim_token', 'locked_until', 'payload_encrypted'].map((c) => key('email_outbox', 'UPDATE', c)),
+    ...['status', 'claim_token', 'locked_until', 'payload_encrypted', 'to_address', 'payload'].map((c) => key('email_outbox', 'UPDATE', c)),
     ...ATTEMPTS.map((c) => key('email_attempts', 'SELECT', c)),
-    ...['outcome', 'finished_at'].map((c) => key('email_attempts', 'UPDATE', c)),
+    ...['outcome', 'finished_at', 'smtp_response'].map((c) => key('email_attempts', 'UPDATE', c)),
     ...['actor_user_id', 'action', 'target_type', 'target_id', 'metadata'].map((c) => key('audit_log', 'INSERT', c)),
+    // Anonymisation (R4) : révocation des sessions, clôture de l'appartenance, annulation de la demande,
+    // effacement de l'identité, et lecture de l'audit pour le plafond de cinq par acteur sur 24 h.
+    ...SESSIONS.map((c) => key('sessions', 'SELECT', c)),
+    ...['revoked_at', 'revoke_reason'].map((c) => key('sessions', 'UPDATE', c)),
+    ...MEMBERSHIPS.map((c) => key('class_memberships', 'SELECT', c)),
+    ...['left_at', 'left_reason', 'left_by', 'left_note', 'updated_at'].map((c) => key('class_memberships', 'UPDATE', c)),
+    ...ENROLLMENTS.map((c) => key('enrollment_requests', 'SELECT', c)),
+    ...['status', 'decided_at', 'decided_by', 'decision_note'].map((c) => key('enrollment_requests', 'UPDATE', c)),
+    ...AUDIT.map((c) => key('audit_log', 'SELECT', c)),
   ];
   const TABLES = ['users', 'sessions', 'rate_limit_buckets', 'role_guard', 'classes', 'enrollment_requests', 'class_memberships', 'subjects', 'audit_log', 'auth_challenges', 'second_factor_failures', 'password_reset_tokens', 'email_outbox', 'email_attempts', 'job_leases'];
 

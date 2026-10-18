@@ -154,10 +154,17 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 8 : `priv.anonymize_user` et suppression de compte (API)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — `anonymize.int.spec.ts` : `POST /api/me/account` (mot de passe récent exigé, `400 CURRENT_PASSWORD_INVALID` sinon) → compte `DELETED`, identité effacée, préférences à `false`, `deleted_at` posé ; session révoquée `ANONYMIZED` ; appartenance clôturée `ACCOUNT_DELETED`, `leave_note` et `decision_note` effacés ; file d'emails annulée (`CANCELLED`, `to_address` et `payload` effacés) ; demande `PENDING` annulée ; **audit `ACCOUNT_ANONYMIZED` accepté seulement en source `PRIVILEGED`** (tentative APP → refus) ; 6ᵉ anonymisation d'un même acteur en 24 h → refus ; `cp_app` ne peut ni `SET ROLE cp_privileged`, ni modifier la fonction ; la reconnexion après suppression → `401` (jamais d'erreur 500) ; conservés sous pseudonyme : devoirs, ressources, messages (aucune table encore — test d'absence de régression).
-- [ ] **Step 2 : Implémenter** — migration `priv.anonymize_user(uuid)` (R4 : ce qui existe au lot 2), `users.deleteAccount` (action `me.deleteAccount`), appel par l'API sous `cp_app` via la fonction ; audit `ACCOUNT_DELETED` (APP) + `ACCOUNT_ANONYMIZED` (PRIVILEGED, écrit par la fonction).
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
-- [ ] **Step 4 : Commit** — `feat(lot2): anonymisation du compte et suppression depuis le profil`.
+- [x] **Step 1 : Écrire les tests (échouent)** — `anonymize.int.spec.ts` : `POST /api/me/account` (mot de passe récent exigé, `400 CURRENT_PASSWORD_INVALID` sinon) → compte `DELETED`, identité effacée, préférences à `false`, `deleted_at` posé ; session révoquée `ANONYMIZED` ; appartenance clôturée `ACCOUNT_DELETED`, `leave_note` et `decision_note` effacés ; file d'emails annulée (`CANCELLED`, `to_address` et `payload` effacés) ; demande `PENDING` annulée ; **audit `ACCOUNT_ANONYMIZED` accepté seulement en source `PRIVILEGED`** (tentative APP → refus) ; 6ᵉ anonymisation d'un même acteur en 24 h → refus ; `cp_app` ne peut ni `SET ROLE cp_privileged`, ni modifier la fonction ; la reconnexion après suppression → `401` (jamais d'erreur 500) ; conservés sous pseudonyme : devoirs, ressources, messages (aucune table encore — test d'absence de régression).
+- [x] **Step 2 : Implémenter** — migration `priv.anonymize_user(uuid)` (R4 : ce qui existe au lot 2), `users.deleteAccount` (action `me.deleteAccount`), appel par l'API sous `cp_app` via la fonction ; audit `ACCOUNT_DELETED` (APP) + `ACCOUNT_ANONYMIZED` (PRIVILEGED, écrit par la fonction).
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, routes-meta.
+- [x] **Step 4 : Commit** — `feat(lot2): anonymisation du compte et suppression depuis le profil`.
+
+**Écarts arrêtés en cours de route** (à connaître pour les tâches suivantes) :
+- La fonction porte **deux** arguments, `priv.anonymize_user(p_user uuid, p_actor uuid)`, et non un seul : le plafond de cinq par acteur sur 24 h et le champ `actor_user_id` de l'audit n'ont pas de sens si l'acteur est toujours la cible. Les droits de l'acteur sont relus dans la base — la cible elle-même, ou un administrateur actif.
+- `deleteAccount` vit dans **`AuthService`**, pas dans `UsersService` : `CredentialsChecker` appartient au module `auth`, qui importe déjà `users` ; l'inverse créerait un cycle. `UsersService.anonymizeInTx` conserve la primitive, avec son `authz.assert` en tête.
+- `cp_app` reçoit `USAGE` sur le schéma `priv` **et** `EXECUTE` sur cette seule fonction — sans quoi l'API ne pourrait pas l'appeler (c'est le modèle même de la § 2.6 : l'application fait foi pour l'acteur, la fonction vérifie et limite les dégâts). `role-privileges.int.spec.ts` et le catalogue exact d'`identity-schema.int.spec.ts` ont été affinés en conséquence : toujours ni `CREATE`, ni exécution de `priv.issue_admin_recovery_code`, ni lecture de table.
+- `enrollment_status` gagne la valeur `CANCELLED` (ni acceptée ni refusée : il n'y a eu aucun décideur), et `enrollment_decision_final` n'autorise plus que l'effacement du motif d'une demande déjà tranchée, jamais le changement de statut ni de décideur.
+- Prisma ne sait pas désérialifier le type SQL `void` : l'appel est casté `::text`.
 
 ### Task 9 : Fondations web du lot 2 (client, routes, StepUpDialog, Me)
 

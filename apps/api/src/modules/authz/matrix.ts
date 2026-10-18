@@ -15,6 +15,8 @@ export const ACTIONS = [
   'classes.list', 'classes.createApp', 'classes.read', 'classes.archive',
   // Lot 2 : transfert (R7) — administrateurs seulement, vérification supplémentaire en service.
   'memberships.transfer', 'memberships.transferMass',
+  // Lot 2 : suppression de compte (R4, § 2.6) — anonymisation confirmée par le mot de passe du compte.
+  'me.deleteAccount',
   'mail.enqueue', 'mail.deliver', 'mail.sweep', 'maintenance.purge', 'jobs.lease',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -71,6 +73,9 @@ export const MATRIX: Record<Action, readonly ActorClass[]> = {
   'classes.archive': ['admin'],
   'memberships.transfer': ['admin'],
   'memberships.transferMass': ['admin'],
+  // Suppression de compte (R4, P10) : les deux rôles, car c'est un droit personnel ; le mot de passe
+  // est confirmé par le compte lui-même. Le passage à DELETED remet le rôle à USER (CHECK users_lifecycle).
+  'me.deleteAccount': ['user', 'admin'],
   'mail.enqueue': ['anonymous', 'user', 'admin', 'system'],
   'mail.deliver': ['system'],
   'mail.sweep': ['system'],

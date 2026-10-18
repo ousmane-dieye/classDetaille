@@ -27,6 +27,9 @@ export const AUDIT_METADATA = {
   SUBJECT_DELETED: z.strictObject({ classId: z.uuid(), subjectId: z.uuid(), name: z.string() }),
   // Transfert (R7) : d'où, où, qui — jamais d'email ni de liste d'adresses (§ 2.5).
   MEMBER_TRANSFERRED: z.strictObject({ userId: z.uuid(), fromClassId: z.uuid(), toClassId: z.uuid() }),
+  // Suppression de compte (R4) : la demande est déclarative (APP) ; l'effacement réel est journalisé
+  // par la base elle-même en source PRIVILEGED, sous l'action ACCOUNT_ANONYMIZED (§ 2.5).
+  ACCOUNT_DELETED: z.strictObject({}),
 } as const;
 export type AppAuditAction = keyof typeof AUDIT_METADATA;
 export type AuditTargetType = 'USER' | 'CLASS' | 'SESSION' | 'ENROLLMENT_REQUEST' | 'SUBJECT';

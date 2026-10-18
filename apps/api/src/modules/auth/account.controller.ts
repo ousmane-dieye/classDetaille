@@ -1,6 +1,6 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res } from '@nestjs/common';
 import { ChangePasswordBody, EmailChangeStartBody, PasswordBody, VerifyCodeBody } from '@classepulse/shared';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CurrentActor } from '../../http/current-actor.js';
 import { EmptyBody } from '../../http/empty-body.js';
 import { ZodPipe } from '../../http/zod.pipe.js';
@@ -9,6 +9,7 @@ import { MeService } from '../users/me.service.js';
 import { AuthService } from './auth.service.js';
 import { clientContextOf } from './client-context.js';
 import { EmailChangeService } from './email-change.service.js';
+import { sessionClearCookie } from './session-cookie.js';
 import { StepUpService } from './step-up.service.js';
 import { SessionsService, type SessionDto } from './sessions.service.js';
 
@@ -20,6 +21,17 @@ export class AccountController {
   @HttpCode(204)
   async changePassword(@CurrentActor() actor: UserActor, @Body(new ZodPipe(ChangePasswordBody)) body: ChangePasswordBody, @Req() req: FastifyRequest): Promise<void> {
     await this.auth.changePassword(actor, body, clientContextOf(req));
+  }
+
+  /**
+   * P10 : suppression du compte — une anonymisation (R4, § 2.6), confirmée par le mot de passe.
+   * Toutes les sessions du compte sont révoquées, y compris celle-ci : le cookie part avec la réponse.
+   */
+  @Post('account')
+  @HttpCode(204)
+  async deleteAccount(@CurrentActor() actor: UserActor, @Body(new ZodPipe(PasswordBody)) body: PasswordBody, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply): Promise<void> {
+    await this.auth.deleteAccount(actor, body.password, clientContextOf(req));
+    reply.header('set-cookie', sessionClearCookie());
   }
 
   @Get('sessions')

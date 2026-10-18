@@ -123,6 +123,12 @@ export class UsersService {
     await this.repo.updateProfile(actor.userId, body.firstName, body.lastName);
   }
 
+  /** Anonymisation (R4) : primitive appelée par la suppression de compte, dans sa transaction. */
+  async anonymizeInTx(tx: TxClient, actor: UserActor, userId: string): Promise<void> {
+    this.authz.assert(actor, 'me.deleteAccount');
+    await this.repo.anonymizeInTx(tx, userId, actor.userId);
+  }
+
   async updatePreferences(actor: UserActor, body: UpdatePreferencesBody): Promise<void> {
     this.authz.assert(actor, 'me.updatePreferences');
     await this.repo.updatePreferences(actor.userId, {
