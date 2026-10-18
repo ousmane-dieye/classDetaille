@@ -5,6 +5,7 @@ import {
   appointDelegate,
   createSubject,
   deleteSubject,
+  getClassDetail,
   listClasses,
   listMembers,
   listRequests,
@@ -93,6 +94,7 @@ const ROUTES: Case[] = [
     [`/api/classes/${CLASS}/transfers`, { method: 'POST', body: { userIds: [USER] } }],
   ],
   ['GET /api/classes', () => listClasses(), ['/api/classes']],
+  ['GET /api/classes/:classId', () => getClassDetail(CLASS), [`/api/classes/${CLASS}`]],
 ];
 
 describe('api classes (lot 2)', () => {

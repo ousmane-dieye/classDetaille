@@ -197,10 +197,16 @@ README.md                                contrat du lot 3, parcours manuel, nouv
 
 ### Task 11 : Gestion — membres, matières et statistiques (M9)
 
-- [ ] **Step 1 : Écrire les tests (échouent)** — membres : liste avec emails et rôle, badge « Délégué » ; retrait avec motif facultatif, confirmation « Retirer … de la classe ? » ; **pas de bouton retrait sur un délégué** pour un délégué ; `403 DELEGATE_FORBIDDEN` affiché si le serveur refuse ; matière : ajout, suppression **désactivée avec la raison** si utilisée (M9) ; statistiques : membres, demandes en attente, traitées ; états vide/erreur/chargement partout.
-- [ ] **Step 2 : Implémenter** — `ClassMembersScreen`, `ClassSubjectsScreen`, `ClassStatsScreen`.
-- [ ] **Step 3 : Vérifier** — tests, typecheck, lint, a11y.
-- [ ] **Step 4 : Commit** — `feat(lot2): membres, matieres et statistiques (M9)`.
+- [x] **Step 1 : Écrire les tests (échouent)** — membres : liste avec emails et rôle, badge « Délégué » ; retrait avec motif facultatif, confirmation « Retirer … de la classe ? » ; **pas de bouton retrait sur un délégué** pour un délégué ; `403 DELEGATE_FORBIDDEN` affiché si le serveur refuse ; matière : ajout, suppression **désactivée avec la raison** si utilisée (M9) ; statistiques : membres, demandes en attente, traitées ; états vide/erreur/chargement partout.
+- [x] **Step 2 : Implémenter** — `ClassMembersScreen`, `ClassSubjectsScreen`, `ClassStatsScreen`.
+- [x] **Step 3 : Vérifier** — tests, typecheck, lint, a11y.
+- [x] **Step 4 : Commit** — `feat(lot2): membres, matieres et statistiques (M9)`.
+
+**Écarts arrêtés en cours de route** (à connaître pour les tâches suivantes) :
+- **« Suppression désactivée avec la raison » n'est pas atteignable au lot 2.** Aucune table ne référence encore `subjects` : le déclencheur ne peut pas refuser une matière utilisée, et aucun code API non plus. Le bouton reste donc actif, et c'est le `409 SUBJECT_IN_USE` qui affiche la raison si la base dit non — message déjà écrit dans `messages.ts`, prêt pour le lot 3. On ne simule pas un refus que rien ne produit encore : ce serait un écran qui ment.
+- **Les statistiques viennent de `GET /api/classes/:classId`**, la fiche elle-même ( `members`, `pendingRequests`, `decidedRequests` ). Ce n'est pas une route nouvelle : la matrice l'ouvre à tout membre de la classe comme à l'administrateur. Le client ne compte rien.
+- **Un `ClassNav` et un `useLoad` partagés** portent les trois écrans : une navigation (la courante porte `aria-current`), un chargement, un message et une reprise écrits une fois. Les tâches suivantes réutilisent `useLoad` plutôt que de refaire la même mécanique.
+- **Un `404` sur les statistiques ne propose pas « Réessayer »** : il affiche « Cette classe n'existe pas ou n'est plus disponible. » et un retour au profil. Recommencer ne changera rien, et le dit pourtant — l'isolation entre classes se voit là.
 
 ### Task 12 : Administration — vue d'ensemble, création et fiche de classe (M11/M12)
 

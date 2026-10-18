@@ -312,3 +312,91 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+
+/* Navigation des écrans de gestion (M9) : une section, une adresse ; la courante porte aria-current. */
+.cp-classnav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.cp-classnav a {
+  display: block;
+  padding: 7px 12px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  color: var(--cp-ink);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.cp-classnav a[aria-current='page'] {
+  background: var(--cp-brand);
+  border-color: var(--cp-brand);
+  color: var(--cp-onbrand);
+  font-weight: 600;
+}
+
+/* Membres et matières : la même ligne — l'objet à gauche, son action à droite. */
+.cp-members,
+.cp-subjects {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.cp-role {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  color: var(--cp-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cp-subjects__add {
+  margin-top: 26px;
+}
+
+/* M9 : les trois chiffres, posés à la même taille. */
+.cp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.cp-stat {
+  border: 1px solid var(--cp-line);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--cp-surface);
+}
+
+.cp-stat__value {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cp-stat__label {
+  font-size: 13.5px;
+  color: var(--cp-muted);
+}
+
+/* Le seul chiffre qui appelle à une action est un lien : souligné, jamais de couleur seule. */
+.cp-stat__link {
+  display: block;
+  color: var(--cp-ink);
+}
+
+.cp-stat__link .cp-stat__label {
+  text-decoration: underline;
+}

@@ -14,6 +14,9 @@ import { RefusedScreen } from './screens/states/RefusedScreen';
 import { NotFoundScreen } from './screens/states/NotFoundScreen';
 import { PrivacyScreen } from './screens/states/PrivacyScreen';
 import { ClassRequestsScreen } from './screens/gestion/ClassRequestsScreen';
+import { ClassMembersScreen } from './screens/gestion/ClassMembersScreen';
+import { ClassSubjectsScreen } from './screens/gestion/ClassSubjectsScreen';
+import { ClassStatsScreen } from './screens/gestion/ClassStatsScreen';
 
 /**
  * Une adresse par écran (UX § 1.5). La table reste déclarative : les tests de routes
@@ -39,6 +42,9 @@ export function AppRoutes(): ReactElement {
         <Route path="/etat/demande-refusee" element={<RefusedScreen />} />
         {/* La classe est dans l'URL : le serveur renvoie un 404 identique pour une classe qui n'est pas la sienne. */}
         <Route path="/classes/:classId/demandes" element={<ClassRequestsScreen />} />
+        <Route path="/classes/:classId/membres" element={<ClassMembersScreen />} />
+        <Route path="/classes/:classId/matieres" element={<ClassSubjectsScreen />} />
+        <Route path="/classes/:classId/statistiques" element={<ClassStatsScreen />} />
         <Route path="*" element={<NotFoundScreen />} />
       </Routes>
     </main>

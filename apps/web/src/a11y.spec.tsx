@@ -46,6 +46,27 @@ const mePending: Me = { ...me, enrollment: pendingEnrollment };
 
 const meDelegate: Me = { ...me, membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' } };
 
+const MEMBER = {
+  userId: 'u1',
+  firstName: 'Awa',
+  lastName: 'Diop',
+  email: 'a•••••@esp.sn',
+  role: 'STUDENT',
+  joinedAt: '2026-10-01T09:00:00.000Z',
+};
+
+const SUBJECT = { id: 's1', name: 'Algorithmique', createdAt: '2026-10-01T09:00:00.000Z' };
+
+const CLASS_DETAIL = {
+  id: 'c1',
+  name: 'GIT3',
+  level: 'L3',
+  academicYear: '2026-2027',
+  status: 'ACTIVE',
+  archivedAt: null,
+  stats: { members: 42, pendingRequests: 3, decidedRequests: 17 },
+};
+
 const session: Session = {
   id: 's1',
   createdAt: '2026-10-12T10:00:00.000Z',
@@ -65,6 +86,9 @@ beforeEach(() => {
     vi.fn(async (url: string) => {
       if (url === '/api/classes/active') return jsonResponse(200, [CLASS]);
       if (url === '/api/classes/c1/requests') return jsonResponse(200, [REQUEST]);
+      if (url === '/api/classes/c1/members') return jsonResponse(200, [MEMBER]);
+      if (url === '/api/classes/c1/subjects') return jsonResponse(200, [SUBJECT]);
+      if (url === '/api/classes/c1') return jsonResponse(200, CLASS_DETAIL);
       if (url === '/api/me/sessions') return jsonResponse(200, [session]);
       return jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' });
     }),
@@ -124,6 +148,9 @@ const SCREENS: ScreenCase[] = [
     loadMe: async () => meDelegate,
   },
   { name: 'demandes de ma classe (M9)', path: '/classes/c1/demandes', loadMe: async () => meDelegate },
+  { name: 'membres de ma classe (M9)', path: '/classes/c1/membres', loadMe: async () => meDelegate },
+  { name: 'matières de ma classe (R12)', path: '/classes/c1/matieres', loadMe: async () => meDelegate },
+  { name: 'statistiques de ma classe (R11)', path: '/classes/c1/statistiques', loadMe: async () => meDelegate },
   { name: 'sessions actives', path: '/profil/sessions', loadMe: async () => me },
 ];
 

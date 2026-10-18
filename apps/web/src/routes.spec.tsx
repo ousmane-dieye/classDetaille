@@ -49,6 +49,9 @@ describe('routes', () => {
     ['/profil', 'Profil', true],
     ['/profil/sessions', 'Sessions actives', true],
     ['/classes/c1/demandes', 'Demandes', true],
+    ['/classes/c1/membres', 'Membres', true],
+    ['/classes/c1/matieres', 'Matières', true],
+    ['/classes/c1/statistiques', 'Statistiques', true],
     ['/confidentialite', 'Confidentialité', false],
   ])('%s affiche « %s »', async (path, heading, auth) => {
     at(path, auth);

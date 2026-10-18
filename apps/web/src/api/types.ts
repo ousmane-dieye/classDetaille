@@ -73,6 +73,20 @@ export type ClassAdminSummary = {
   membersCount: number;
 };
 
+/** Statistiques simples (M9, R11) : membres actifs, demandes en attente, demandes traitées. */
+export type ClassStats = { members: number; pendingRequests: number; decidedRequests: number };
+
+/** Fiche de la classe (M12) : l'identité, le statut et les statistiques. */
+export type ClassDetail = {
+  id: string;
+  name: string;
+  level: string;
+  academicYear: string;
+  status: 'ACTIVE' | 'ARCHIVED';
+  archivedAt: string | null;
+  stats: ClassStats;
+};
+
 export type Session = {
   id: string;
   createdAt: string;

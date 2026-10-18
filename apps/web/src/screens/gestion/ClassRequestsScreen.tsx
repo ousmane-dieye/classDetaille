@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
-import { useParams } from 'react-router';
 import { acceptRequest, listRequests, refuseRequest } from '../../api/classes';
-import { ApiProblem } from '../../api/client';
+import type { ApiProblem } from '../../api/client';
 import type { EnrollmentRequest, Me } from '../../api/types';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -11,9 +10,8 @@ import { Skeleton, useDelayedFlag } from '../../components/Skeleton';
 import { formatDateTime } from '../../lib/format';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
-
-const toProblem = (e: unknown): ApiProblem =>
-  e instanceof ApiProblem ? e : new ApiProblem({ status: 0, code: 'INTERNAL', extra: {}, requestId: '', retryAfterSeconds: null });
+import { ClassNav, useClassId } from './class-nav';
+import { toProblem } from './class-load';
 
 const fullName = (request: EnrollmentRequest): string => `${request.user.firstName} ${request.user.lastName}`;
 
@@ -25,7 +23,7 @@ type Decision = { kind: 'accept' | 'refuse'; request: EnrollmentRequest };
  *  elles vivent d'abord en base (déclencheurs), puis dans l'API. Ce ne sont que des décisions. */
 function ClassRequests({ me }: { me: Me }): ReactElement {
   const { signOut } = useSession();
-  const { classId = '' } = useParams();
+  const classId = useClassId();
 
   const [requests, setRequests] = useState<EnrollmentRequest[] | null>(null);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
@@ -104,6 +102,7 @@ function ClassRequests({ me }: { me: Me }): ReactElement {
   return (
     <div className="cp-page">
       <h1>Demandes</h1>
+      <ClassNav classId={classId} />
       {classLabel ? <p className="cp-legend">{classLabel}</p> : null}
 
       {requests === null && problem === null && !showSkeleton ? <p className="cp-field__hint">Chargement…</p> : null}

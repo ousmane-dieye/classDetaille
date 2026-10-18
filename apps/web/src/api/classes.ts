@@ -1,6 +1,7 @@
 import { apiFetch } from './client';
 import type {
   ClassAdminSummary,
+  ClassDetail,
   ClassMember,
   Delegate,
   EnrollmentRequest,
@@ -87,4 +88,9 @@ export function transferBatch(classId: string, userIds: string[]): Promise<Trans
 /** `GET /api/classes` (M11) : toutes les classes, archivées incluses — administrateurs seulement. */
 export function listClasses(): Promise<ClassAdminSummary[]> {
   return apiFetch<ClassAdminSummary[]>('/api/classes');
+}
+
+/** `GET /api/classes/:classId` (M12, R11) : fiche et statistiques. Membre de la classe ou administrateur, sinon 404. */
+export function getClassDetail(classId: string): Promise<ClassDetail> {
+  return apiFetch<ClassDetail>(`/api/classes/${classId}`);
 }
