@@ -48,6 +48,7 @@ export function ForgotPasswordScreen(): ReactElement {
 
   async function onSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
+    if (busy) return; // un seul envoi à la fois.
     setProblem(null);
     setLocalError(null);
 

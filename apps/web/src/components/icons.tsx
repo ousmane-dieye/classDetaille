@@ -27,6 +27,24 @@ export function AlertIcon(props: SVGProps<SVGSVGElement>): ReactElement {
   );
 }
 
+export function CheckIcon(props: SVGProps<SVGSVGElement>): ReactElement {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+    </svg>
+  );
+}
+
+export function CloseIcon(props: SVGProps<SVGSVGElement>): ReactElement {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  );
+}
+
 export function SendIcon(props: SVGProps<SVGSVGElement>): ReactElement {
   return (
     <svg {...base(props)}>

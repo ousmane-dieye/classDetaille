@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { InlineAlert } from '../../components/InlineAlert';
 import { Skeleton, useDelayedFlag } from '../../components/Skeleton';
+import { useToasts } from '../../components/Toast';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
 import { ClassNav, useClassId } from './class-nav';
@@ -22,6 +23,7 @@ import { toProblem, useLoad } from './class-load';
 function ClassSubjects({ me }: { me: Me }): ReactElement {
   const classId = useClassId();
   const { signOut } = useSession();
+  const { notify } = useToasts();
 
   const load = useCallback(() => listSubjects(classId), [classId]);
   const subjects = useLoad<Subject[]>(load, signOut);
@@ -42,6 +44,8 @@ function ClassSubjects({ me }: { me: Me }): ReactElement {
       await createSubject(classId, trimmed);
       // Le champ ne s'efface qu'une fois la matière posée : sinon on perd la saisie.
       setName('');
+      // La confirmation nomme la matière créée, même si la liste met un instant à suivre.
+      notify('success', `La matière « ${trimmed} » a été ajoutée.`);
       subjects.reload();
     } catch (e) {
       const p = toProblem(e);
@@ -56,11 +60,13 @@ function ClassSubjects({ me }: { me: Me }): ReactElement {
   }
 
   async function remove(subject: Subject): Promise<void> {
+    if (busy) return; // une seule suppression à la fois : la seconde confirmation n'envoie rien.
     setBusy(true);
     setDeleteProblem(null);
     try {
       await deleteSubject(classId, subject.id);
       setDeleting(null);
+      notify('success', `La matière « ${subject.name} » a été supprimée.`);
       subjects.reload();
     } catch (e) {
       const p = toProblem(e);

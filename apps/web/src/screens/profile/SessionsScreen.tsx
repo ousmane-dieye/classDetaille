@@ -6,6 +6,7 @@ import type { Session } from '../../api/types';
 import { Button } from '../../components/Button';
 import { InlineAlert } from '../../components/InlineAlert';
 import { Skeleton, useDelayedFlag } from '../../components/Skeleton';
+import { useToasts } from '../../components/Toast';
 import { describeUserAgent } from '../../lib/device';
 import { formatDateTime, formatLongDate } from '../../lib/format';
 import { useSession } from '../../session/session-context';
@@ -17,13 +18,13 @@ const toProblem = (e: unknown): ApiProblem =>
 /** § 3.4 et M14 : la liste des appareils connectés, et la déconnexion des autres appareils. */
 function Sessions(): ReactElement {
   const { signOut } = useSession();
+  const { notify } = useToasts();
 
   const [sessions, setSessions] = useState<Session[] | null>(null);
   const [problem, setProblem] = useState<ApiProblem | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [revoking, setRevoking] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,10 +54,13 @@ function Sessions(): ReactElement {
   const otherCount = (sessions ?? []).filter((session) => !session.current).length;
 
   async function revokeOthers(): Promise<void> {
+    if (revoking) return; // une seule déconnexion à la fois.
     setRevoking(true);
     try {
       const { revoked } = await revokeOtherSessions();
-      setNotice(revoked === 0 ? 'Aucun autre appareil à déconnecter.' : `${revoked} appareil${revoked > 1 ? 's' : ''} déconnecté${revoked > 1 ? 's' : ''}.`);
+      // Rien à déconnecter n'est une information, pas un succès : le ton le dit.
+      if (revoked === 0) notify('info', 'Aucun autre appareil à déconnecter.');
+      else notify('success', `${revoked} appareil${revoked > 1 ? 's' : ''} déconnecté${revoked > 1 ? 's' : ''}.`);
       setConfirming(false);
       await load();
     } catch (e) {
@@ -92,7 +96,6 @@ function Sessions(): ReactElement {
           </Button>
         </>
       ) : null}
-      {notice ? <InlineAlert tone="info">{notice}</InlineAlert> : null}
 
       {sessions !== null && sessions.length === 0 ? <p>Aucune session active.</p> : null}
 

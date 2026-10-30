@@ -135,6 +135,28 @@ describe('écran des membres (M9)', () => {
     expect(screen.getByRole('button', { name: 'Retirer Mariama Ba' })).toBeTruthy();
   });
 
+  it('le retrait réussi nomme la personne retirée, dans un retour temporaire', async () => {
+    await at();
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer Awa Diop' }));
+    await screen.findByRole('heading', { level: 2, name: 'Retirer Awa Diop de la classe ?' });
+    submit();
+
+    expect(await screen.findByText('Awa Diop ne fait plus partie de la classe.')).toBeTruthy();
+    // Le retour est hors du flux de la page : la fenêtre s'est refermée sans message fantôme.
+    expect(screen.queryByRole('heading', { level: 2, name: 'Retirer Awa Diop de la classe ?' })).toBeNull();
+  });
+
+  it('deux confirmations rapprochées n’envoient qu’une seule suppression', async () => {
+    await at();
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer Awa Diop' }));
+    await screen.findByRole('heading', { level: 2, name: 'Retirer Awa Diop de la classe ?' });
+    submit();
+    submit(); // un second appui, encore dans la même seconde
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    expect(sent(0)).toEqual({ url: `${LIST}/u1`, body: {} });
+  });
+
   it('le refus du serveur s’affiche et garde la liste en place', async () => {
     await at(MEMBERS, (url, init) =>
       init?.method === 'DELETE' ? serverError(403, 'DELEGATE_FORBIDDEN') : jsonResponse(200, MEMBERS),

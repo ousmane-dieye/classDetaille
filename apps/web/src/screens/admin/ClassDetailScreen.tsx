@@ -10,6 +10,7 @@ import { InlineAlert } from '../../components/InlineAlert';
 import { Skeleton } from '../../components/Skeleton';
 import { StepUpDialog } from '../../components/StepUpDialog';
 import type { StepUpMissing } from '../../components/StepUpDialog';
+import { useToasts } from '../../components/Toast';
 import { formatLongDate } from '../../lib/format';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
@@ -38,6 +39,7 @@ function ClassDetail({ me }: { me: Me }): ReactElement {
   const classId = useClassId();
   const navigate = useNavigate();
   const { signOut } = useSession();
+  const { notify } = useToasts();
 
   const loadDetail = useCallback(() => getClassDetail(classId), [classId]);
   const detail = useLoad<ClassDetail>(loadDetail, signOut);
@@ -56,17 +58,30 @@ function ClassDetail({ me }: { me: Me }): ReactElement {
     await archiveClass(classId);
   }, [classId]);
 
+  /** La classe quitte les listes : le toast suit l'utilisateur jusqu'à celles-ci, par quel chemin qu'il passe. */
+  const notifyArchived = useCallback(() => {
+    const archived = detail.data?.name;
+    notify('success', archived ? `La classe ${archived} a été archivée.` : 'La classe a été archivée.');
+  }, [detail.data?.name, notify]);
+
   async function run(next: Action): Promise<void> {
+    if (busy) return; // une seule action à la fois : la seconde confirmation n'envoie rien.
     setBusy(true);
     setActionProblem(null);
     try {
       if (next.kind === 'archive') {
         await doArchive();
+        notifyArchived();
         navigate('/classes');
         return;
       }
-      if (next.kind === 'appoint') await appointDelegate(classId, next.member.userId);
-      else await revokeDelegate(classId, next.member.userId);
+      if (next.kind === 'appoint') {
+        await appointDelegate(classId, next.member.userId);
+        notify('success', `${fullName(next.member)} est désormais délégué de la classe.`);
+      } else {
+        await revokeDelegate(classId, next.member.userId);
+        notify('success', `${fullName(next.member)} n’est plus délégué de la classe.`);
+      }
       setAction(null);
       members.reload();
     } catch (e) {
@@ -234,6 +249,7 @@ function ClassDetail({ me }: { me: Me }): ReactElement {
               </p>
               <Button
                 variant="danger"
+                disabled={busy}
                 onClick={() => {
                   setAction({ kind: 'archive' });
                   setActionProblem(null);
@@ -254,6 +270,7 @@ function ClassDetail({ me }: { me: Me }): ReactElement {
           action={doArchive}
           onSucceeded={() => {
             setStepUp(null);
+            notifyArchived();
             navigate('/classes');
           }}
           onCancel={() => setStepUp(null)}

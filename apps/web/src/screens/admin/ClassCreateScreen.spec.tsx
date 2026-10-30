@@ -32,7 +32,14 @@ const admin: Me = {
 };
 
 async function at(handler?: (url: string, init?: RequestInit) => Response): Promise<void> {
-  stubApi(handler ?? ((url) => (url === LIST ? jsonResponse(201, {}) : jsonResponse(200, {}))));
+  // GET /api/classes renvoie la liste, POST la classe créée : deux réponses, deux corps.
+  stubApi(
+    handler ??
+      ((url, init) => {
+        if (url === LIST) return init?.method === 'POST' ? jsonResponse(201, {}) : jsonResponse(200, []);
+        return jsonResponse(200, {});
+      }),
+  );
   render(
     <MemoryRouter initialEntries={['/classes/nouvelle']}>
       <SessionProvider loadMe={async () => admin}>
@@ -109,6 +116,18 @@ describe('création d’une classe (M11, R8)', () => {
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({ name: 'L1 Informatique', level: 'L1', academicYear: '2026-2027' });
     expect(await screen.findByRole('heading', { level: 1, name: 'Classes' })).toBeTruthy();
+    // Le retour suit l'utilisateur jusqu'à la liste : la création est confirmée, pas seulement exécutée.
+    expect(await screen.findByText('La classe « L1 Informatique » a été créée.')).toBeTruthy();
+  });
+
+  it('un envoi répété n’envoie qu’une seule création', async () => {
+    await at();
+    fill();
+    submit();
+    submit(); // un second appui, encore dans la même seconde
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    await screen.findByRole('heading', { level: 1, name: 'Classes' });
   });
 
   it('un nom déjà porté affiche le message du serveur et garde la saisie', async () => {

@@ -5,6 +5,7 @@ import { createClass } from '../../api/classes';
 import type { ApiProblem } from '../../api/client';
 import { Button } from '../../components/Button';
 import { InlineAlert } from '../../components/InlineAlert';
+import { useToasts } from '../../components/Toast';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
 import { toProblem } from '../gestion/class-load';
@@ -24,6 +25,7 @@ type Field = keyof typeof MESSAGES;
 function ClassCreate(): ReactElement {
   const navigate = useNavigate();
   const { signOut } = useSession();
+  const { notify } = useToasts();
 
   const [name, setName] = useState('');
   const [level, setLevel] = useState('');
@@ -34,6 +36,7 @@ function ClassCreate(): ReactElement {
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
+    if (busy) return; // une seule création à la fois : une seconde frappe n'envoie rien.
     setProblem(null);
     setField(null);
 
@@ -53,6 +56,8 @@ function ClassCreate(): ReactElement {
     setBusy(true);
     try {
       await createClass(name.trim(), level.trim(), academicYear.trim());
+      // Le toast part avant la navigation : il se retrouve sur la liste, où la classe apparaît.
+      notify('success', `La classe « ${name.trim()} » a été créée.`);
       navigate('/classes');
     } catch (e) {
       const p = toProblem(e);

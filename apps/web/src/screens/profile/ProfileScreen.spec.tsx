@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProblem } from '../../api/client';
@@ -173,6 +173,30 @@ describe('profil (P10, M14)', () => {
 
     expect(await screen.findByText('Préférences enregistrées.')).toBeTruthy();
     expect(sent).toEqual({ emailReminders: true, emailAnnouncements: true });
+  });
+
+  it('les interrupteurs se figent pendant l’enregistrement, puis reviennent', async () => {
+    let release: ((response: Response) => void) | null = null;
+    stubApi((url) => {
+      if (url === '/api/me/email-preferences') {
+        // Le serveur n'a pas encore répondu : l'enregistrement est en vol.
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        }) as unknown as Response;
+      }
+      return jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' });
+    });
+    await mountAt();
+
+    fireEvent.click(screen.getByLabelText('Annonces par email'));
+    await waitFor(() => expect(release).not.toBeNull());
+    // Un second basculement pendant le vol créerait deux écritures concurrentes : impossible.
+    expect((screen.getByLabelText('Annonces par email') as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText('Rappels de devoirs') as HTMLInputElement).disabled).toBe(true);
+
+    (release as unknown as (response: Response) => void)(jsonResponse(200, { ...me, emailAnnouncements: true }));
+    expect(await screen.findByText('Préférences enregistrées.')).toBeTruthy();
+    await waitFor(() => expect((screen.getByLabelText('Annonces par email') as HTMLInputElement).disabled).toBe(false));
   });
 
   it('thème : système, clair ou sombre, mémorisé dans cp.theme', async () => {

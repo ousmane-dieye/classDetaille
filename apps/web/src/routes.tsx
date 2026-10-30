@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
+import { ToastProvider } from './components/Toast';
 import { applyStoredTheme } from './lib/theme';
 import { AdminCodeScreen } from './screens/login/AdminCodeScreen';
 import { LoginScreen } from './screens/login/LoginScreen';
@@ -24,36 +25,42 @@ import { ClassDetailScreen } from './screens/admin/ClassDetailScreen';
 /**
  * Une adresse par écran (UX § 1.5). La table reste déclarative : les tests de routes
  * vérifient qu'aucun écran n'est orphelin et qu'une adresse inconnue est refusée.
+ *
+ * Le `ToastProvider` enveloppe les routes (et non un écran) : un retour d'action survit à
+ * la navigation — créer une classe emmène à la liste, et le message « classe créée » l'y
+ * suit. Tous les tests qui rendent `AppRoutes` partagent ce même flux de notifications.
  */
 export function AppRoutes(): ReactElement {
   // Thème choisi dans le profil, appliqué dès le premier rendu (P10).
   useEffect(() => applyStoredTheme(), []);
 
   return (
-    <main id="contenu" tabIndex={-1}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/connexion" replace />} />
-        <Route path="/inscription" element={<RegisterScreen />} />
-        <Route path="/connexion" element={<LoginScreen />} />
-        <Route path="/connexion/code" element={<AdminCodeScreen />} />
-        <Route path="/mot-de-passe-oublie" element={<ForgotPasswordScreen />} />
-        <Route path="/reinitialiser-mot-de-passe" element={<ResetPasswordScreen />} />
-        <Route path="/profil" element={<ProfileScreen />} />
-        <Route path="/profil/sessions" element={<SessionsScreen />} />
-        <Route path="/confidentialite" element={<PrivacyScreen />} />
-        <Route path="/etat/demande-envoyee" element={<PendingScreen />} />
-        <Route path="/etat/demande-refusee" element={<RefusedScreen />} />
-        {/* La classe est dans l'URL : le serveur renvoie un 404 identique pour une classe qui n'est pas la sienne. */}
-        <Route path="/classes/:classId/demandes" element={<ClassRequestsScreen />} />
-        <Route path="/classes/:classId/membres" element={<ClassMembersScreen />} />
-        <Route path="/classes/:classId/matieres" element={<ClassSubjectsScreen />} />
-        <Route path="/classes/:classId/statistiques" element={<ClassStatsScreen />} />
-        {/* L'ordre compte : `nouvelle` déclarée après `:classId` serait avalée par le paramètre. */}
-        <Route path="/classes" element={<ClassesScreen />} />
-        <Route path="/classes/nouvelle" element={<ClassCreateScreen />} />
-        <Route path="/classes/:classId" element={<ClassDetailScreen />} />
-        <Route path="*" element={<NotFoundScreen />} />
-      </Routes>
-    </main>
+    <ToastProvider>
+      <main id="contenu" tabIndex={-1}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/connexion" replace />} />
+          <Route path="/inscription" element={<RegisterScreen />} />
+          <Route path="/connexion" element={<LoginScreen />} />
+          <Route path="/connexion/code" element={<AdminCodeScreen />} />
+          <Route path="/mot-de-passe-oublie" element={<ForgotPasswordScreen />} />
+          <Route path="/reinitialiser-mot-de-passe" element={<ResetPasswordScreen />} />
+          <Route path="/profil" element={<ProfileScreen />} />
+          <Route path="/profil/sessions" element={<SessionsScreen />} />
+          <Route path="/confidentialite" element={<PrivacyScreen />} />
+          <Route path="/etat/demande-envoyee" element={<PendingScreen />} />
+          <Route path="/etat/demande-refusee" element={<RefusedScreen />} />
+          {/* La classe est dans l'URL : le serveur renvoie un 404 identique pour une classe qui n'est pas la sienne. */}
+          <Route path="/classes/:classId/demandes" element={<ClassRequestsScreen />} />
+          <Route path="/classes/:classId/membres" element={<ClassMembersScreen />} />
+          <Route path="/classes/:classId/matieres" element={<ClassSubjectsScreen />} />
+          <Route path="/classes/:classId/statistiques" element={<ClassStatsScreen />} />
+          {/* L'ordre compte : `nouvelle` déclarée après `:classId` serait avalée par le paramètre. */}
+          <Route path="/classes" element={<ClassesScreen />} />
+          <Route path="/classes/nouvelle" element={<ClassCreateScreen />} />
+          <Route path="/classes/:classId" element={<ClassDetailScreen />} />
+          <Route path="*" element={<NotFoundScreen />} />
+        </Routes>
+      </main>
+    </ToastProvider>
   );
 }

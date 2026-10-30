@@ -157,6 +157,11 @@ describe('code à 6 chiffres (P2, M8)', () => {
 
     await waitFor(() => expect(codeInputs().map((c) => c.value).join('')).toBe(''));
     expect(screen.queryByRole('button', { name: 'Renvoyer' })).toBeNull();
+    expect(
+      (await screen.findByText('Un nouveau code vient de partir : vérifie ton email.')).closest(
+        '[role="status"]',
+      ),
+    ).toBeTruthy();
     expect(screen.getByText('01:00')).toBeTruthy();
     expect(screen.getByText('10:00')).toBeTruthy();
   });

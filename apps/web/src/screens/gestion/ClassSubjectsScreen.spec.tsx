@@ -88,6 +88,16 @@ describe('écran des matières (R12, M9)', () => {
     expect(sent(0)).toEqual({ url: LIST, body: { name: 'Réseaux' } });
   });
 
+  it('la matière ajoutée est confirmée par un retour temporaire nommant la matière', async () => {
+    await at();
+    fireEvent.change(screen.getByLabelText('Nom de la matière'), { target: { value: 'Réseaux' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter la matière' }));
+
+    expect(await screen.findByText('La matière « Réseaux » a été ajoutée.')).toBeTruthy();
+    // La saisie ne repart qu'une fois la matière posée.
+    expect((screen.getByLabelText('Nom de la matière') as HTMLInputElement).value).toBe('');
+  });
+
   it('une matière déjà présente affiche le message du serveur et garde la saisie', async () => {
     await at(SUBJECTS, (url, init) => {
       if (init?.method === 'POST') return serverError(409, 'SUBJECT_ALREADY_EXISTS');
@@ -117,6 +127,26 @@ describe('écran des matières (R12, M9)', () => {
 
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(sent(0)).toEqual({ url: `${LIST}/s1`, body: {} });
+  });
+
+  it('la suppression réussie confirme par un retour temporaire, la fenêtre refermée', async () => {
+    await at();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer Algorithmique' }));
+    await screen.findByRole('heading', { level: 2, name: 'Supprimer la matière Algorithmique ?' });
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la matière' }));
+
+    expect(await screen.findByText('La matière « Algorithmique » a été supprimée.')).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Supprimer la matière Algorithmique ?' })).toBeNull();
+  });
+
+  it('deux confirmations rapprochées n’envoient qu’une seule suppression', async () => {
+    await at();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer Algorithmique' }));
+    await screen.findByRole('heading', { level: 2, name: 'Supprimer la matière Algorithmique ?' });
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la matière' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la matière' }));
+
+    await waitFor(() => expect(writes()).toHaveLength(1));
   });
 
   it('une matière encore utilisée affiche la raison et garde la liste', async () => {

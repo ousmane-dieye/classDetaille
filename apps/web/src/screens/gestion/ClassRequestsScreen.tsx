@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { InlineAlert } from '../../components/InlineAlert';
 import { Skeleton, useDelayedFlag } from '../../components/Skeleton';
+import { useToasts } from '../../components/Toast';
 import { formatDateTime } from '../../lib/format';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
@@ -23,6 +24,7 @@ type Decision = { kind: 'accept' | 'refuse'; request: EnrollmentRequest };
  *  elles vivent d'abord en base (déclencheurs), puis dans l'API. Ce ne sont que des décisions. */
 function ClassRequests({ me }: { me: Me }): ReactElement {
   const { signOut } = useSession();
+  const { notify } = useToasts();
   const classId = useClassId();
 
   const [requests, setRequests] = useState<EnrollmentRequest[] | null>(null);
@@ -30,7 +32,6 @@ function ClassRequests({ me }: { me: Me }): ReactElement {
   const [decision, setDecision] = useState<Decision | null>(null);
   const [decisionProblem, setDecisionProblem] = useState<ApiProblem | null>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
 
   const load = useCallback(async () => {
@@ -68,13 +69,18 @@ function ClassRequests({ me }: { me: Me }): ReactElement {
   const showSkeleton = useDelayedFlag(requests === null && problem === null);
 
   async function decide(kind: Decision['kind'], request: EnrollmentRequest, note?: string): Promise<void> {
+    if (busy) return; // une seule décision à la fois : la seconde confirmation n'envoie rien.
     setBusy(true);
     setDecisionProblem(null);
     try {
       if (kind === 'accept') await acceptRequest(classId, request.id);
       else await refuseRequest(classId, request.id, note);
       setDecision(null);
-      setNotice(kind === 'accept' ? `${fullName(request)} rejoint la classe.` : `${fullName(request)} n’entre pas dans la classe.`);
+      // Le retour est un toast : il survit au rechargement de la liste, qui suit aussitôt.
+      notify(
+        'success',
+        kind === 'accept' ? `${fullName(request)} rejoint la classe.` : `${fullName(request)} n’entre pas dans la classe.`,
+      );
       await load();
     } catch (e) {
       const p = toProblem(e);
@@ -121,7 +127,6 @@ function ClassRequests({ me }: { me: Me }): ReactElement {
           </Button>
         </>
       ) : null}
-      {notice ? <InlineAlert tone="info">{notice}</InlineAlert> : null}
       {!online ? <InlineAlert tone="info">{OFFLINE_REASON}</InlineAlert> : null}
 
       {requests !== null && requests.length === 0 ? (
@@ -139,12 +144,13 @@ function ClassRequests({ me }: { me: Me }): ReactElement {
                 <p className="cp-request__meta">Envoyée le {formatDateTime(request.createdAt)}</p>
               </div>
               <div className="cp-request__actions">
-                <Button disabled={!online} busy={busy && decision?.request.id === request.id && decision.kind === 'accept'} onClick={() => { setDecision({ kind: 'accept', request }); setDecisionProblem(null); }}>
+                {/* Une décision en cours ferme les autres : jamais deux fenêtres, jamais deux requêtes. */}
+                <Button disabled={!online || busy} busy={busy && decision?.request.id === request.id && decision.kind === 'accept'} onClick={() => { setDecision({ kind: 'accept', request }); setDecisionProblem(null); }}>
                   Accepter {name}
                 </Button>
                 <Button
                   variant="danger"
-                  disabled={!online}
+                  disabled={!online || busy}
                   busy={busy && decision?.request.id === request.id && decision.kind === 'refuse'}
                   onClick={() => { setDecision({ kind: 'refuse', request }); setDecisionProblem(null); }}
                 >

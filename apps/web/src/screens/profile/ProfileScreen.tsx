@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { InlineAlert } from '../../components/InlineAlert';
 import { PasswordField } from '../../components/PasswordField';
 import { TextField } from '../../components/TextField';
+import { useToasts } from '../../components/Toast';
 import { applyTheme, readTheme, type ThemeChoice } from '../../lib/theme';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
@@ -43,10 +44,10 @@ function ManageClassLink({ classId }: { classId: string }): ReactElement {
 
 function Profile({ me }: { me: Me }): ReactElement {
   const { setMe } = useSession();
+  const { notify } = useToasts();
 
   const [firstName, setFirstName] = useState(me.firstName);
   const [lastName, setLastName] = useState(me.lastName);
-  const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [profileProblem, setProfileProblem] = useState<ApiProblem | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -58,13 +59,14 @@ function Profile({ me }: { me: Me }): ReactElement {
   const [currentError, setCurrentError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordProblem, setPasswordProblem] = useState<ApiProblem | null>(null);
-  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
   const [savingPassword, setSavingPassword] = useState(false);
 
   const [reminders, setReminders] = useState(me.emailReminders);
   const [announcements, setAnnouncements] = useState(me.emailAnnouncements);
-  const [preferencesNotice, setPreferencesNotice] = useState<string | null>(null);
   const [preferencesProblem, setPreferencesProblem] = useState<ApiProblem | null>(null);
+  // Les interrupteurs se figent pendant l'enregistrement : deux basculements simultanés
+  // s'enverraient l'un après l'autre, et le second répondrait peut-être le premier.
+  const [savingPreferences, setSavingPreferences] = useState(false);
 
   const [theme, setTheme] = useState<ThemeChoice>(readTheme);
 
@@ -73,7 +75,7 @@ function Profile({ me }: { me: Me }): ReactElement {
   const mismatch = confirm.length > 0 && next !== confirm;
 
   async function saveProfile(): Promise<void> {
-    setProfileNotice(null);
+    if (savingProfile) return; // un seul enregistrement à la fois.
     setProfileProblem(null);
     if (!firstName || !lastName) {
       setProfileProblem(new ApiProblem({ status: 400, code: 'VALIDATION_FAILED', extra: {}, requestId: '', retryAfterSeconds: null }));
@@ -82,7 +84,7 @@ function Profile({ me }: { me: Me }): ReactElement {
     setSavingProfile(true);
     try {
       setMe(await updateProfile({ firstName, lastName }));
-      setProfileNotice('Profil enregistré.');
+      notify('success', 'Profil enregistré.');
     } catch (e) {
       // Rien n'est effacé : les champs gardent ce qui a été saisi (§ 3.1).
       setProfileProblem(toProblem(e));
@@ -92,7 +94,7 @@ function Profile({ me }: { me: Me }): ReactElement {
   }
 
   async function savePassword(): Promise<void> {
-    setPasswordNotice(null);
+    if (savingPassword) return; // une seule mise à jour à la fois.
     setPasswordProblem(null);
     setPasswordError(null);
     setCurrentError(null);
@@ -118,7 +120,7 @@ function Profile({ me }: { me: Me }): ReactElement {
       setNext('');
       setConfirm('');
       setConfirmTouched(false);
-      setPasswordNotice('Mot de passe modifié. Toutes les autres sessions sont fermées.');
+      notify('success', 'Mot de passe modifié. Toutes les autres sessions sont fermées.');
     } catch (e) {
       const p = toProblem(e);
       if (p.code === 'CURRENT_PASSWORD_INVALID') setCurrentError(p.text);
@@ -129,19 +131,22 @@ function Profile({ me }: { me: Me }): ReactElement {
   }
 
   async function savePreferences(nextReminders: boolean, nextAnnouncements: boolean): Promise<void> {
-    setPreferencesNotice(null);
+    if (savingPreferences) return; // un seul enregistrement à la fois : pas de réponse à dépiler.
     setPreferencesProblem(null);
     const previous = { reminders, announcements };
     setReminders(nextReminders);
     setAnnouncements(nextAnnouncements);
+    setSavingPreferences(true);
     try {
       const updated = await updatePreferences({ emailReminders: nextReminders, emailAnnouncements: nextAnnouncements });
       setMe(updated);
-      setPreferencesNotice('Préférences enregistrées.');
+      notify('success', 'Préférences enregistrées.');
     } catch (e) {
       setReminders(previous.reminders);
       setAnnouncements(previous.announcements);
       setPreferencesProblem(toProblem(e));
+    } finally {
+      setSavingPreferences(false);
     }
   }
 
@@ -187,7 +192,6 @@ function Profile({ me }: { me: Me }): ReactElement {
           <TextField id="firstName" label="Prénom" value={firstName} onChange={setFirstName} autoComplete="given-name" required />
           <TextField id="lastName" label="Nom" value={lastName} onChange={setLastName} autoComplete="family-name" required />
         </div>
-        {profileNotice ? <InlineAlert tone="info">{profileNotice}</InlineAlert> : null}
         {profileProblem ? <InlineAlert>{profileProblem.text}</InlineAlert> : null}
         <Button busy={savingProfile} onClick={() => void saveProfile()}>
           Enregistrer
@@ -221,7 +225,6 @@ function Profile({ me }: { me: Me }): ReactElement {
               required
               {...(mismatchError ? { error: mismatchError } : {})}
             />
-            {passwordNotice ? <InlineAlert tone="info">{passwordNotice}</InlineAlert> : null}
             {passwordError ? <InlineAlert>{passwordError}</InlineAlert> : null}
             {passwordProblem ? <InlineAlert>{passwordProblem.text}</InlineAlert> : null}
             <Button type="submit" busy={savingPassword}>
@@ -229,12 +232,9 @@ function Profile({ me }: { me: Me }): ReactElement {
             </Button>
           </form>
         ) : (
-          <>
-            <Button variant="secondary" onClick={() => setPasswordOpen(true)}>
-              Changer mon mot de passe
-            </Button>
-            {passwordNotice ? <InlineAlert tone="info">{passwordNotice}</InlineAlert> : null}
-          </>
+          <Button variant="secondary" onClick={() => setPasswordOpen(true)}>
+            Changer mon mot de passe
+          </Button>
         )}
         <p>
           <Link className="cp-link" to="/profil/sessions">
@@ -254,6 +254,7 @@ function Profile({ me }: { me: Me }): ReactElement {
               id="prefReminders"
               type="checkbox"
               checked={reminders}
+              disabled={savingPreferences}
               aria-describedby="prefRemindersHint"
               onChange={(e) => void savePreferences(e.target.checked, announcements)}
             />
@@ -263,11 +264,16 @@ function Profile({ me }: { me: Me }): ReactElement {
           </div>
           <div className="cp-switch">
             <label htmlFor="prefAnnouncements">Annonces par email</label>
-            <input id="prefAnnouncements" type="checkbox" checked={announcements} onChange={(e) => void savePreferences(reminders, e.target.checked)} />
+            <input
+              id="prefAnnouncements"
+              type="checkbox"
+              checked={announcements}
+              disabled={savingPreferences}
+              onChange={(e) => void savePreferences(reminders, e.target.checked)}
+            />
           </div>
         </div>
         <p className="cp-field__hint">Les notifications dans l&apos;application restent toujours actives.</p>
-        {preferencesNotice ? <InlineAlert tone="info">{preferencesNotice}</InlineAlert> : null}
         {preferencesProblem ? <InlineAlert>{preferencesProblem.text}</InlineAlert> : null}
       </section>
 

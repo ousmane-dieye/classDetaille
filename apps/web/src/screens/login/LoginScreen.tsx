@@ -49,6 +49,7 @@ export function LoginScreen(): ReactElement {
 
   async function onSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
+    if (busy) return; // une seule tentative à la fois.
     setProblem(null);
     setLocalError(null);
 

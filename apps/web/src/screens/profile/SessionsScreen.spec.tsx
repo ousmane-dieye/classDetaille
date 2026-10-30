@@ -113,6 +113,22 @@ describe('sessions actives (§ 3.4, M14)', () => {
     expect(urls.filter((u) => u === '/api/me/sessions/revoke-others')).toHaveLength(1);
   });
 
+  it('rien à déconnecter : le retour est une information, pas un succès', async () => {
+    stubApi((url) => {
+      if (url === '/api/me/sessions') return okHandler();
+      if (url === '/api/me/sessions/revoke-others') return jsonResponse(200, { revoked: 0 });
+      return jsonResponse(401, { error: { code: 'UNAUTHENTICATED' }, requestId: 'r' });
+    });
+    mountAt();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Déconnecter les autres appareils' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Déconnecter' }));
+
+    expect(await screen.findByText('Aucun autre appareil à déconnecter.')).toBeTruthy();
+    // Le ton se lit dans la classe du retour : information (marqueur de bord), pas validation.
+    expect(screen.getByText('Aucun autre appareil à déconnecter.').closest('.cp-toast')?.className).toContain('cp-toast--info');
+  });
+
   it('401 sur la liste : la session a pris fin, retour à la connexion', async () => {
     stubApi((url) =>
       url === '/api/me/sessions'

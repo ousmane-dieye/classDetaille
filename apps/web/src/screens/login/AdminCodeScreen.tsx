@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Countdown } from '../../components/Countdown';
 import { InlineAlert } from '../../components/InlineAlert';
 import { OtpInput } from '../../components/OtpInput';
+import { useToasts } from '../../components/Toast';
 import { maskEmail } from '../../lib/format';
 import { homePathFor } from '../../lib/home';
 import { useSession } from '../../session/session-context';
@@ -23,6 +24,7 @@ export function AdminCodeScreen(): ReactElement {
   const location = useLocation();
   const navigate = useNavigate();
   const { setMe } = useSession();
+  const { notify } = useToasts();
   const challenge = (location.state ?? null) as ChallengeState | null;
 
   const otpRef = useRef<HTMLDivElement | null>(null);
@@ -78,6 +80,7 @@ export function AdminCodeScreen(): ReactElement {
       setCode('');
       setExpiresIn(delays.expiresInSeconds);
       setResendIn(delays.resendAfterSeconds);
+      notify('info', 'Un nouveau code vient de partir : vérifie ton email.');
     } catch (e) {
       const p =
         e instanceof ApiProblem
@@ -120,7 +123,13 @@ export function AdminCodeScreen(): ReactElement {
               Renvoyer (<Countdown seconds={resendIn} onDone={() => setResendIn(0)} />)
             </span>
           ) : (
-            <button className="cp-link cp-otp__resend" type="button" onClick={() => void onResend()}>
+            <button
+              className="cp-link cp-otp__resend"
+              type="button"
+              aria-busy={resending || undefined}
+              disabled={resending}
+              onClick={() => void onResend()}
+            >
               Renvoyer
             </button>
           )}

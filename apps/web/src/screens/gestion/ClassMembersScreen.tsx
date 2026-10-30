@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { InlineAlert } from '../../components/InlineAlert';
 import { Skeleton, useDelayedFlag } from '../../components/Skeleton';
+import { useToasts } from '../../components/Toast';
 import { formatDateTime } from '../../lib/format';
 import { useSession } from '../../session/session-context';
 import { RequireSession } from '../states/require-session';
@@ -24,6 +25,7 @@ const fullName = (member: ClassMember): string => `${member.firstName} ${member.
 function ClassMembers({ me }: { me: Me }): ReactElement {
   const classId = useClassId();
   const { signOut, refresh } = useSession();
+  const { notify } = useToasts();
 
   const load = useCallback(() => listMembers(classId), [classId]);
   const members = useLoad<ClassMember[]>(load, signOut);
@@ -35,11 +37,14 @@ function ClassMembers({ me }: { me: Me }): ReactElement {
   const removable = (member: ClassMember): boolean => me.globalRole === 'ADMIN' || member.role === 'STUDENT';
 
   async function remove(member: ClassMember, note?: string): Promise<void> {
+    if (busy) return; // une seule exécution à la fois : la seconde confirmation n'envoie rien.
     setBusy(true);
     setRemoveProblem(null);
     try {
       await removeMember(classId, member.userId, note);
       setRemoving(null);
+      // Le retrait est fait : le retour nomme la personne, sans dire si c'est « lui » ou « elle ».
+      notify('success', `${fullName(member)} ne fait plus partie de la classe.`);
       await refresh();
       members.reload();
     } catch (e) {

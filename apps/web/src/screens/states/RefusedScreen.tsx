@@ -47,7 +47,7 @@ function Refused({ me }: { me: Me }): ReactElement {
 
   /** R16 : on redemande la même classe. Le délai de 24 h et l'appartenance sont ceux du serveur. */
   const retry = async (): Promise<void> => {
-    if (!classId) return;
+    if (!classId || retrying) return; // une seule demande à la fois.
     setRetrying(true);
     setRetryProblem(null);
     try {

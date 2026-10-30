@@ -58,13 +58,14 @@ const delegate: Me = {
   membership: { classId: 'c1', classLabel: 'GIT3 · L3 · 2026-2027', role: 'DELEGATE' },
 };
 
-/** Serveur par défaut : la fiche, les membres, et 200 sur toute écriture. */
+/** Serveur par défaut : la fiche, les membres, la liste d'administration, et 200 sur toute écriture. */
 function ok(handler?: Handler): Handler {
   return (url, init) => {
     const custom = handler?.(url, init);
     if (custom) return custom;
     if (url === DETAIL) return jsonResponse(200, detail);
     if (url === MEMBERS) return jsonResponse(200, MEMBERS_LIST);
+    if (url === '/api/classes') return jsonResponse(200, []); // la liste, après navigation depuis la fiche
     return jsonResponse(200, {});
   };
 }
@@ -137,6 +138,25 @@ describe('fiche de classe (M12)', () => {
     expect(sent(0)).toEqual({ url: DELEGATES, body: { userId: 'u1' } });
   });
 
+  it('la nomination réussie confirme par un retour temporaire nommant la personne', async () => {
+    await at();
+    fireEvent.click(screen.getByRole('button', { name: 'Nommer délégué' }));
+    await screen.findByRole('heading', { level: 2, name: 'Nommer Awa Diop délégué de la classe ?' });
+    submit();
+
+    expect(await screen.findByText('Awa Diop est désormais délégué de la classe.')).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Nommer Awa Diop délégué de la classe ?' })).toBeNull();
+  });
+
+  it('la révocation réussie confirme par un retour temporaire nommant la personne', async () => {
+    await at();
+    fireEvent.click(screen.getByRole('button', { name: 'Révoquer la délégation de Mariama Ba' }));
+    await screen.findByRole('heading', { level: 2, name: 'Retirer la délégation de Mariama Ba ?' });
+    submit();
+
+    expect(await screen.findByText('Mariama Ba n’est plus délégué de la classe.')).toBeTruthy();
+  });
+
   it('révoque la délégation après une confirmation nommant la personne', async () => {
     await at();
     fireEvent.click(screen.getByRole('button', { name: 'Révoquer la délégation de Mariama Ba' }));
@@ -194,6 +214,8 @@ describe('fiche de classe (M12)', () => {
     expect(sent(1)).toEqual({ url: '/api/me/step-up', body: { password: 'un mot de passe très long' } });
     expect(sent(2)).toEqual({ url: '/api/me/step-up/verify', body: { code: '482190' } });
     expect(sent(3)).toEqual({ url: ARCHIVE, body: {} });
+    // L'archivage est confirmé même après la navigation : le retour suit l'utilisateur.
+    expect(await screen.findByText('La classe GIT3 a été archivée.')).toBeTruthy();
   });
 
   it('une classe inconnue ou interdite affiche le même 404', async () => {

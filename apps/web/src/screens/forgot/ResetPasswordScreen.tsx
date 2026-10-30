@@ -79,6 +79,7 @@ export function ResetPasswordScreen(): ReactElement {
 
   async function onSubmit(event: FormEvent): Promise<void> {
     event.preventDefault();
+    if (busy) return; // une seule réinitialisation à la fois.
     setProblem(null);
     setLocalError(null);
 

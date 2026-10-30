@@ -152,6 +152,57 @@ describe('écran des demandes (M9, P8)', () => {
     expect(sent(0)).toEqual({ url: `${LIST}/r1/accept`, body: {} });
   });
 
+  it('la décision réussie confirme par un retour temporaire, puis recharge la liste', async () => {
+    // La file se vide une fois la décision prise : le rechargement montre le résultat réel.
+    let decided = false;
+    stubApi((url, init) => {
+      if (url === LIST) return jsonResponse(200, decided ? [] : REQUESTS);
+      if (url === '/api/auth/logout') return jsonResponse(204, null);
+      if (init?.method === 'POST') {
+        decided = true;
+        return jsonResponse(200, { status: 'ACCEPTED', decidedAt: '2026-10-14T11:00:00.000Z' });
+      }
+      return jsonResponse(200, {});
+    });
+    await at();
+    fireEvent.click(await screen.findByRole('button', { name: 'Accepter Awa Diop' }));
+    await screen.findByRole('heading', { level: 2, name: 'Accepter Awa Diop dans la classe ?' });
+    submit();
+
+    expect(await screen.findByText('Awa Diop rejoint la classe.')).toBeTruthy();
+    expect(await screen.findByText('Aucune demande en attente.')).toBeTruthy();
+    // La fenêtre a disparu : la décision est faite, la file est à jour.
+    expect(screen.queryByRole('heading', { level: 2, name: 'Accepter Awa Diop dans la classe ?' })).toBeNull();
+  });
+
+  it('une décision en cours ferme les autres boutons : jamais deux requêtes à la fois', async () => {
+    let release: ((response: Response) => void) | null = null;
+    stubApi((url, init) => {
+      if (url === LIST) return jsonResponse(200, REQUESTS);
+      if (init?.method === 'POST') {
+        // Le serveur ne répond pas encore : l'action est en vol.
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        }) as unknown as Response;
+      }
+      return jsonResponse(200, {});
+    });
+    await at();
+    fireEvent.click(await screen.findByRole('button', { name: 'Accepter Awa Diop' }));
+    await screen.findByRole('heading', { level: 2, name: 'Accepter Awa Diop dans la classe ?' });
+    submit();
+
+    // Tant que la décision voyage, plus aucune autre ne peut partir.
+    await waitFor(() => expect(release).not.toBeNull());
+    expect((screen.getByRole('button', { name: /Refuser Fatou Sow/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: /Accepter Fatou Sow/ }) as HTMLButtonElement).disabled).toBe(true);
+
+    (release as unknown as (response: Response) => void)(jsonResponse(200, { status: 'ACCEPTED', decidedAt: '2026-10-14T11:00:00.000Z' }));
+    expect(await screen.findByText('Awa Diop rejoint la classe.')).toBeTruthy();
+    // Une fois la réponse reçue, les autres décisions reprennent leur place.
+    await waitFor(() => expect((screen.getByRole('button', { name: /Accepter Fatou Sow/ }) as HTMLButtonElement).disabled).toBe(false));
+  });
+
   it('un refus déjà tranché côté serveur affiche le message et recharge la liste', async () => {
     stubApi((url, init) => {
       if (url === LIST) return jsonResponse(200, REQUESTS);

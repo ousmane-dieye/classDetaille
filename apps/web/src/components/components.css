@@ -174,6 +174,98 @@
   flex: none;
 }
 
+/* Retours temporaires (§ 3.1) : non bloquants — la page reste utilisable sous le message. */
+.cp-toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.cp-toasts__region {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cp-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cp-line2);
+  border-left-width: 4px;
+  border-radius: 12px;
+  background: var(--cp-surface);
+  color: var(--cp-ink);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--cp-ink) 16%, transparent);
+  font-size: 14px;
+  line-height: 1.4;
+  pointer-events: auto;
+}
+
+.cp-toast--success {
+  border-left-color: var(--cp-grn);
+}
+
+.cp-toast--info {
+  border-left-color: var(--cp-brand);
+}
+
+.cp-toast--error {
+  border-left-color: var(--cp-red);
+}
+
+.cp-toast__icon {
+  flex: none;
+}
+
+.cp-toast--success .cp-toast__icon {
+  color: var(--cp-grn);
+}
+
+.cp-toast--info .cp-toast__icon {
+  color: var(--cp-brandtx);
+}
+
+.cp-toast--error .cp-toast__icon {
+  color: var(--cp-red);
+}
+
+.cp-toast__text {
+  flex: 1;
+  margin: 0;
+}
+
+.cp-toast__close {
+  flex: none;
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--cp-muted);
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .cp-toasts {
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-toast {
+    box-shadow: none;
+  }
+}
+
 /* Squelette de chargement */
 .cp-skeleton {
   background: var(--cp-line);
